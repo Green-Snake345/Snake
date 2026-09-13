@@ -1,8 +1,8 @@
 'use strict';
 
-// ═══════════════════════════════════════════════════════════
-//  DOM
-// ═══════════════════════════════════════════════════════════
+
+
+
 var canvas = document.getElementById('game');
 var ctx    = canvas.getContext('2d');
 
@@ -69,16 +69,40 @@ var ui = {
   gridToggle:      el('grid-toggle'),
   speedSlider:     el('speed-slider'),
   speedValue:      el('speed-value'),
-  snakeColor:      el('snake-color-picker'),
+  snakeColor:      el('snake-color-picker'), // ✦ НОВОЕ: может быть null (если убран input type="color"), это нормально
   volume:          el('volume-slider'),
   volumeValue:     el('volume-value'),
   particles:       el('particles-toggle'),
-  shake:           el('shake-toggle')
+  shake:           el('shake-toggle'),
+  vibration:       el('vibration-toggle'),
+  autoPause:       el('auto-pause-toggle'),
+  mobileSize:      el('mobile-size-select'),
+  leftHanded:      el('left-handed-toggle'),
+  highContrast:    el('contrast-toggle'),
+  performanceMode: el('performance-mode-select'),
+  
+  skinOptions:     document.querySelectorAll('.skin-option'),
+  
+  btnContinue:     el('btn-continue'),
+  mobilePause:     el('btn-mobile-pause'),
+  directionButtons: document.querySelectorAll('.direction-btn[data-direction]')
 };
 
-// ═══════════════════════════════════════════════════════════
-//  Состояние
-// ═══════════════════════════════════════════════════════════
+
+var ACHIEVEMENTS = {
+  firstGame:  { name: 'Новичок',    desc: 'Сыграйте первую игру',            icon: '🏆' },
+  eaten10:    { name: 'Голодный',   desc: 'Съешьте 10 яблок за всё время',   icon: '🍎' },
+  eaten50:    { name: 'Обжора',     desc: 'Съешьте 50 яблок за всё время',   icon: '🍔' },
+  played10:   { name: 'Ветеран',    desc: 'Сыграйте 10 игр',                 icon: '🎮' },
+  score100:   { name: 'Сотка',      desc: 'Наберите 100 очков за игру',       icon: '💯' },
+  score500:   { name: 'Мастер',     desc: 'Наберите 500 очков за игру',      icon: '⭐' },
+  level5:     { name: 'Альпинист',  desc: 'Достигните 5 уровня',             icon: '🧗' },
+  combo8:     { name: 'Комбо-мастер', desc: 'Соберите комбо x8',            icon: '🔥' }
+};
+
+
+
+
 var S = {
   grid: 16,
   count: 0,
@@ -99,6 +123,12 @@ var S = {
   particles: [],
   showParticles: true,
   showShake: true,
+  vibration: true,
+  autoPause: true,
+  mobileSize: 'standard',
+  leftHanded: false,
+  highContrast: false,
+  performanceMode: 'balanced',
   showGrid: true,
   volume: 0.5,
   shakeAmount: 0,
@@ -111,16 +141,23 @@ var S = {
   shield: 0,
   slow: 0,
   magnet: 0,
-  popups: []
+  popups: [],
+  
+  maxComboThisGame: 1,      
+  sessionStartTime: 0,       
+  hasSavedGame: false        
 };
 
 var sessionEaten = 0;
 var lastTime = 0;
 var audioCtx = null;
+var touchStartX = 0;
+var touchStartY = 0;
+var touchActive = false;
 
-// ═══════════════════════════════════════════════════════════
-//  Звук
-// ═══════════════════════════════════════════════════════════
+
+
+
 function initAudio() {
   if (audioCtx) return;
   try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
@@ -140,6 +177,11 @@ function beep(f, d, t, v) {
   o.stop(audioCtx.currentTime + d);
 }
 
+function haptic(pattern) {
+  if (!S.vibration || !navigator.vibrate) return;
+  try { navigator.vibrate(pattern); } catch (e) {}
+}
+
 var sfx = {
   eat:     function() { beep(660, 0.1, 'square'); },
   gold:    function() { beep(880, 0.08, 'triangle'); setTimeout(function() { beep(1100, 0.1, 'triangle'); }, 70); },
@@ -148,12 +190,14 @@ var sfx = {
   magnet:  function() { beep(550, 0.08, 'sawtooth'); setTimeout(function() { beep(700, 0.1, 'sawtooth'); }, 60); },
   levelUp: function() { beep(523, 0.1, 'triangle'); setTimeout(function() { beep(659, 0.1, 'triangle'); }, 100); setTimeout(function() { beep(784, 0.15, 'triangle'); }, 200); },
   death:   function() { beep(220, 0.3, 'sawtooth'); setTimeout(function() { beep(165, 0.4, 'sawtooth'); }, 150); },
-  turn:    function() { beep(440, 0.04, 'sine', 0.5); }
+  turn:    function() { beep(440, 0.04, 'sine', 0.5); },
+  
+  achievement: function() { beep(659, 0.1, 'triangle'); setTimeout(function() { beep(784, 0.1, 'triangle'); }, 100); setTimeout(function() { beep(988, 0.15, 'triangle'); }, 200); }
 };
 
-// ═══════════════════════════════════════════════════════════
-//  Утилиты
-// ═══════════════════════════════════════════════════════════
+
+
+
 function randInt(a, b) { return Math.floor(Math.random() * (b - a)) + a; }
 function now() { return performance.now(); }
 
@@ -162,20 +206,305 @@ function hexToRgb(h) {
   return m ? m.map(function(x) { return parseInt(x, 16); }) : [46, 204, 113];
 }
 
+var THEME_PALETTES = {
+  dark: {
+    bgDark: '#0a0a0f', panel: '#16161e', card: '#1c1c28',
+    accent: '#00e0c6', accent2: '#7b61ff', text: '#e8e8f0',
+    dim: '#8888a0', canvas: '#050508',
+    background: 'linear-gradient(-45deg, #0a0a0f, #16161e, #1a1a2e, #0f0f1a)'
+  },
+  light: {
+    bgDark: '#f0f2f5', panel: '#ffffff', card: '#f1f3f6',
+    accent: '#00a884', accent2: '#6c5ce7', text: '#1a1a1d',
+    dim: '#777777', canvas: '#f8f9fa',
+    background: 'linear-gradient(-45deg, #f0f2f5, #ffffff, #f1f3f6, #e8eaf0)'
+  },
+  midnight: {
+    bgDark: '#080b1a', panel: '#10162d', card: '#182241',
+    accent: '#6ea8fe', accent2: '#8b5cf6', text: '#eef4ff',
+    dim: '#9aaed1', canvas: '#050816',
+    background: 'linear-gradient(-45deg, #080b1a, #10162d, #161d3d, #090d20)'
+  },
+  forest: {
+    bgDark: '#07140f', panel: '#0d2118', card: '#123321',
+    accent: '#57e389', accent2: '#b8e986', text: '#effff4',
+    dim: '#86aa94', canvas: '#04100b',
+    background: 'linear-gradient(-45deg, #07140f, #0d2118, #123321, #06110c)'
+  },
+  sunset: {
+    bgDark: '#1c0b12', panel: '#2a111a', card: '#391821',
+    accent: '#ff9f68', accent2: '#ff5c8a', text: '#fff3ec',
+    dim: '#c39aa8', canvas: '#14070c',
+    background: 'linear-gradient(-45deg, #1c0b12, #2a111a, #4a1d2a, #211020)'
+  },
+  cyberpunk: {
+    bgDark: '#10051c', panel: '#1b0a31', card: '#291143',
+    accent: '#ff4ecd', accent2: '#7df9ff', text: '#fff0fb',
+    dim: '#c399c5', canvas: '#080111',
+    background: 'linear-gradient(-45deg, #10051c, #1b0a31, #28124b, #09051c)'
+  },
+  ocean: {
+    bgDark: '#04131c', panel: '#09232e', card: '#0d3440',
+    accent: '#31e7d0', accent2: '#4fa3ff', text: '#e4fbff',
+    dim: '#85b6c0', canvas: '#021017',
+    background: 'linear-gradient(-45deg, #04131c, #09232e, #0d3440, #031018)'
+  },
+  rose: {
+    bgDark: '#1c0a14', panel: '#29101e', card: '#3b1728',
+    accent: '#ff7aa8', accent2: '#c084fc', text: '#fff0f5',
+    dim: '#c59aaa', canvas: '#14070e',
+    background: 'linear-gradient(-45deg, #1c0a14, #29101e, #471b37, #1d0b20)'
+  },
+  paper: {
+    bgDark: '#f3efe5', panel: '#fffdf7', card: '#ebe5d8',
+    accent: '#a85d31', accent2: '#6a7d3b', text: '#302921',
+    dim: '#7a6d5e', canvas: '#f8f4eb',
+    background: 'linear-gradient(-45deg, #f3efe5, #fffdf7, #ebe5d8, #e9dfd0)'
+  }
+};
+
 function applyTheme(t) {
-  if (t === 'light') document.body.classList.add('theme-light');
-  else document.body.classList.remove('theme-light');
+  if (!THEME_PALETTES[t]) t = 'dark';
+  var palette = THEME_PALETTES[t];
+  var root = document.body;
+  var vars = {
+    '--bg-dark': palette.bgDark,
+    '--bg-panel': palette.panel,
+    '--bg-card': palette.card,
+    '--accent': palette.accent,
+    '--accent2': palette.accent2,
+    '--text': palette.text,
+    '--text-dim': palette.dim,
+    '--canvas-bg': palette.canvas
+  };
+
+  Object.keys(vars).forEach(function(key) {
+    root.style.setProperty(key, vars[key]);
+  });
+  root.classList.toggle('theme-light', t === 'light' || t === 'paper');
+  root.dataset.theme = t;
+  root.style.background = palette.background;
+  root.style.backgroundSize = '400% 400%';
+  root.style.animation = 'gradientShift 15s ease infinite';
+}
+
+function applyMobileSize(size) {
+  var allowed = { compact: true, standard: true, large: true };
+  if (!allowed[size]) size = 'standard';
+  document.body.classList.remove('mobile-controls-compact', 'mobile-controls-standard', 'mobile-controls-large');
+  document.body.classList.add('mobile-controls-' + size);
+  S.mobileSize = size;
+}
+
+function applyMobileLayout(leftHanded) {
+  S.leftHanded = Boolean(leftHanded);
+  document.body.classList.toggle('mobile-controls-left', S.leftHanded);
+}
+
+function applyHighContrast(enabled) {
+  S.highContrast = Boolean(enabled);
+  document.body.classList.toggle('high-contrast', S.highContrast);
+}
+
+function applyPerformanceMode(mode) {
+  var allowed = { quality: true, balanced: true, performance: true };
+  if (!allowed[mode]) mode = 'balanced';
+  S.performanceMode = mode;
+  document.body.classList.remove('performance-quality', 'performance-balanced', 'performance-mode');
+  document.body.classList.add('performance-' + mode);
 }
 
 function resizeCanvas() {
-  var s = Math.min(window.innerWidth - 40, window.innerHeight - 140, 520);
+  var isMobile = window.innerWidth <= 600;
+  var reservedHeight = isMobile ? 255 : 150;
+  var availableWidth = Math.max(S.grid * 10, window.innerWidth - (isMobile ? 24 : 40));
+  var availableHeight = Math.max(S.grid * 10, window.innerHeight - reservedHeight);
+  var s = Math.min(availableWidth, availableHeight, 520);
   canvas.width  = Math.floor(s / S.grid) * S.grid;
   canvas.height = Math.floor(s / S.grid) * S.grid;
 }
 
-// ═══════════════════════════════════════════════════════════
-//  Навигация
-// ═══════════════════════════════════════════════════════════
+
+
+
+function showNotification(text, subtext) {
+  var n = document.createElement('div');
+  n.className = 'toast-notification';
+  n.innerHTML = '<div class="toast-icon">🏆</div><div class="toast-text"><b>' + text + '</b>' + (subtext ? '<br><small>' + subtext + '</small>' : '') + '</div>';
+  document.body.appendChild(n);
+  
+  requestAnimationFrame(function() { n.classList.add('show'); });
+  
+  setTimeout(function() {
+    n.classList.remove('show');
+    setTimeout(function() { if (n.parentNode) n.remove(); }, 400);
+  }, 3500);
+}
+
+
+
+
+function loadAchievements() {
+  var raw = localStorage.getItem('snake-pro-achievements');
+  if (!raw) return {};
+  try { return JSON.parse(raw); } catch (e) { return {}; }
+}
+
+function saveAchievement(key) {
+  var ach = loadAchievements();
+  ach[key] = true;
+  localStorage.setItem('snake-pro-achievements', JSON.stringify(ach));
+}
+
+function checkAchievements() {
+  var ach = loadAchievements();
+
+  
+  if (!ach.firstGame && S.gamesPlayed >= 1) {
+    saveAchievement('firstGame');
+    sfx.achievement();
+    showNotification(ACHIEVEMENTS.firstGame.name, ACHIEVEMENTS.firstGame.desc);
+  }
+  
+  if (!ach.eaten10 && S.totalEaten >= 10) {
+    saveAchievement('eaten10');
+    sfx.achievement();
+    showNotification(ACHIEVEMENTS.eaten10.name, ACHIEVEMENTS.eaten10.desc);
+  }
+  
+  if (!ach.eaten50 && S.totalEaten >= 50) {
+    saveAchievement('eaten50');
+    sfx.achievement();
+    showNotification(ACHIEVEMENTS.eaten50.name, ACHIEVEMENTS.eaten50.desc);
+  }
+  
+  if (!ach.played10 && S.gamesPlayed >= 10) {
+    saveAchievement('played10');
+    sfx.achievement();
+    showNotification(ACHIEVEMENTS.played10.name, ACHIEVEMENTS.played10.desc);
+  }
+  
+  if (!ach.score100 && S.score >= 100) {
+    saveAchievement('score100');
+    sfx.achievement();
+    showNotification(ACHIEVEMENTS.score100.name, ACHIEVEMENTS.score100.desc);
+  }
+  
+  if (!ach.score500 && S.score >= 500) {
+    saveAchievement('score500');
+    sfx.achievement();
+    showNotification(ACHIEVEMENTS.score500.name, ACHIEVEMENTS.score500.desc);
+  }
+  
+  if (!ach.level5 && S.level >= 5) {
+    saveAchievement('level5');
+    sfx.achievement();
+    showNotification(ACHIEVEMENTS.level5.name, ACHIEVEMENTS.level5.desc);
+  }
+  
+  if (!ach.combo8 && S.maxComboThisGame >= 8) {
+    saveAchievement('combo8');
+    sfx.achievement();
+    showNotification(ACHIEVEMENTS.combo8.name, ACHIEVEMENTS.combo8.desc);
+  }
+}
+
+
+
+
+function claimDailyReward() {
+  var today = new Date().toISOString().slice(0, 10);
+  var lastClaim = localStorage.getItem('snake-pro-daily-reward');
+
+  if (lastClaim === today) return;
+
+
+  S.shield = 3000;
+  localStorage.setItem('snake-pro-daily-reward', today);
+  showNotification('Ежедневная награда', 'Бонусный щит на старте!');
+}
+
+
+
+
+function updateProgressBars() {
+  
+  var pbGames = el('pb-games');
+  if (pbGames) {
+    var gamesGoal = 10;
+    var pct = Math.min((S.gamesPlayed / gamesGoal) * 100, 100);
+    pbGames.style.width = pct + '%';
+  }
+  var msGamesVal = el('ms-games-val');
+  if (msGamesVal) msGamesVal.textContent = S.gamesPlayed;
+
+  
+  var pbApples = el('pb-apples');
+  if (pbApples) {
+    var applesGoal = 50;
+    var pct2 = Math.min((S.totalEaten / applesGoal) * 100, 100);
+    pbApples.style.width = pct2 + '%';
+  }
+  var msEatenVal = el('ms-eaten-val');
+  if (msEatenVal) msEatenVal.textContent = S.totalEaten;
+}
+
+
+
+
+function updateContinueButton() {
+  if (ui.btnContinue) {
+    ui.btnContinue.style.display = S.hasSavedGame ? 'block' : 'none';
+  }
+}
+
+
+
+
+function setupSkinPalette() {
+  if (!ui.skinOptions || ui.skinOptions.length === 0) return;
+
+  ui.skinOptions.forEach(function(option) {
+    
+    var dot = option.querySelector('.dot');
+    var color = option.getAttribute('data-color');
+    if (dot && color) dot.style.backgroundColor = color;
+
+    option.addEventListener('click', function() {
+      
+      ui.skinOptions.forEach(function(o) { o.classList.remove('active'); });
+      
+      option.classList.add('active');
+      
+      S.snakeColor = color;
+      
+      localStorage.setItem('snakeSkinColor', color);
+      
+      if (ui.snakeColor) ui.snakeColor.value = color;
+    });
+  });
+
+  
+  var savedColor = localStorage.getItem('snakeSkinColor');
+  if (!savedColor) savedColor = S.snakeColor; 
+
+  if (savedColor) {
+    S.snakeColor = savedColor;
+    
+    ui.skinOptions.forEach(function(opt) {
+      if (opt.getAttribute('data-color') === savedColor) {
+        opt.classList.add('active');
+      } else {
+        opt.classList.remove('active');
+      }
+    });
+    if (ui.snakeColor) ui.snakeColor.value = savedColor;
+  }
+}
+
+
+
+
 function showScreen(name) {
   ['mainMenu', 'instructions', 'about', 'settings', 'exitConfirm'].forEach(function(k) {
     if (screens[k]) screens[k].classList.remove('active');
@@ -194,11 +523,17 @@ function showScreen(name) {
     screens[name].classList.remove('hidden');
     screens[name].classList.add('active');
   }
+
+  
+  if (name === 'mainMenu') {
+    updateProgressBars();
+    updateContinueButton();
+  }
 }
 
-// ═══════════════════════════════════════════════════════════
-//  Настройки
-// ═══════════════════════════════════════════════════════════
+
+
+
 function loadSettings() {
   var raw = localStorage.getItem('snake-pro-settings');
   if (!raw) return;
@@ -209,13 +544,35 @@ function loadSettings() {
     if (s.theme && ui.theme)           { ui.theme.value = s.theme; S.theme = s.theme; applyTheme(S.theme); }
     if (typeof s.showGrid !== 'undefined' && ui.gridToggle)  { ui.gridToggle.checked = s.showGrid; S.showGrid = s.showGrid; }
     if (typeof s.baseSpeed !== 'undefined' && ui.speedSlider){ ui.speedSlider.value = String(s.baseSpeed); S.baseSpeed = s.baseSpeed; if (ui.speedValue) ui.speedValue.textContent = s.baseSpeed + '/10'; }
-    if (s.snakeColor && ui.snakeColor) { ui.snakeColor.value = s.snakeColor; S.snakeColor = s.snakeColor; }
+    if (s.snakeColor) {
+      S.snakeColor = s.snakeColor;
+      if (ui.snakeColor) ui.snakeColor.value = s.snakeColor;
+    }
     if (typeof s.particles !== 'undefined' && ui.particles)  { ui.particles.checked = s.particles; S.showParticles = s.particles; }
     if (typeof s.shake !== 'undefined' && ui.shake)          { ui.shake.checked = s.shake; S.showShake = s.shake; }
+    if (typeof s.vibration !== 'undefined' && ui.vibration)  { ui.vibration.checked = s.vibration; S.vibration = s.vibration; }
+    if (typeof s.autoPause !== 'undefined' && ui.autoPause)  { ui.autoPause.checked = s.autoPause; S.autoPause = s.autoPause; }
+    if (s.mobileSize && ui.mobileSize) { ui.mobileSize.value = s.mobileSize; applyMobileSize(s.mobileSize); }
+    if (typeof s.leftHanded !== 'undefined' && ui.leftHanded) {
+      ui.leftHanded.checked = s.leftHanded;
+      applyMobileLayout(s.leftHanded);
+    }
+    if (typeof s.highContrast !== 'undefined' && ui.highContrast) {
+      ui.highContrast.checked = s.highContrast;
+      applyHighContrast(s.highContrast);
+    }
+    if (s.performanceMode && ui.performanceMode) {
+      ui.performanceMode.value = s.performanceMode;
+      applyPerformanceMode(s.performanceMode);
+    }
     if (typeof s.volume !== 'undefined' && ui.volume)        { S.volume = s.volume; ui.volume.value = String(s.volume * 100); if (ui.volumeValue) ui.volumeValue.textContent = Math.round(s.volume * 100) + '%'; }
   } catch (e) {
     console.warn('Не удалось загрузить настройки', e);
   }
+
+  
+  var skinColor = localStorage.getItem('snakeSkinColor');
+  if (skinColor) S.snakeColor = skinColor;
 }
 
 function saveSettings() {
@@ -225,15 +582,28 @@ function saveSettings() {
     theme:      ui.theme ? ui.theme.value : 'dark',
     showGrid:   ui.gridToggle ? ui.gridToggle.checked : true,
     baseSpeed:  ui.speedSlider ? Number(ui.speedSlider.value) : 5,
-    snakeColor: ui.snakeColor ? ui.snakeColor.value : '#2ecc71',
+    snakeColor: S.snakeColor, 
     particles:  ui.particles ? ui.particles.checked : true,
     shake:      ui.shake ? ui.shake.checked : true,
+    vibration:  ui.vibration ? ui.vibration.checked : true,
+    autoPause:  ui.autoPause ? ui.autoPause.checked : true,
+    mobileSize: ui.mobileSize ? ui.mobileSize.value : 'standard',
+    leftHanded: ui.leftHanded ? ui.leftHanded.checked : false,
+    highContrast: ui.highContrast ? ui.highContrast.checked : false,
+    performanceMode: ui.performanceMode ? ui.performanceMode.value : 'balanced',
     volume:     ui.volume ? Number(ui.volume.value) / 100 : 0.5
   };
   localStorage.setItem('snake-pro-settings', JSON.stringify(s));
   S.difficulty = s.difficulty; S.grid = s.grid; S.theme = s.theme;
   S.showGrid = s.showGrid; S.baseSpeed = s.baseSpeed; S.snakeColor = s.snakeColor;
-  S.showParticles = s.particles; S.showShake = s.shake; S.volume = s.volume;
+  S.showParticles = s.particles; S.showShake = s.shake; S.vibration = s.vibration;
+  S.autoPause = s.autoPause; S.volume = s.volume;
+  applyMobileSize(s.mobileSize);
+  applyMobileLayout(s.leftHanded);
+  applyHighContrast(s.highContrast);
+  applyPerformanceMode(s.performanceMode);
+  
+  localStorage.setItem('snakeSkinColor', s.snakeColor);
   applyTheme(S.theme);
   resizeCanvas();
   showScreen('mainMenu');
@@ -249,14 +619,31 @@ function resetSettings() {
   if (ui.snakeColor)  ui.snakeColor.value = '#2ecc71';
   if (ui.particles)   ui.particles.checked = true;
   if (ui.shake)       ui.shake.checked = true;
+  if (ui.vibration)   ui.vibration.checked = true;
+  if (ui.autoPause)   ui.autoPause.checked = true;
+  if (ui.mobileSize)  ui.mobileSize.value = 'standard';
+  if (ui.leftHanded)  ui.leftHanded.checked = false;
+  if (ui.highContrast) ui.highContrast.checked = false;
+  if (ui.performanceMode) ui.performanceMode.value = 'balanced';
   if (ui.volume)      ui.volume.value = '50';
   if (ui.volumeValue) ui.volumeValue.textContent = '50%';
+
+  
+  if (ui.skinOptions) {
+    ui.skinOptions.forEach(function(o) { o.classList.remove('active'); });
+    var classic = Array.prototype.find.call(ui.skinOptions, function(o) {
+      return o.getAttribute('data-color') === '#2ecc71';
+    });
+    if (classic) classic.classList.add('active');
+  }
+  localStorage.removeItem('snakeSkinColor');
+
   saveSettings();
 }
 
-// ═══════════════════════════════════════════════════════════
-//  Статистика
-// ═══════════════════════════════════════════════════════════
+
+
+
 function loadStats() {
   var raw = localStorage.getItem('snake-pro-stats');
   if (!raw) return;
@@ -285,11 +672,13 @@ function saveStats() {
   if (ui.aboutGames)   ui.aboutGames.textContent = S.gamesPlayed;
   if (ui.aboutEaten)   ui.aboutEaten.textContent = S.totalEaten;
   if (ui.aboutBest)    ui.aboutBest.textContent = S.highScore;
+  
+  updateProgressBars();
 }
 
-// ═══════════════════════════════════════════════════════════
-//  Таблица рекордов
-// ═══════════════════════════════════════════════════════════
+
+
+
 function loadLeaderboard() {
   var raw = localStorage.getItem('snake-pro-leaderboard');
   if (!raw) return [];
@@ -318,18 +707,20 @@ function renderLeaderboard() {
     ui.leaderboard.innerHTML = '<li style="text-align:center;color:var(--text-dim)">Пока нет рекордов</li>';
     return;
   }
+  
   for (var i = 0; i < list.length; i++) {
     var li = document.createElement('li');
+    var isHighlight = (list[i].score === S.highScore);
     li.innerHTML =
       '<span class="rank">' + (i + 1) + '</span>' +
-      '<span class="score-val">' + list[i].score + '</span>';
+      '<span class="score-val' + (isHighlight ? ' highlight' : '') + '">' + list[i].score + '</span>';
     ui.leaderboard.appendChild(li);
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-//  Еда
-// ═══════════════════════════════════════════════════════════
+
+
+
 var FOOD_TYPES = {
   normal: { color: '#e74c3c', glow: '#e74c3c', points: 1, grow: 1, weight: 70, label: '+1' },
   gold:   { color: '#ffd700', glow: '#ffd700', points: 5, grow: 3, weight: 10, label: '+5' },
@@ -369,9 +760,9 @@ function ensureFoods() {
   while (S.foods.length < target) placeFood();
 }
 
-// ═══════════════════════════════════════════════════════════
-//  Препятствия
-// ═══════════════════════════════════════════════════════════
+
+
+
 function generateObstacles() {
   S.obstacles = [];
   if (S.level < 3) return;
@@ -390,11 +781,13 @@ function generateObstacles() {
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-//  Частицы
-// ═══════════════════════════════════════════════════════════
+
+
+
 function spawnParticles(x, y, n, c) {
   if (!S.showParticles) return;
+  if (S.performanceMode === 'performance') return;
+  if (S.performanceMode === 'balanced') n = Math.max(1, Math.floor(n * 0.65));
   for (var i = 0; i < n; i++) {
     S.particles.push({
       x: x + S.grid / 2, y: y + S.grid / 2,
@@ -424,9 +817,9 @@ function drawParticles() {
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-//  Всплывающие очки
-// ═══════════════════════════════════════════════════════════
+
+
+
 function spawnPopup(x, y, text, color) {
   S.popups.push({ x: x + S.grid / 2, y: y, text: text, color: color, life: 1, vy: -1.2 });
 }
@@ -454,11 +847,13 @@ function drawPopups() {
   ctx.textAlign = 'start';
 }
 
-// ═══════════════════════════════════════════════════════════
-//  Тряска экрана
-// ═══════════════════════════════════════════════════════════
+
+
+
 function shake(a) {
   if (!S.showShake) return;
+  if (S.performanceMode === 'performance') return;
+  if (S.performanceMode === 'balanced') a *= 0.65;
   S.shakeAmount = Math.max(S.shakeAmount, a);
 }
 
@@ -474,9 +869,9 @@ function applyShake() {
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-//  Полоса бустов
-// ═══════════════════════════════════════════════════════════
+
+
+
 function updatePowerupBar() {
   if (!ui.powerupBar) return;
   ui.powerupBar.innerHTML = '';
@@ -496,9 +891,9 @@ function updatePowerupBar() {
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-//  Скорость
-// ═══════════════════════════════════════════════════════════
+
+
+
 function getFrameDelay() {
   var b = S.difficulty === 'easy' ? 7 : S.difficulty === 'hard' ? 3 : 5;
   b -= Math.floor((S.level - 1) / 3);
@@ -507,9 +902,9 @@ function getFrameDelay() {
   return Math.max(2, b);
 }
 
-// ═══════════════════════════════════════════════════════════
-//  Игровой цикл
-// ═══════════════════════════════════════════════════════════
+
+
+
 function loop(ts) {
   if (!S.isRunning) return;
   var dt = ts - lastTime;
@@ -580,6 +975,8 @@ function loop(ts) {
       S.totalEaten++; sessionEaten++; S.eatenThisLevel++;
       S.snake.maxCells += ft.grow;
       S.combo = Math.min(S.combo + 1, 8);
+      
+      S.maxComboThisGame = Math.max(S.maxComboThisGame, S.combo);
       S.comboTimer = S.comboTimeout;
 
       if (ui.combo) {
@@ -604,6 +1001,8 @@ function loop(ts) {
       S.foods.splice(fi, 1);
       if (S.eatenThisLevel >= S.foodPerLevel) levelUp();
       if (ui.score) ui.score.textContent = S.score;
+      
+      checkAchievements();
     }
   }
 
@@ -632,12 +1031,17 @@ function loop(ts) {
   requestAnimationFrame(loop);
 }
 
-// ═══════════════════════════════════════════════════════════
-//  Отрисовка
-// ═══════════════════════════════════════════════════════════
+
+
+
 function drawGrid() {
   if (!S.showGrid) return;
-  ctx.strokeStyle = S.theme === 'light' ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.03)';
+  var lightTheme = S.theme === 'light' || S.theme === 'paper';
+  if (S.highContrast) {
+    ctx.strokeStyle = lightTheme ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.12)';
+  } else {
+    ctx.strokeStyle = lightTheme ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.03)';
+  }
   ctx.lineWidth = 1;
   for (var x = 0; x <= canvas.width; x += S.grid) {
     ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
@@ -739,15 +1143,16 @@ function drawSnake() {
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-//  Уровни
-// ═══════════════════════════════════════════════════════════
+
+
+
 function levelUp() {
   S.level++;
   S.eatenThisLevel = 0;
   S.foodPerLevel = 5 + S.level;
   if (ui.level) ui.level.textContent = S.level;
   sfx.levelUp();
+  haptic([20, 40, 20]);
   if (ui.levelUpNum) ui.levelUpNum.textContent = S.level;
   if (screens.levelBanner) {
     screens.levelBanner.classList.remove('hidden');
@@ -755,14 +1160,19 @@ function levelUp() {
   }
   generateObstacles();
   S.shield = Math.max(S.shield, 2000);
+  
+  checkAchievements();
 }
 
-// ═══════════════════════════════════════════════════════════
-//  Управление игрой
-// ═══════════════════════════════════════════════════════════
+
+
+
 function startGame() {
   resetGame();
   S.isRunning = true;
+  S.sessionStartTime = now();
+  
+  claimDailyReward();
   lastTime = performance.now();
   requestAnimationFrame(loop);
 }
@@ -782,6 +1192,8 @@ function resetGame() {
   S.shield = 0; S.slow = 0; S.magnet = 0;
   S.shakeAmount = 0;
   S.isMoving = false; S.isPaused = false; S.count = 0;
+  
+  S.maxComboThisGame = 1;
   for (var i = 0; i < S.snake.maxCells; i++) {
     S.snake.cells.push({ x: cx, y: cy });
   }
@@ -799,12 +1211,17 @@ function gameOver() {
   S.isRunning = false;
   S.gamesPlayed++;
   sfx.death();
+  haptic([40, 30, 80]);
   shake(16);
   var isRecord = S.score > S.highScore;
   if (isRecord) { S.highScore = S.score; }
   saveStats();
   saveLeaderboard(S.score);
   renderLeaderboard();
+  
+  S.hasSavedGame = true;
+  
+  checkAchievements();
   if (ui.finalScore) ui.finalScore.textContent = S.score;
   if (ui.finalLevel) ui.finalLevel.textContent = S.level;
   if (ui.finalEaten) ui.finalEaten.textContent = sessionEaten;
@@ -823,9 +1240,50 @@ function togglePause() {
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-//  Ввод — стрелки + WASD
-// ═══════════════════════════════════════════════════════════
+function setDirection(direction) {
+  if (!S.isRunning || S.isPaused) return false;
+
+  var g = S.grid;
+  var dx = 0;
+  var dy = 0;
+
+  if (direction === 'left') dx = -g;
+  if (direction === 'up') dy = -g;
+  if (direction === 'right') dx = g;
+  if (direction === 'down') dy = g;
+
+  
+  if ((dx !== 0 && S.snake.dx !== 0) || (dy !== 0 && S.snake.dy !== 0)) return false;
+
+  S.snake.dx = dx;
+  S.snake.dy = dy;
+  S.isMoving = true;
+  sfx.turn();
+  return true;
+}
+
+function flashDirectionButton(direction) {
+  if (!ui.directionButtons) return;
+  for (var i = 0; i < ui.directionButtons.length; i++) {
+    var button = ui.directionButtons[i];
+    if (button.getAttribute('data-direction') !== direction) continue;
+    button.classList.add('pressed');
+    (function(activeButton) {
+      setTimeout(function() { activeButton.classList.remove('pressed'); }, 100);
+    })(button);
+    break;
+  }
+}
+
+function handleSwipe(dx, dy) {
+  if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;
+  var direction;
+  if (Math.abs(dx) > Math.abs(dy)) direction = dx > 0 ? 'right' : 'left';
+  else direction = dy > 0 ? 'down' : 'up';
+  if (setDirection(direction)) flashDirectionButton(direction);
+}
+
+
 function handleKey(e) {
   if (e.which === 32) {
     e.preventDefault();
@@ -835,38 +1293,30 @@ function handleKey(e) {
 
   if (!S.isRunning || S.isPaused) return;
 
-  var g = S.grid;
   var key = e.which;
-  var handled = false;
+  var direction = null;
 
-  if ((key === 37 || key === 65) && S.snake.dx === 0) {
-    S.snake.dx = -g; S.snake.dy = 0; S.isMoving = true; sfx.turn(); handled = true;
-  }
-  else if ((key === 38 || key === 87) && S.snake.dy === 0) {
-    S.snake.dy = -g; S.snake.dx = 0; S.isMoving = true; sfx.turn(); handled = true;
-  }
-  else if ((key === 39 || key === 68) && S.snake.dx === 0) {
-    S.snake.dx = g; S.snake.dy = 0; S.isMoving = true; sfx.turn(); handled = true;
-  }
-  else if ((key === 40 || key === 83) && S.snake.dy === 0) {
-    S.snake.dy = g; S.snake.dx = 0; S.isMoving = true; sfx.turn(); handled = true;
-  }
+  if (key === 37 || key === 65) direction = 'left';
+  else if (key === 38 || key === 87) direction = 'up';
+  else if (key === 39 || key === 68) direction = 'right';
+  else if (key === 40 || key === 83) direction = 'down';
 
-  if (handled) e.preventDefault();
+  if (direction && setDirection(direction)) e.preventDefault();
 }
 
-// ═══════════════════════════════════════════════════════════
-//  Привязка кнопок
-// ═══════════════════════════════════════════════════════════
+
 function bindButtons() {
-  // Главное меню
+  
   if (ui.play)         ui.play.addEventListener('click', function() { initAudio(); sessionEaten = 0; showScreen('game'); });
   if (ui.settings)     ui.settings.addEventListener('click', function() { showScreen('settings'); });
   if (ui.instructions) ui.instructions.addEventListener('click', function() { showScreen('instructions'); });
   if (ui.about)        ui.about.addEventListener('click', function() { showScreen('about'); });
   if (ui.exit)          ui.exit.addEventListener('click', function() { showScreen('exitConfirm'); });
 
-  // Экран подтверждения выхода
+  
+  if (ui.btnContinue)  ui.btnContinue.addEventListener('click', function() { initAudio(); sessionEaten = 0; showScreen('game'); });
+
+  
   if (ui.exitYes) ui.exitYes.addEventListener('click', function() {
     S.isRunning = false;
     window.close();
@@ -874,46 +1324,619 @@ function bindButtons() {
   });
   if (ui.exitNo) ui.exitNo.addEventListener('click', function() { showScreen('mainMenu'); });
 
-  // О игре
+  
   if (ui.backAbout) ui.backAbout.addEventListener('click', function() { showScreen('mainMenu'); });
 
-  // Инструкции
+  
   if (ui.backInstr) ui.backInstr.addEventListener('click', function() { showScreen('mainMenu'); });
 
-  // Настройки
+  
   if (ui.backSettings)  ui.backSettings.addEventListener('click', function() { showScreen('mainMenu'); });
   if (ui.saveSettings)  ui.saveSettings.addEventListener('click', saveSettings);
   if (ui.resetSettings) ui.resetSettings.addEventListener('click', resetSettings);
   if (ui.volume)        ui.volume.addEventListener('input', function() { if (ui.volumeValue) ui.volumeValue.textContent = ui.volume.value + '%'; });
   if (ui.speedSlider)   ui.speedSlider.addEventListener('input', function() { if (ui.speedValue) ui.speedValue.textContent = ui.speedSlider.value + '/10'; });
 
-  // Игровой экран
+  
   if (ui.pauseBtn) ui.pauseBtn.addEventListener('click', togglePause);
+  if (ui.mobilePause) ui.mobilePause.addEventListener('click', togglePause);
   if (ui.restart)  ui.restart.addEventListener('click', function() { initAudio(); sessionEaten = 0; startGame(); });
   if (ui.toMenu)   ui.toMenu.addEventListener('click', function() { stopGame(); showScreen('mainMenu'); });
 
-  // Оверлей проигрыша
+  if (ui.directionButtons) {
+    ui.directionButtons.forEach(function(button) {
+      button.addEventListener('pointerdown', function(e) {
+        e.preventDefault();
+        initAudio();
+        setDirection(button.getAttribute('data-direction'));
+        button.classList.add('pressed');
+      });
+      button.addEventListener('pointerup', function() { button.classList.remove('pressed'); });
+      button.addEventListener('pointercancel', function() { button.classList.remove('pressed'); });
+      button.addEventListener('pointerleave', function() { button.classList.remove('pressed'); });
+    });
+  }
+
+  
+  if (ui.canvasContainer) {
+    ui.canvasContainer.addEventListener('touchstart', function(e) {
+      if (!e.touches || !e.touches[0]) return;
+      touchActive = true;
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+      e.preventDefault();
+    }, { passive: false });
+    ui.canvasContainer.addEventListener('touchmove', function(e) {
+      if (touchActive) e.preventDefault();
+    }, { passive: false });
+    ui.canvasContainer.addEventListener('touchend', function(e) {
+      if (!touchActive || !e.changedTouches || !e.changedTouches[0]) return;
+      handleSwipe(
+        e.changedTouches[0].clientX - touchStartX,
+        e.changedTouches[0].clientY - touchStartY
+      );
+      touchActive = false;
+      e.preventDefault();
+    }, { passive: false });
+    ui.canvasContainer.addEventListener('touchcancel', function() { touchActive = false; });
+  }
+
+  
   if (ui.restartOverlay) ui.restartOverlay.addEventListener('click', function() { initAudio(); sessionEaten = 0; startGame(); });
   if (ui.backToMenu)     ui.backToMenu.addEventListener('click', function() { stopGame(); showScreen('mainMenu'); });
 
-  // Пауза
+  
   if (ui.resume)      ui.resume.addEventListener('click', togglePause);
   if (ui.pauseToMenu) ui.pauseToMenu.addEventListener('click', function() { stopGame(); showScreen('mainMenu'); });
+
+  
+  if (ui.snakeColor) {
+    ui.snakeColor.addEventListener('input', function() {
+      S.snakeColor = ui.snakeColor.value;
+      localStorage.setItem('snakeSkinColor', S.snakeColor);
+      
+      if (ui.skinOptions) {
+        ui.skinOptions.forEach(function(o) { o.classList.remove('active'); });
+      }
+    });
+  }
 }
 
-// ═══════════════════════════════════════════════════════════
-//  Инициализация
-// ═══════════════════════════════════════════════════════════
+
+
+
 function init() {
   bindButtons();
   window.addEventListener('keydown', handleKey);
   window.addEventListener('resize', function() {
     if (screens.game && !screens.game.classList.contains('hidden')) resizeCanvas();
   });
+  document.addEventListener('visibilitychange', function() {
+    if (S.autoPause && document.hidden && S.isRunning && !S.isPaused) togglePause();
+  });
   loadSettings();
   loadStats();
   renderLeaderboard();
+  
+  setupSkinPalette();
+ 
+  updateProgressBars();
+  updateContinueButton();
+  
+  if (S.gamesPlayed > 0) S.hasSavedGame = true;
   showScreen('mainMenu');
 }
 
 init();
+
+
+
+
+
+(function addTurboAbility() {
+  var TURBO_DURATION = 2400;
+  var TURBO_COOLDOWN = 7000;
+  var turboButton = null;
+  var lastTapAt = 0;
+
+  S.turboUntil = 0;
+  S.turboReadyAt = 0;
+
+  
+  var regularFrameDelay = getFrameDelay;
+  getFrameDelay = function() {
+    var delay = regularFrameDelay();
+    if (S.turboUntil > now()) return Math.max(1, delay - 2);
+    return delay;
+  };
+
+  function addTurboStyles() {
+    if (document.getElementById('turbo-styles')) return;
+    var style = document.createElement('style');
+    style.id = 'turbo-styles';
+    style.textContent =
+      '.turbo-control{border-color:rgba(255,193,7,.42)!important;color:#ffd166!important}' +
+      '.turbo-control.ready{background:linear-gradient(135deg,#ffb703,#fb8500)!important;color:#241400!important;border-color:transparent!important;box-shadow:0 4px 18px rgba(255,167,38,.35)!important}' +
+      '.turbo-control.active{background:linear-gradient(135deg,#ffe082,#ff7b00)!important;color:#241400!important;animation:turboPulse .55s ease-in-out infinite alternate}' +
+      '.turbo-control:disabled{cursor:not-allowed;opacity:.6;transform:none!important}' +
+      '@keyframes turboPulse{from{filter:brightness(1)}to{filter:brightness(1.35)}}';
+    document.head.appendChild(style);
+  }
+
+  function createTurboButton() {
+    var controls = document.querySelector('.game-controls');
+    if (!controls || document.getElementById('btn-turbo')) return;
+
+    turboButton = document.createElement('button');
+    turboButton.id = 'btn-turbo';
+    turboButton.type = 'button';
+    turboButton.className = 'btn btn-small turbo-control ready';
+    turboButton.setAttribute('aria-label', 'Активировать турбо');
+    turboButton.textContent = '⚡ Турбо';
+    turboButton.addEventListener('click', activateTurbo);
+    controls.insertBefore(turboButton, ui.toMenu || null);
+  }
+
+  function updateTurboButton() {
+    if (!turboButton) return;
+
+    var current = now();
+    var active = S.turboUntil > current;
+    var cooldown = Math.max(0, S.turboReadyAt - current);
+    turboButton.classList.toggle('active', active);
+    turboButton.classList.toggle('ready', !active && cooldown <= 0);
+    turboButton.disabled = !S.isRunning || S.isPaused || (!active && cooldown > 0);
+
+    if (active) {
+      turboButton.textContent = '⚡ ' + (Math.max(0, S.turboUntil - current) / 1000).toFixed(1) + 'с';
+    } else if (cooldown > 0) {
+      turboButton.textContent = '⏳ ' + Math.ceil(cooldown / 1000) + 'с';
+    } else {
+      turboButton.textContent = '⚡ Турбо';
+    }
+  }
+
+  function activateTurbo() {
+    if (!S.isRunning || S.isPaused || now() < S.turboReadyAt) return;
+
+    S.turboUntil = now() + TURBO_DURATION;
+    S.turboReadyAt = now() + TURBO_COOLDOWN;
+    if (typeof beep === 'function') beep(740, 0.12, 'triangle', 0.8);
+    haptic([18, 35, 18]);
+    updateTurboButton();
+  }
+
+  window.snakeActivateTurbo = activateTurbo;
+
+  var regularResetGame = resetGame;
+  resetGame = function() {
+    regularResetGame();
+    S.turboUntil = 0;
+    S.turboReadyAt = 0;
+    updateTurboButton();
+  };
+
+  function addMobileHint() {
+    var list = document.querySelector('.info-list');
+    if (!list || list.querySelector('.turbo-help')) return;
+    var item = document.createElement('li');
+    item.className = 'turbo-help';
+    item.innerHTML = '<b>Турбо</b> — клавиша Shift, двойной тап или кнопка ⚡; действует 2,4 сек.';
+    list.appendChild(item);
+  }
+
+
+  window.addEventListener('keydown', function(e) {
+    if (e.key === 'Shift' || e.which === 16) {
+      e.preventDefault();
+      activateTurbo();
+    }
+  });
+
+
+  if (ui.canvasContainer) {
+    ui.canvasContainer.addEventListener('touchend', function(e) {
+      if (!e.changedTouches || !e.changedTouches[0]) return;
+      var touch = e.changedTouches[0];
+      var moved = Math.abs(touch.clientX - touchStartX) + Math.abs(touch.clientY - touchStartY);
+      var current = Date.now();
+      if (moved < 18 && current - lastTapAt < 300) activateTurbo();
+      lastTapAt = current;
+    }, { passive: true });
+  }
+
+  addTurboStyles();
+  createTurboButton();
+  addMobileHint();
+  updateTurboButton();
+  window.setInterval(updateTurboButton, 100);
+})();
+
+
+
+
+(function addDesktopFullscreen() {
+  var fullscreenButton = null;
+
+  function isFullscreen() {
+    return document.fullscreenElement || document.webkitFullscreenElement;
+  }
+
+  function updateFullscreenButton() {
+    if (!fullscreenButton) return;
+    var active = Boolean(isFullscreen());
+    fullscreenButton.textContent = active ? '↙ Маленький экран' : '⛶ Полный экран';
+    fullscreenButton.setAttribute('aria-label', active ? 'Выйти из полноэкранного режима' : 'Включить полноэкранный режим');
+    fullscreenButton.classList.toggle('fullscreen-active', active);
+  }
+
+  function toggleFullscreen() {
+    if (isFullscreen()) {
+      var exit = document.exitFullscreen || document.webkitExitFullscreen;
+      if (exit) {
+        var exitResult = exit.call(document);
+        if (exitResult && exitResult.catch) exitResult.catch(function() {});
+      }
+      return;
+    }
+
+    var root = document.documentElement;
+    var request = root.requestFullscreen || root.webkitRequestFullscreen;
+    if (!request) {
+      showNotification('Полный экран недоступен', 'Браузер не поддерживает эту функцию');
+      return;
+    }
+    var requestResult = request.call(root);
+    if (requestResult && requestResult.catch) {
+      requestResult.catch(function() {
+        showNotification('Не удалось включить полный экран', 'Попробуйте нажать кнопку ещё раз');
+      });
+    }
+  }
+
+  function addButton() {
+    var controls = document.querySelector('.game-controls');
+    if (!controls || document.getElementById('btn-fullscreen')) return;
+
+    fullscreenButton = document.createElement('button');
+    fullscreenButton.id = 'btn-fullscreen';
+    fullscreenButton.type = 'button';
+    fullscreenButton.className = 'btn btn-small desktop-only fullscreen-control';
+    fullscreenButton.textContent = '⛶ Полный экран';
+    fullscreenButton.addEventListener('click', toggleFullscreen);
+    controls.appendChild(fullscreenButton);
+    updateFullscreenButton();
+  }
+
+  function addKeyboardHint() {
+    var list = document.querySelector('.info-list');
+    if (!list || list.querySelector('.fullscreen-help')) return;
+    var item = document.createElement('li');
+    item.className = 'fullscreen-help';
+    item.innerHTML = '<b>F</b> — включить или выключить полноэкранный режим на компьютере';
+    list.appendChild(item);
+  }
+
+  document.addEventListener('fullscreenchange', updateFullscreenButton);
+  document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
+  window.addEventListener('keydown', function(e) {
+    if (e.key && e.key.toLowerCase() === 'f' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      e.preventDefault();
+      toggleFullscreen();
+    }
+  });
+
+  addButton();
+  addKeyboardHint();
+})();
+
+
+
+
+(function addQuickActions() {
+  var shareButton = null;
+
+  function isTypingTarget(target) {
+    if (!target) return false;
+    var tag = target.tagName ? target.tagName.toLowerCase() : '';
+    return tag === 'input' || tag === 'select' || tag === 'textarea' || target.isContentEditable;
+  }
+
+  function resultText() {
+    return 'Змейка\n' +
+      'Счёт: ' + S.score + '\n' +
+      'Уровень: ' + S.level + '\n' +
+      'Съедено: ' + sessionEaten + '\n' +
+      'Попробуй побить мой результат!';
+  }
+
+  function fallbackCopy(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+
+    return new Promise(function(resolve, reject) {
+      var area = document.createElement('textarea');
+      area.value = text;
+      area.setAttribute('readonly', '');
+      area.style.position = 'fixed';
+      area.style.opacity = '0';
+      document.body.appendChild(area);
+      area.select();
+      try {
+        if (!document.execCommand('copy')) throw new Error('copy failed');
+        resolve();
+      } catch (error) {
+        reject(error);
+      } finally {
+        area.remove();
+      }
+    });
+  }
+
+  function shareResult() {
+    var text = resultText();
+    var shareData = {
+      title: 'Мой результат в игре «Змейка»',
+      text: text,
+      url: window.location.href.split('?')[0]
+    };
+
+    if (navigator.share) {
+      navigator.share(shareData).then(function() {
+        haptic(12);
+      }).catch(function(error) {
+        if (!error || error.name !== 'AbortError') {
+          showNotification('Не удалось поделиться', 'Попробуйте скопировать результат ещё раз');
+        }
+      });
+      return;
+    }
+
+    fallbackCopy(text).then(function() {
+      haptic(12);
+      showNotification('Результат скопирован', 'Можно отправить его друзьям');
+    }).catch(function() {
+      showNotification('Скопируйте результат вручную', text.replace(/\n/g, ' · '));
+    });
+  }
+
+  function addShareButton() {
+    if (!screens.gameOver || !ui.restartOverlay || document.getElementById('btn-share-score')) return;
+    shareButton = document.createElement('button');
+    shareButton.id = 'btn-share-score';
+    shareButton.type = 'button';
+    shareButton.className = 'btn btn-small share-score-control';
+    shareButton.textContent = '↗ Поделиться результатом';
+    shareButton.addEventListener('click', shareResult);
+    screens.gameOver.insertBefore(shareButton, ui.restartOverlay);
+  }
+
+  function addShortcutHelp() {
+    var list = document.querySelector('.info-list');
+    if (!list || list.querySelector('.shortcuts-help')) return;
+    var item = document.createElement('li');
+    item.className = 'shortcuts-help';
+    item.innerHTML = '<b>P</b> — пауза, <b>R</b> — быстрый рестарт на компьютере.';
+    list.appendChild(item);
+  }
+
+  window.addEventListener('keydown', function(e) {
+    if (isTypingTarget(e.target) || e.ctrlKey || e.altKey || e.metaKey) return;
+
+    var key = e.key ? e.key.toLowerCase() : '';
+    if (key === 'p') {
+      e.preventDefault();
+      togglePause();
+    } else if (key === 'r' && screens.game && !screens.game.classList.contains('hidden')) {
+      e.preventDefault();
+      initAudio();
+      sessionEaten = 0;
+      startGame();
+    }
+  });
+
+  addShareButton();
+  addShortcutHelp();
+})();
+
+
+
+
+(function addGameResume() {
+  var STORAGE_KEY = 'snake-pro-current-game';
+  var continueButton = null;
+
+  function readCheckpoint() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function saveCheckpoint() {
+    if (!S.isRunning || !S.snake || !S.snake.cells || S.snake.cells.length === 0) return;
+    var checkpoint = {
+      snake: S.snake,
+      foods: S.foods,
+      obstacles: S.obstacles,
+      score: S.score,
+      level: S.level,
+      foodPerLevel: S.foodPerLevel,
+      eatenThisLevel: S.eatenThisLevel,
+      combo: S.combo,
+      comboTimer: S.comboTimer,
+      shield: S.shield,
+      slow: S.slow,
+      magnet: S.magnet,
+      sessionEaten: sessionEaten,
+      savedAt: Date.now()
+    };
+
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(checkpoint));
+      S.hasSavedGame = true;
+      updateContinueButton();
+    } catch (e) {
+      
+    }
+  }
+
+  function clearCheckpoint() {
+    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+    S.hasSavedGame = false;
+    updateContinueButton();
+  }
+
+  function updateResumeButton() {
+    if (!continueButton) return;
+    var checkpoint = readCheckpoint();
+    continueButton.style.display = checkpoint ? 'block' : 'none';
+    S.hasSavedGame = Boolean(checkpoint);
+  }
+
+  function restoreCheckpoint() {
+    var checkpoint = readCheckpoint();
+    if (!checkpoint || !checkpoint.snake || !checkpoint.snake.cells) {
+      clearCheckpoint();
+      return;
+    }
+
+    initAudio();
+    showScreen('game');
+
+    S.snake = checkpoint.snake;
+    S.foods = checkpoint.foods || [];
+    S.obstacles = checkpoint.obstacles || [];
+    S.score = checkpoint.score || 0;
+    S.level = checkpoint.level || 1;
+    S.foodPerLevel = checkpoint.foodPerLevel || 5;
+    S.eatenThisLevel = checkpoint.eatenThisLevel || 0;
+    S.combo = checkpoint.combo || 1;
+    S.comboTimer = checkpoint.comboTimer || 0;
+    S.shield = checkpoint.shield || 0;
+    S.slow = checkpoint.slow || 0;
+    S.magnet = checkpoint.magnet || 0;
+    S.isMoving = Boolean(S.snake.dx || S.snake.dy);
+    S.isPaused = false;
+    S.isRunning = true;
+    sessionEaten = checkpoint.sessionEaten || 0;
+    lastTime = performance.now();
+
+    if (ui.score) ui.score.textContent = S.score;
+    if (ui.level) ui.level.textContent = S.level;
+    if (ui.combo) {
+      ui.combo.style.display = S.combo > 1 ? 'inline' : 'none';
+      if (ui.comboVal) ui.comboVal.textContent = S.combo;
+    }
+    updatePowerupBar();
+    if (screens.gameOver) screens.gameOver.classList.add('hidden');
+    if (screens.pause) screens.pause.classList.add('hidden');
+    showNotification('Игра восстановлена', 'Продолжаем с сохранённого места');
+  }
+
+  function createContinueButton() {
+    if (!ui.play || !ui.play.parentNode || document.getElementById('btn-continue')) return;
+    continueButton = document.createElement('button');
+    continueButton.id = 'btn-continue';
+    continueButton.type = 'button';
+    continueButton.className = 'btn btn-secondary';
+    continueButton.textContent = '▶ Продолжить игру';
+    continueButton.addEventListener('click', restoreCheckpoint);
+    ui.play.parentNode.insertBefore(continueButton, ui.play.nextSibling);
+    ui.btnContinue = continueButton;
+    updateResumeButton();
+  }
+
+  var originalGameOver = gameOver;
+  gameOver = function() {
+    originalGameOver();
+    clearCheckpoint();
+  };
+
+  createContinueButton();
+  window.setInterval(saveCheckpoint, 2500);
+  document.addEventListener('visibilitychange', function() {
+    if (document.hidden) saveCheckpoint();
+    else updateResumeButton();
+  });
+  window.addEventListener('beforeunload', saveCheckpoint);
+  updateResumeButton();
+})();
+
+
+
+
+(function addGamepadSupport() {
+  var previousButtons = {};
+  var lastDirection = null;
+
+  function buttonPressed(gamepad, index) {
+    return Boolean(gamepad.buttons[index] && gamepad.buttons[index].pressed);
+  }
+
+  function directionFromGamepad(gamepad) {
+    if (buttonPressed(gamepad, 12)) return 'up';
+    if (buttonPressed(gamepad, 13)) return 'down';
+    if (buttonPressed(gamepad, 14)) return 'left';
+    if (buttonPressed(gamepad, 15)) return 'right';
+
+    var x = gamepad.axes[0] || 0;
+    var y = gamepad.axes[1] || 0;
+    if (Math.max(Math.abs(x), Math.abs(y)) < 0.55) return null;
+    if (Math.abs(x) > Math.abs(y)) return x > 0 ? 'right' : 'left';
+    return y > 0 ? 'down' : 'up';
+  }
+
+  function pollGamepads() {
+    if (!navigator.getGamepads) return;
+    var pads = navigator.getGamepads();
+    var gamepad = null;
+    for (var i = 0; i < pads.length; i++) {
+      if (pads[i]) {
+        gamepad = pads[i];
+        break;
+      }
+    }
+
+    if (gamepad) {
+      var direction = directionFromGamepad(gamepad);
+      if (direction && direction !== lastDirection) setDirection(direction);
+      lastDirection = direction;
+
+      var startPressed = buttonPressed(gamepad, 9);
+      if (startPressed && !previousButtons.start) togglePause();
+      previousButtons.start = startPressed;
+
+      var turboPressed = buttonPressed(gamepad, 0);
+      if (turboPressed && !previousButtons.turbo && window.snakeActivateTurbo) {
+        window.snakeActivateTurbo();
+      }
+      previousButtons.turbo = turboPressed;
+    } else {
+      lastDirection = null;
+      previousButtons = {};
+    }
+
+    window.setTimeout(pollGamepads, 100);
+  }
+
+  window.addEventListener('gamepadconnected', function(e) {
+    showNotification('Контроллер подключён', 'Крестовина или стик — движение, Start — пауза, A — турбо');
+  });
+  window.addEventListener('gamepaddisconnected', function() {
+    showNotification('Контроллер отключён', 'Можно продолжить с клавиатуры или сенсорных кнопок');
+  });
+
+  var list = document.querySelector('.info-list');
+  if (list && !list.querySelector('.gamepad-help')) {
+    var item = document.createElement('li');
+    item.className = 'gamepad-help';
+    item.innerHTML = '<b>Геймпад</b> — крестовина или левый стик: движение, Start: пауза, A: турбо.';
+    list.appendChild(item);
+  }
+
+  pollGamepads();
+})();
