@@ -69,7 +69,7 @@ var ui = {
   gridToggle:      el('grid-toggle'),
   speedSlider:     el('speed-slider'),
   speedValue:      el('speed-value'),
-  snakeColor:      el('snake-color-picker'), // ✦ НОВОЕ: может быть null (если убран input type="color"), это нормально
+  snakeColor:      el('snake-color-picker'),
   volume:          el('volume-slider'),
   volumeValue:     el('volume-value'),
   particles:       el('particles-toggle'),
