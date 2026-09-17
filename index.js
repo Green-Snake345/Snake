@@ -80,9 +80,9 @@ var ui = {
   leftHanded:      el('left-handed-toggle'),
   highContrast:    el('contrast-toggle'),
   performanceMode: el('performance-mode-select'),
-  
+
   skinOptions:     document.querySelectorAll('.skin-option'),
-  
+
   btnContinue:     el('btn-continue'),
   mobilePause:     el('btn-mobile-pause'),
   directionButtons: document.querySelectorAll('.direction-btn[data-direction]')
@@ -142,7 +142,7 @@ var S = {
   slow: 0,
   magnet: 0,
   popups: [],
-  
+
   maxComboThisGame: 1,      
   sessionStartTime: 0,       
   hasSavedGame: false        
@@ -191,7 +191,7 @@ var sfx = {
   levelUp: function() { beep(523, 0.1, 'triangle'); setTimeout(function() { beep(659, 0.1, 'triangle'); }, 100); setTimeout(function() { beep(784, 0.15, 'triangle'); }, 200); },
   death:   function() { beep(220, 0.3, 'sawtooth'); setTimeout(function() { beep(165, 0.4, 'sawtooth'); }, 150); },
   turn:    function() { beep(440, 0.04, 'sine', 0.5); },
-  
+
   achievement: function() { beep(659, 0.1, 'triangle'); setTimeout(function() { beep(784, 0.1, 'triangle'); }, 100); setTimeout(function() { beep(988, 0.15, 'triangle'); }, 200); }
 };
 
@@ -207,60 +207,132 @@ function hexToRgb(h) {
 }
 
 var THEME_PALETTES = {
-  dark: {
-    bgDark: '#0a0a0f', panel: '#16161e', card: '#1c1c28',
-    accent: '#00e0c6', accent2: '#7b61ff', text: '#e8e8f0',
-    dim: '#8888a0', canvas: '#050508',
-    background: 'linear-gradient(-45deg, #0a0a0f, #16161e, #1a1a2e, #0f0f1a)'
-  },
-  light: {
-    bgDark: '#f0f2f5', panel: '#ffffff', card: '#f1f3f6',
-    accent: '#00a884', accent2: '#6c5ce7', text: '#1a1a1d',
-    dim: '#777777', canvas: '#f8f9fa',
-    background: 'linear-gradient(-45deg, #f0f2f5, #ffffff, #f1f3f6, #e8eaf0)'
-  },
-  midnight: {
-    bgDark: '#080b1a', panel: '#10162d', card: '#182241',
-    accent: '#6ea8fe', accent2: '#8b5cf6', text: '#eef4ff',
-    dim: '#9aaed1', canvas: '#050816',
-    background: 'linear-gradient(-45deg, #080b1a, #10162d, #161d3d, #090d20)'
-  },
-  forest: {
-    bgDark: '#07140f', panel: '#0d2118', card: '#123321',
-    accent: '#57e389', accent2: '#b8e986', text: '#effff4',
-    dim: '#86aa94', canvas: '#04100b',
-    background: 'linear-gradient(-45deg, #07140f, #0d2118, #123321, #06110c)'
-  },
-  sunset: {
-    bgDark: '#1c0b12', panel: '#2a111a', card: '#391821',
-    accent: '#ff9f68', accent2: '#ff5c8a', text: '#fff3ec',
-    dim: '#c39aa8', canvas: '#14070c',
-    background: 'linear-gradient(-45deg, #1c0b12, #2a111a, #4a1d2a, #211020)'
-  },
-  cyberpunk: {
-    bgDark: '#10051c', panel: '#1b0a31', card: '#291143',
-    accent: '#ff4ecd', accent2: '#7df9ff', text: '#fff0fb',
-    dim: '#c399c5', canvas: '#080111',
-    background: 'linear-gradient(-45deg, #10051c, #1b0a31, #28124b, #09051c)'
-  },
-  ocean: {
-    bgDark: '#04131c', panel: '#09232e', card: '#0d3440',
-    accent: '#31e7d0', accent2: '#4fa3ff', text: '#e4fbff',
-    dim: '#85b6c0', canvas: '#021017',
-    background: 'linear-gradient(-45deg, #04131c, #09232e, #0d3440, #031018)'
-  },
-  rose: {
-    bgDark: '#1c0a14', panel: '#29101e', card: '#3b1728',
-    accent: '#ff7aa8', accent2: '#c084fc', text: '#fff0f5',
-    dim: '#c59aaa', canvas: '#14070e',
-    background: 'linear-gradient(-45deg, #1c0a14, #29101e, #471b37, #1d0b20)'
-  },
-  paper: {
-    bgDark: '#f3efe5', panel: '#fffdf7', card: '#ebe5d8',
-    accent: '#a85d31', accent2: '#6a7d3b', text: '#302921',
-    dim: '#7a6d5e', canvas: '#f8f4eb',
-    background: 'linear-gradient(-45deg, #f3efe5, #fffdf7, #ebe5d8, #e9dfd0)'
-  }
+    dark: {
+        bgDark: '#0a0a0f', panel: '#16161e', card: '#1c1c28',
+        accent: '#00e0c6', accent2: '#7b61ff', text: '#e8e8f0',
+        dim: '#8888a0', canvas: '#050508',
+        background: 'linear-gradient(-45deg, #0a0a0f, #16161e, #1a1a2e, #0f0f1a)'
+    },
+    light: {
+        bgDark: '#f0f2f5', panel: '#ffffff', card: '#f1f3f6',
+        accent: '#00a884', accent2: '#6c5ce7', text: '#1a1a1d',
+        dim: '#777777', canvas: '#f8f9fa',
+        background: 'linear-gradient(-45deg, #f0f2f5, #ffffff, #f1f3f6, #e8eaf0)'
+    },
+    midnight: {
+        bgDark: '#080b1a', panel: '#10162d', card: '#182241',
+        accent: '#6ea8fe', accent2: '#8b5cf6', text: '#eef4ff',
+        dim: '#9aaed1', canvas: '#050816',
+        background: 'linear-gradient(-45deg, #080b1a, #10162d, #161d3d, #090d20)'
+    },
+    forest: {
+        bgDark: '#07140f', panel: '#0d2118', card: '#123321',
+        accent: '#57e389', accent2: '#b8e986', text: '#effff4',
+        dim: '#86aa94', canvas: '#04100b',
+        background: 'linear-gradient(-45deg, #07140f, #0d2118, #123321, #06110c)'
+    },
+    sunset: {
+        bgDark: '#1c0b12', panel: '#2a111a', card: '#391821',
+        accent: '#ff9f68', accent2: '#ff5c8a', text: '#fff3ec',
+        dim: '#c39aa8', canvas: '#14070c',
+        background: 'linear-gradient(-45deg, #1c0b12, #2a111a, #4a1d2a, #211020)'
+    },
+    cyberpunk: {
+        bgDark: '#10051c', panel: '#1b0a31', card: '#291143',
+        accent: '#ff4ecd', accent2: '#7df9ff', text: '#fff0fb',
+        dim: '#c399c5', canvas: '#080111',
+        background: 'linear-gradient(-45deg, #10051c, #1b0a31, #28124b, #09051c)'
+    },
+    ocean: {
+        bgDark: '#04131c', panel: '#09232e', card: '#0d3440',
+        accent: '#31e7d0', accent2: '#4fa3ff', text: '#e4fbff',
+        dim: '#85b6c0', canvas: '#021017',
+        background: 'linear-gradient(-45deg, #04131c, #09232e, #0d3440, #031018)'
+    },
+    rose: {
+        bgDark: '#1c0a14', panel: '#29101e', card: '#3b1728',
+        accent: '#ff7aa8', accent2: '#c084fc', text: '#fff0f5',
+        dim: '#c59aaa', canvas: '#14070e',
+        background: 'linear-gradient(-45deg, #1c0a14, #29101e, #471b37, #1d0b20)'
+    },
+    paper: {
+        bgDark: '#f3efe5', panel: '#fffdf7', card: '#ebe5d8',
+        accent: '#a85d31', accent2: '#6a7d3b', text: '#302921',
+        dim: '#7a6d5e', canvas: '#f8f4eb',
+        background: 'linear-gradient(-45deg, #f3efe5, #fffdf7, #ebe5d8, #e9dfd0)'
+    },
+    retro: {
+        bgDark: '#0d0221', panel: '#1a0533', card: '#2d0a4e',
+        accent: '#ff00ff', accent2: '#00ffff', text: '#ffffff',
+        dim: '#b8b8ff', canvas: '#0a0118',
+        background: 'linear-gradient(-45deg, #0d0221, #1a0533, #2d0a4e, #150428)'
+    },
+    galaxy: {
+        bgDark: '#0a0e27', panel: '#151b3d', card: '#1e2654',
+        accent: '#a78bfa', accent2: '#60a5fa', text: '#f0f4ff',
+        dim: '#9ca3af', canvas: '#070b1f',
+        background: 'linear-gradient(-45deg, #0a0e27, #151b3d, #1e2654, #0f1435)'
+    },
+    matrix: {
+        bgDark: '#000000', panel: '#0a0a0a', card: '#141414',
+        accent: '#00ff41', accent2: '#008f11', text: '#00ff41',
+        dim: '#006400', canvas: '#000000',
+        background: 'linear-gradient(-45deg, #000000, #0a0a0a, #141414, #050505)'
+    },
+    lava: {
+        bgDark: '#1a0505', panel: '#2d0a0a', card: '#3d1111',
+        accent: '#ff4500', accent2: '#ff6347', text: '#fff5ee',
+        dim: '#cd853f', canvas: '#120303',
+        background: 'linear-gradient(-45deg, #1a0505, #2d0a0a, #3d1111, #1f0606)'
+    },
+    arctic: {
+        bgDark: '#e8f4f8', panel: '#f0f9ff', card: '#dbeafe',
+        accent: '#0ea5e9', accent2: '#06b6d4', text: '#0c4a6e',
+        dim: '#64748b', canvas: '#f0f9ff',
+        background: 'linear-gradient(-45deg, #e8f4f8, #f0f9ff, #dbeafe, #e0f2fe)'
+    },
+    autumn: {
+        bgDark: '#1c1410', panel: '#2d2018', card: '#3d2c20',
+        accent: '#d97706', accent2: '#dc2626', text: '#fef3c7',
+        dim: '#a8a29e', canvas: '#140f0a',
+        background: 'linear-gradient(-45deg, #1c1410, #2d2018, #3d2c20, #1f1610)'
+    },
+    spring: {
+        bgDark: '#f0fdf4', panel: '#ffffff', card: '#dcfce7',
+        accent: '#10b981', accent2: '#f472b6', text: '#064e3b',
+        dim: '#6b7280', canvas: '#f0fdf4',
+        background: 'linear-gradient(-45deg, #f0fdf4, #ffffff, #dcfce7, #ecfdf5)'
+    },
+    vampire: {
+        bgDark: '#0f0000', panel: '#1a0000', card: '#2d0000',
+        accent: '#dc143c', accent2: '#8b0000', text: '#ffe4e1',
+        dim: '#a52a2a', canvas: '#0a0000',
+        background: 'linear-gradient(-45deg, #0f0000, #1a0000, #2d0000, #140000)'
+    },
+    samurai: {
+        bgDark: '#1a0a0a', panel: '#2d1414', card: '#3d1e1e',
+        accent: '#dc2626', accent2: '#fbbf24', text: '#fef2f2',
+        dim: '#a3a3a3', canvas: '#120707',
+        background: 'linear-gradient(-45deg, #1a0a0a, #2d1414, #3d1e1e, #1f0c0c)'
+    },
+    mint: {
+        bgDark: '#f0fdfa', panel: '#ffffff', card: '#ccfbf1',
+        accent: '#14b8a6', accent2: '#06b6d4', text: '#134e4a',
+        dim: '#6b7280', canvas: '#f0fdfa',
+        background: 'linear-gradient(-45deg, #f0fdfa, #ffffff, #ccfbf1, #e6fffa)'
+    },
+    chocolate: {
+        bgDark: '#1c1410', panel: '#2d2018', card: '#3d2c20',
+        accent: '#92400e', accent2: '#78350f', text: '#fef3c7',
+        dim: '#a8a29e', canvas: '#140f0a',
+        background: 'linear-gradient(-45deg, #1c1410, #2d2018, #3d2c20, #1f1610)'
+    },
+    silver: {
+        bgDark: '#1f2937', panel: '#374151', card: '#4b5563',
+        accent: '#9ca3af', accent2: '#6b7280', text: '#f9fafb',
+        dim: '#9ca3af', canvas: '#111827',
+        background: 'linear-gradient(-45deg, #1f2937, #374151, #4b5563, #2d3748)'
+    }
 };
 
 function applyTheme(t) {
@@ -332,9 +404,9 @@ function showNotification(text, subtext) {
   n.className = 'toast-notification';
   n.innerHTML = '<div class="toast-icon">🏆</div><div class="toast-text"><b>' + text + '</b>' + (subtext ? '<br><small>' + subtext + '</small>' : '') + '</div>';
   document.body.appendChild(n);
-  
+
   requestAnimationFrame(function() { n.classList.add('show'); });
-  
+
   setTimeout(function() {
     n.classList.remove('show');
     setTimeout(function() { if (n.parentNode) n.remove(); }, 400);
@@ -359,49 +431,49 @@ function saveAchievement(key) {
 function checkAchievements() {
   var ach = loadAchievements();
 
-  
+
   if (!ach.firstGame && S.gamesPlayed >= 1) {
     saveAchievement('firstGame');
     sfx.achievement();
     showNotification(ACHIEVEMENTS.firstGame.name, ACHIEVEMENTS.firstGame.desc);
   }
-  
+
   if (!ach.eaten10 && S.totalEaten >= 10) {
     saveAchievement('eaten10');
     sfx.achievement();
     showNotification(ACHIEVEMENTS.eaten10.name, ACHIEVEMENTS.eaten10.desc);
   }
-  
+
   if (!ach.eaten50 && S.totalEaten >= 50) {
     saveAchievement('eaten50');
     sfx.achievement();
     showNotification(ACHIEVEMENTS.eaten50.name, ACHIEVEMENTS.eaten50.desc);
   }
-  
+
   if (!ach.played10 && S.gamesPlayed >= 10) {
     saveAchievement('played10');
     sfx.achievement();
     showNotification(ACHIEVEMENTS.played10.name, ACHIEVEMENTS.played10.desc);
   }
-  
+
   if (!ach.score100 && S.score >= 100) {
     saveAchievement('score100');
     sfx.achievement();
     showNotification(ACHIEVEMENTS.score100.name, ACHIEVEMENTS.score100.desc);
   }
-  
+
   if (!ach.score500 && S.score >= 500) {
     saveAchievement('score500');
     sfx.achievement();
     showNotification(ACHIEVEMENTS.score500.name, ACHIEVEMENTS.score500.desc);
   }
-  
+
   if (!ach.level5 && S.level >= 5) {
     saveAchievement('level5');
     sfx.achievement();
     showNotification(ACHIEVEMENTS.level5.name, ACHIEVEMENTS.level5.desc);
   }
-  
+
   if (!ach.combo8 && S.maxComboThisGame >= 8) {
     saveAchievement('combo8');
     sfx.achievement();
@@ -428,7 +500,7 @@ function claimDailyReward() {
 
 
 function updateProgressBars() {
-  
+
   var pbGames = el('pb-games');
   if (pbGames) {
     var gamesGoal = 10;
@@ -438,7 +510,7 @@ function updateProgressBars() {
   var msGamesVal = el('ms-games-val');
   if (msGamesVal) msGamesVal.textContent = S.gamesPlayed;
 
-  
+
   var pbApples = el('pb-apples');
   if (pbApples) {
     var applesGoal = 50;
@@ -465,32 +537,32 @@ function setupSkinPalette() {
   if (!ui.skinOptions || ui.skinOptions.length === 0) return;
 
   ui.skinOptions.forEach(function(option) {
-    
+
     var dot = option.querySelector('.dot');
     var color = option.getAttribute('data-color');
     if (dot && color) dot.style.backgroundColor = color;
 
     option.addEventListener('click', function() {
-      
+
       ui.skinOptions.forEach(function(o) { o.classList.remove('active'); });
-      
+
       option.classList.add('active');
-      
+
       S.snakeColor = color;
-      
+
       localStorage.setItem('snakeSkinColor', color);
-      
+
       if (ui.snakeColor) ui.snakeColor.value = color;
     });
   });
 
-  
+
   var savedColor = localStorage.getItem('snakeSkinColor');
   if (!savedColor) savedColor = S.snakeColor; 
 
   if (savedColor) {
     S.snakeColor = savedColor;
-    
+
     ui.skinOptions.forEach(function(opt) {
       if (opt.getAttribute('data-color') === savedColor) {
         opt.classList.add('active');
@@ -524,7 +596,7 @@ function showScreen(name) {
     screens[name].classList.add('active');
   }
 
-  
+
   if (name === 'mainMenu') {
     updateProgressBars();
     updateContinueButton();
@@ -570,7 +642,7 @@ function loadSettings() {
     console.warn('Не удалось загрузить настройки', e);
   }
 
-  
+
   var skinColor = localStorage.getItem('snakeSkinColor');
   if (skinColor) S.snakeColor = skinColor;
 }
@@ -602,7 +674,7 @@ function saveSettings() {
   applyMobileLayout(s.leftHanded);
   applyHighContrast(s.highContrast);
   applyPerformanceMode(s.performanceMode);
-  
+
   localStorage.setItem('snakeSkinColor', s.snakeColor);
   applyTheme(S.theme);
   resizeCanvas();
@@ -628,7 +700,7 @@ function resetSettings() {
   if (ui.volume)      ui.volume.value = '50';
   if (ui.volumeValue) ui.volumeValue.textContent = '50%';
 
-  
+
   if (ui.skinOptions) {
     ui.skinOptions.forEach(function(o) { o.classList.remove('active'); });
     var classic = Array.prototype.find.call(ui.skinOptions, function(o) {
@@ -672,7 +744,7 @@ function saveStats() {
   if (ui.aboutGames)   ui.aboutGames.textContent = S.gamesPlayed;
   if (ui.aboutEaten)   ui.aboutEaten.textContent = S.totalEaten;
   if (ui.aboutBest)    ui.aboutBest.textContent = S.highScore;
-  
+
   updateProgressBars();
 }
 
@@ -707,7 +779,7 @@ function renderLeaderboard() {
     ui.leaderboard.innerHTML = '<li style="text-align:center;color:var(--text-dim)">Пока нет рекордов</li>';
     return;
   }
-  
+
   for (var i = 0; i < list.length; i++) {
     var li = document.createElement('li');
     var isHighlight = (list[i].score === S.highScore);
@@ -975,7 +1047,7 @@ function loop(ts) {
       S.totalEaten++; sessionEaten++; S.eatenThisLevel++;
       S.snake.maxCells += ft.grow;
       S.combo = Math.min(S.combo + 1, 8);
-      
+
       S.maxComboThisGame = Math.max(S.maxComboThisGame, S.combo);
       S.comboTimer = S.comboTimeout;
 
@@ -1001,7 +1073,7 @@ function loop(ts) {
       S.foods.splice(fi, 1);
       if (S.eatenThisLevel >= S.foodPerLevel) levelUp();
       if (ui.score) ui.score.textContent = S.score;
-      
+
       checkAchievements();
     }
   }
@@ -1160,7 +1232,7 @@ function levelUp() {
   }
   generateObstacles();
   S.shield = Math.max(S.shield, 2000);
-  
+
   checkAchievements();
 }
 
@@ -1171,7 +1243,7 @@ function startGame() {
   resetGame();
   S.isRunning = true;
   S.sessionStartTime = now();
-  
+
   claimDailyReward();
   lastTime = performance.now();
   requestAnimationFrame(loop);
@@ -1192,7 +1264,7 @@ function resetGame() {
   S.shield = 0; S.slow = 0; S.magnet = 0;
   S.shakeAmount = 0;
   S.isMoving = false; S.isPaused = false; S.count = 0;
-  
+
   S.maxComboThisGame = 1;
   for (var i = 0; i < S.snake.maxCells; i++) {
     S.snake.cells.push({ x: cx, y: cy });
@@ -1218,9 +1290,9 @@ function gameOver() {
   saveStats();
   saveLeaderboard(S.score);
   renderLeaderboard();
-  
+
   S.hasSavedGame = true;
-  
+
   checkAchievements();
   if (ui.finalScore) ui.finalScore.textContent = S.score;
   if (ui.finalLevel) ui.finalLevel.textContent = S.level;
@@ -1252,7 +1324,7 @@ function setDirection(direction) {
   if (direction === 'right') dx = g;
   if (direction === 'down') dy = g;
 
-  
+
   if ((dx !== 0 && S.snake.dx !== 0) || (dy !== 0 && S.snake.dy !== 0)) return false;
 
   S.snake.dx = dx;
@@ -1306,17 +1378,17 @@ function handleKey(e) {
 
 
 function bindButtons() {
-  
+
   if (ui.play)         ui.play.addEventListener('click', function() { initAudio(); sessionEaten = 0; showScreen('game'); });
   if (ui.settings)     ui.settings.addEventListener('click', function() { showScreen('settings'); });
   if (ui.instructions) ui.instructions.addEventListener('click', function() { showScreen('instructions'); });
   if (ui.about)        ui.about.addEventListener('click', function() { showScreen('about'); });
   if (ui.exit)          ui.exit.addEventListener('click', function() { showScreen('exitConfirm'); });
 
-  
+
   if (ui.btnContinue)  ui.btnContinue.addEventListener('click', function() { initAudio(); sessionEaten = 0; showScreen('game'); });
 
-  
+
   if (ui.exitYes) ui.exitYes.addEventListener('click', function() {
     S.isRunning = false;
     window.close();
@@ -1324,20 +1396,20 @@ function bindButtons() {
   });
   if (ui.exitNo) ui.exitNo.addEventListener('click', function() { showScreen('mainMenu'); });
 
-  
+
   if (ui.backAbout) ui.backAbout.addEventListener('click', function() { showScreen('mainMenu'); });
 
-  
+
   if (ui.backInstr) ui.backInstr.addEventListener('click', function() { showScreen('mainMenu'); });
 
-  
+
   if (ui.backSettings)  ui.backSettings.addEventListener('click', function() { showScreen('mainMenu'); });
   if (ui.saveSettings)  ui.saveSettings.addEventListener('click', saveSettings);
   if (ui.resetSettings) ui.resetSettings.addEventListener('click', resetSettings);
   if (ui.volume)        ui.volume.addEventListener('input', function() { if (ui.volumeValue) ui.volumeValue.textContent = ui.volume.value + '%'; });
   if (ui.speedSlider)   ui.speedSlider.addEventListener('input', function() { if (ui.speedValue) ui.speedValue.textContent = ui.speedSlider.value + '/10'; });
 
-  
+
   if (ui.pauseBtn) ui.pauseBtn.addEventListener('click', togglePause);
   if (ui.mobilePause) ui.mobilePause.addEventListener('click', togglePause);
   if (ui.restart)  ui.restart.addEventListener('click', function() { initAudio(); sessionEaten = 0; startGame(); });
@@ -1357,7 +1429,7 @@ function bindButtons() {
     });
   }
 
-  
+
   if (ui.canvasContainer) {
     ui.canvasContainer.addEventListener('touchstart', function(e) {
       if (!e.touches || !e.touches[0]) return;
@@ -1381,20 +1453,20 @@ function bindButtons() {
     ui.canvasContainer.addEventListener('touchcancel', function() { touchActive = false; });
   }
 
-  
+
   if (ui.restartOverlay) ui.restartOverlay.addEventListener('click', function() { initAudio(); sessionEaten = 0; startGame(); });
   if (ui.backToMenu)     ui.backToMenu.addEventListener('click', function() { stopGame(); showScreen('mainMenu'); });
 
-  
+
   if (ui.resume)      ui.resume.addEventListener('click', togglePause);
   if (ui.pauseToMenu) ui.pauseToMenu.addEventListener('click', function() { stopGame(); showScreen('mainMenu'); });
 
-  
+
   if (ui.snakeColor) {
     ui.snakeColor.addEventListener('input', function() {
       S.snakeColor = ui.snakeColor.value;
       localStorage.setItem('snakeSkinColor', S.snakeColor);
-      
+
       if (ui.skinOptions) {
         ui.skinOptions.forEach(function(o) { o.classList.remove('active'); });
       }
@@ -1417,12 +1489,12 @@ function init() {
   loadSettings();
   loadStats();
   renderLeaderboard();
-  
+
   setupSkinPalette();
- 
+
   updateProgressBars();
   updateContinueButton();
-  
+
   if (S.gamesPlayed > 0) S.hasSavedGame = true;
   showScreen('mainMenu');
 }
@@ -1442,7 +1514,7 @@ init();
   S.turboUntil = 0;
   S.turboReadyAt = 0;
 
-  
+
   var regularFrameDelay = getFrameDelay;
   getFrameDelay = function() {
     var delay = regularFrameDelay();
@@ -1780,7 +1852,7 @@ init();
       S.hasSavedGame = true;
       updateContinueButton();
     } catch (e) {
-      
+
     }
   }
 
