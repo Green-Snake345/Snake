@@ -949,7 +949,7 @@ function updatePowerupBar() {
   ui.powerupBar.innerHTML = '';
   var ups = [
     { label: 'Щит',     val: S.shield, max: 5000, cls: 'shield' },
-    { label: 'Замедл.', val: S.slow,   max: 5000, cls: 'slow' },
+    { label: 'Замедление', val: S.slow,   max: 5000, cls: 'slow' },
     { label: 'Магнит',   val: S.magnet, max: 8000, cls: 'magnet' }
   ];
   for (var i = 0; i < ups.length; i++) {
