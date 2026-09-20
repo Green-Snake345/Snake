@@ -11,6 +11,7 @@
   --blue: #3498db;
   --purple: #9b59b6;
   --orange: #e67e22;
+  --fever: #ff9800;
   --canvas-bg: #050508;
 }
 
@@ -99,6 +100,39 @@ h2 {
   color: var(--text-dim);
   font-size: 1.05rem;
   margin-bottom: 4px
+}
+
+.coins-display {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 152, 0, 0.15));
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--gold);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+  margin: 0 auto;
+}
+
+.coin-icon {
+  font-size: 1.3rem;
+  filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.6));
+}
+
+.hud-coins {
+  color: var(--gold) !important;
+}
+
+.hud-coins b {
+  color: var(--gold) !important;
+}
+
+.coins-earned {
+  color: var(--gold) !important;
+  font-size: 1.1rem;
 }
 
 .stats-bar {
@@ -479,6 +513,18 @@ input[type="color"] {
   border: 1px solid #e67e22
 }
 
+.powerup-chip.fever {
+  background: rgba(255, 152, 0, .2);
+  color: #ffd54f;
+  border: 1px solid #ff9800;
+  animation: chipIn .3s ease, feverGlow 0.8s ease-in-out infinite alternate
+}
+
+@keyframes feverGlow {
+  from { box-shadow: 0 0 8px rgba(255, 152, 0, 0.4); }
+  to   { box-shadow: 0 0 20px rgba(255, 152, 0, 0.8); }
+}
+
 .powerup-chip .timer-bar {
   width: 32px;
   height: 4px;
@@ -505,6 +551,21 @@ canvas {
   display: block;
   border-radius: 8px;
   image-rendering: pixelated
+}
+
+.fever-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: 8px;
+  box-shadow: inset 0 0 40px rgba(255, 152, 0, 0.6), inset 0 0 80px rgba(255, 215, 0, 0.3);
+  animation: feverPulse 0.6s ease-in-out infinite alternate;
+  z-index: 10;
+}
+
+@keyframes feverPulse {
+  from { opacity: 0.5; }
+  to   { opacity: 1; }
 }
 
 .overlay {
@@ -665,24 +726,21 @@ input[type="color"] {
   vertical-align: middle
 }
 
-.dot.red {
-  background: #e74c3c
+.dot.red { background: #e74c3c }
+.dot.gold { background: var(--gold) }
+.dot.blue { background: var(--blue) }
+.dot.purple { background: var(--purple) }
+.dot.orange { background: var(--orange) }
+
+.dot.fever {
+  background: linear-gradient(135deg, #ffeb3b, #ff9800);
+  box-shadow: 0 0 6px rgba(255, 152, 0, 0.6);
+  animation: feverDotPulse 1s ease-in-out infinite alternate;
 }
 
-.dot.gold {
-  background: var(--gold)
-}
-
-.dot.blue {
-  background: var(--blue)
-}
-
-.dot.purple {
-  background: var(--purple)
-}
-
-.dot.orange {
-  background: var(--orange)
+@keyframes feverDotPulse {
+  from { box-shadow: 0 0 4px rgba(255, 152, 0, 0.4); }
+  to   { box-shadow: 0 0 10px rgba(255, 152, 0, 0.9); }
 }
 
 .hidden {
@@ -702,9 +760,6 @@ input[type="color"] {
   border-radius: 3px
 }
 
-/* ═══════════════════════════════════════════════════════════
- ✦ НОВОЕ: Анимированный фон (плавная смена градиента)
- ═══════════════════════════════════════════════════════════ */
 body {
   background: linear-gradient(-45deg, #0a0a0f, #16161e, #1a1a2e, #0f0f1a);
   background-size: 400% 400%;
@@ -723,9 +778,6 @@ body.theme-light {
   animation: gradientShift 15s ease infinite
 }
 
-/* ═══════════════════════════════════════════════════════════
- ✦ НОВОЕ: Toast-уведомления (всплывающие достижения и награды)
- ═══════════════════════════════════════════════════════════ */
 .toast-notification {
   position: fixed;
   top: 20px;
@@ -764,18 +816,12 @@ body.theme-light {
   font-size: 12px
 }
 
-/* ═══════════════════════════════════════════════════════════
- ✦ НОВОЕ: Подсветка личного рекорда в таблице лидеров
- ═══════════════════════════════════════════════════════════ */
 .leaderboard .score-val.highlight {
   color: var(--accent);
   text-shadow: 0 0 8px rgba(0, 224, 198, 0.6);
   font-weight: bold
 }
 
-/* ═══════════════════════════════════════════════════════════
- ✦ НОВОЕ: Палитра скинов в настройках
- ═══════════════════════════════════════════════════════════ */
 .skin-selector-title {
   margin-top: 20px;
   margin-bottom: 10px;
@@ -806,7 +852,8 @@ body.theme-light {
   text-align: center;
   transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
   background: var(--bg-card);
-  gap: 6px
+  gap: 6px;
+  position: relative;
 }
 
 .skin-option:hover {
@@ -821,6 +868,24 @@ body.theme-light {
   box-shadow: 0 0 20px rgba(0, 224, 198, 0.3)
 }
 
+.skin-option.locked {
+  opacity: 0.55;
+  filter: grayscale(0.6);
+}
+
+.skin-option.locked:hover {
+  opacity: 0.8;
+  filter: grayscale(0.3);
+}
+
+.skin-option .lock-icon {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 14px;
+  filter: drop-shadow(0 0 3px rgba(0,0,0,0.8));
+}
+
 .skin-option .dot {
   width: 36px;
   height: 36px;
@@ -828,6 +893,17 @@ body.theme-light {
   margin-bottom: 2px;
   box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.2)
+}
+
+.skin-option .dot.rainbow-dot {
+  background: linear-gradient(135deg, #ff0000, #ff9900, #ffff00, #00ff00, #0099ff, #9900ff);
+  background-size: 200% 200%;
+  animation: rainbowShift 3s linear infinite;
+}
+
+@keyframes rainbowShift {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
 }
 
 .skin-option span:last-child {
@@ -842,9 +918,6 @@ body.theme-light {
   font-weight: bold
 }
 
-/* ═══════════════════════════════════════════════════════════
- ✦ НОВОЕ: Прогресс-бары в главном меню
- ═══════════════════════════════════════════════════════════ */
 .progress-container {
   margin: 10px 0;
   text-align: left;
@@ -878,9 +951,6 @@ body.theme-light {
   box-shadow: 0 0 10px rgba(0, 224, 198, 0.4)
 }
 
-/* ═══════════════════════════════════════════════════════════
- ✦ НОВОЕ: Кнопка "Продолжить" в главном меню
- ═══════════════════════════════════════════════════════════ */
 #btn-continue {
   background: linear-gradient(135deg, var(--accent2), var(--accent));
   color: #fff;
@@ -891,9 +961,6 @@ body.theme-light {
   box-shadow: 0 8px 28px rgba(123, 97, 255, 0.5)
 }
 
-/* ═══════════════════════════════════════════════════════════
- ✦ НОВОЕ: Сетка достижений в экране "О игре"
- ═══════════════════════════════════════════════════════════ */
 .achievements-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -942,9 +1009,6 @@ body.theme-light {
   filter: grayscale(1)
 }
 
-/* ═══════════════════════════════════════════════════════════
- ✦ НОВОЕ: Иконка туториала (?) рядом с кнопкой "Играть"
- ═══════════════════════════════════════════════════════════ */
 .tutorial-hint {
   display: flex;
   align-items: center;
@@ -965,9 +1029,6 @@ body.theme-light {
   color: var(--accent)
 }
 
-/* ═══════════════════════════════════════════════════════════
- ✦ НОВОЕ: Контрастность текста (тень для читаемости на тёмном фоне)
- ═══════════════════════════════════════════════════════════ */
 .stat-label,
 .stat-val,
 .hud-item,
@@ -977,9 +1038,6 @@ body.theme-light {
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5)
 }
 
-/* ═══════════════════════════════════════════════════════════
- ✦ НОВОЕ: Пульсация логотипа (лёгкое фоновое движение)
- ═══════════════════════════════════════════════════════════ */
 .logo h1 {
   animation: logoPulse 4s ease-in-out infinite
 }
@@ -989,9 +1047,6 @@ body.theme-light {
   50%      { text-shadow: 0 0 36px rgba(0, 224, 198, 0.8), 0 0 12px rgba(123, 97, 255, 0.4) }
 }
 
-/* ═══════════════════════════════════════════════════════════
- ✦ НОВОЕ: Усиленные анимации кнопок (свечение при наведении)
- ═══════════════════════════════════════════════════════════ */
 .btn-primary:hover {
   box-shadow: 0 8px 28px rgba(0, 224, 198, 0.5), 0 0 15px rgba(0, 224, 198, 0.3)
 }
@@ -1008,9 +1063,203 @@ body.theme-light {
   transform: scale(0.95)
 }
 
-/*
- v4.0 — адаптивный интерфейс и мобильное управление
- ═══════════════════════════════════════════════════════════ */
+.quests-panel {
+  background: var(--bg-card);
+  padding: 1rem;
+  border-radius: 12px;
+  text-align: left;
+  border: 1px solid rgba(255, 215, 0, 0.15);
+}
+
+.quests-panel h3 {
+  color: var(--gold);
+  font-size: 1rem;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+}
+
+.quests-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.quest-item {
+  background: rgba(255, 255, 255, 0.03);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border-left: 3px solid var(--accent2);
+  transition: all 0.2s;
+}
+
+.quest-item.done {
+  border-left-color: var(--gold);
+  background: rgba(255, 215, 0, 0.08);
+}
+
+.quest-text {
+  font-size: 0.88rem;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.quest-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.75rem;
+}
+
+.quest-bar {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.quest-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  transition: width 0.4s ease;
+  border-radius: 3px;
+}
+
+.quest-item.done .quest-fill {
+  background: linear-gradient(90deg, var(--gold), #ff9800);
+}
+
+.quest-reward {
+  color: var(--gold);
+  font-weight: 600;
+  min-width: 80px;
+  text-align: right;
+}
+
+.quest-empty {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  padding: 10px;
+}
+
+.shop-coins {
+  color: var(--gold);
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.shop-coins b {
+  font-size: 1.3rem;
+  color: var(--gold);
+}
+
+.shop-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+  max-height: 50vh;
+  overflow-y: auto;
+  padding: 8px;
+  background: var(--bg-card);
+  border-radius: 12px;
+}
+
+.shop-item {
+  background: rgba(255, 255, 255, 0.04);
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.shop-item:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.shop-item.active {
+  border-color: var(--gold);
+  background: rgba(255, 215, 0, 0.1);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+}
+
+.shop-item.owned {
+  border-color: rgba(0, 224, 198, 0.3);
+}
+
+.shop-dot {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(255, 255, 255, 0.15);
+}
+
+.shop-dot.rainbow-dot {
+  background: linear-gradient(135deg, #ff0000, #ff9900, #ffff00, #00ff00, #0099ff, #9900ff);
+  background-size: 200% 200%;
+  animation: rainbowShift 3s linear infinite;
+}
+
+.shop-name {
+  font-size: 0.82rem;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.shop-btn {
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: none;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  width: 100%;
+}
+
+.buy-btn {
+  background: linear-gradient(135deg, var(--gold), #ff9800);
+  color: #1a0a00;
+}
+
+.buy-btn:hover {
+  filter: brightness(1.15);
+}
+
+.free-btn {
+  background: linear-gradient(135deg, var(--accent), #00b894);
+  color: #000;
+}
+
+.select-btn {
+  background: linear-gradient(135deg, var(--accent2), var(--accent));
+  color: #fff;
+}
+
+.shop-status {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 5px 10px;
+  width: 100%;
+}
+
+.active-status {
+  color: var(--gold);
+  background: rgba(255, 215, 0, 0.15);
+  border-radius: 6px;
+}
+
 :root {
   --panel-border: rgba(255, 255, 255, .1);
   --soft-shadow: 0 20px 60px rgba(0, 0, 0, .38);
@@ -1242,6 +1491,10 @@ canvas {
   .powerup-chip {
       font-size: .72rem;
   }
+
+  .shop-items {
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  }
 }
 
 @media (max-height: 700px) and (orientation: landscape) {
@@ -1287,7 +1540,6 @@ canvas {
       transition-duration: .01ms !important;
   }
 }
-
 
 .btn-primary {
   background: linear-gradient(135deg, var(--accent), var(--accent2));
