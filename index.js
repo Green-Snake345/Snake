@@ -1,8 +1,5 @@
 'use strict';
 
-
-
-
 var canvas = document.getElementById('game');
 var ctx    = canvas.getContext('2d');
 
@@ -17,6 +14,7 @@ var screens = {
   instructions: el('instructions-screen'),
   about:        el('about-screen'),
   settings:     el('settings-screen'),
+  shop:         el('shop-screen'),
   game:         el('game-screen'),
   gameOver:     el('game-over-overlay'),
   pause:        el('pause-overlay'),
@@ -26,6 +24,10 @@ var screens = {
 
 var ui = {
   play:            el('btn-play'),
+  shop:            el('btn-shop'),
+  shopBack:        el('btn-back-from-shop'),
+  shopItems:       el('shop-items'),
+  shopCoins:       el('shop-coins-value'),
   settings:        el('btn-settings'),
   instructions:    el('btn-instructions'),
   about:           el('btn-about'),
@@ -50,23 +52,30 @@ var ui = {
   finalScore:      el('final-score'),
   finalLevel:      el('final-level'),
   finalEaten:      el('final-eaten'),
+  finalTime:       el('final-time'),
+  finalCombo:      el('final-combo'),
+  finalCoins:      el('final-coins'),
   newRecord:       el('new-record'),
   combo:           el('combo-display'),
   comboVal:        el('combo-val'),
   powerupBar:      el('powerup-bar'),
   levelUpNum:      el('level-up-num'),
   canvasContainer: el('canvas-container'),
+  feverOverlay:    el('fever-overlay'),
   msHighscore:     el('ms-highscore'),
   msGames:         el('ms-games'),
   msEaten:         el('ms-eaten'),
-  leaderboard:     el('leaderboard-list'),
+  coinsValue:      el('coins-value'),
+  hudCoins:        el('hud-coins'),
   aboutGames:      el('about-games'),
   aboutEaten:      el('about-eaten'),
   aboutBest:       el('about-best'),
+  aboutCoins:      el('about-coins'),
   difficulty:      el('difficulty-select'),
   gridSize:        el('grid-size-select'),
   theme:           el('theme-select'),
   gridToggle:      el('grid-toggle'),
+  trailToggle:     el('trail-toggle'),
   speedSlider:     el('speed-slider'),
   speedValue:      el('speed-value'),
   snakeColor:      el('snake-color-picker'),
@@ -80,14 +89,12 @@ var ui = {
   leftHanded:      el('left-handed-toggle'),
   highContrast:    el('contrast-toggle'),
   performanceMode: el('performance-mode-select'),
-
   skinOptions:     document.querySelectorAll('.skin-option'),
-
   btnContinue:     el('btn-continue'),
   mobilePause:     el('btn-mobile-pause'),
-  directionButtons: document.querySelectorAll('.direction-btn[data-direction]')
+  directionButtons: document.querySelectorAll('.direction-btn[data-direction]'),
+  questsList:      el('quests-list')
 };
-
 
 var ACHIEVEMENTS = {
   firstGame:  { name: 'Новичок',    desc: 'Сыграйте первую игру',            icon: '🏆' },
@@ -97,11 +104,32 @@ var ACHIEVEMENTS = {
   score100:   { name: 'Сотка',      desc: 'Наберите 100 очков за игру',       icon: '💯' },
   score500:   { name: 'Мастер',     desc: 'Наберите 500 очков за игру',      icon: '⭐' },
   level5:     { name: 'Альпинист',  desc: 'Достигните 5 уровня',             icon: '🧗' },
-  combo8:     { name: 'Комбо-мастер', desc: 'Соберите комбо x8',            icon: '🔥' }
+  combo8:     { name: 'Комбо-мастер', desc: 'Соберите комбо x8',            icon: '🔥' },
+  fever3:     { name: 'Лихорадка',  desc: 'Активируйте лихорадку 3 раза',    icon: '🔥' },
+  coins100:   { name: 'Копилка',    desc: 'Соберите 100 монет за всё время', icon: '💰' }
 };
 
-
-
+var SKIN_CATALOG = [
+  { id: 'classic',    color: '#2ecc71', name: 'Классика',     price: 0 },
+  { id: 'neon',       color: '#00FFFF', name: 'Неоновый',     price: 0 },
+  { id: 'violet',     color: '#8E44AD', name: 'Фиолетовый',   price: 0 },
+  { id: 'golden',     color: '#F1C40F', name: 'Золотой',      price: 0 },
+  { id: 'scarlet',    color: '#e74c3c', name: 'Алый',         price: 0 },
+  { id: 'shadow',     color: '#000000', name: 'Тень',         price: 0 },
+  { id: 'turquoise',  color: '#1abc9c', name: 'Бирюзовый',    price: 50 },
+  { id: 'coral',      color: '#ff6b6b', name: 'Коралловый',   price: 50 },
+  { id: 'indigo',     color: '#4b0082', name: 'Индиго',       price: 75 },
+  { id: 'lime',       color: '#c4e538', name: 'Лаймовый',     price: 75 },
+  { id: 'raspberry',  color: '#e91e63', name: 'Малиновый',    price: 100 },
+  { id: 'bronze',     color: '#cd7f32', name: 'Бронзовый',    price: 100 },
+  { id: 'silver',     color: '#c0c0c0', name: 'Серебряный',   price: 120 },
+  { id: 'mint',       color: '#98fb98', name: 'Мятный',       price: 120 },
+  { id: 'peach',      color: '#ffb07c', name: 'Персиковый',   price: 150 },
+  { id: 'sapphire',   color: '#0f52ba', name: 'Сапфировый',   price: 150 },
+  { id: 'fuchsia',    color: '#ff00ff', name: 'Фуксия',       price: 200 },
+  { id: 'lavender',   color: '#e6e6fa', name: 'Лавандовый',   price: 200 },
+  { id: 'rainbow',    color: 'rainbow', name: 'Радужный',     price: 500 }
+];
 
 var S = {
   grid: 16,
@@ -121,6 +149,8 @@ var S = {
   isMoving: false,
   difficulty: 'normal',
   particles: [],
+  trail: [],
+  showTrail: true,
   showParticles: true,
   showShake: true,
   vibration: true,
@@ -135,17 +165,26 @@ var S = {
   theme: 'dark',
   baseSpeed: 5,
   snakeColor: '#2ecc71',
+  snakeSkinId: 'classic',
   combo: 1,
   comboTimer: 0,
   comboTimeout: 2500,
   shield: 0,
   slow: 0,
   magnet: 0,
+  fever: 0,
   popups: [],
-
-  maxComboThisGame: 1,      
-  sessionStartTime: 0,       
-  hasSavedGame: false        
+  deathFragments: [],
+  maxComboThisGame: 1,
+  sessionStartTime: 0,
+  hasSavedGame: false,
+  coins: 0,
+  totalCoins: 0,
+  sessionCoins: 0,
+  feverCount: 0,
+  ownedSkins: ['classic', 'neon', 'violet', 'golden', 'scarlet', 'shadow'],
+  dailyQuests: [],
+  dailyQuestsDate: ''
 };
 
 var sessionEaten = 0;
@@ -154,9 +193,6 @@ var audioCtx = null;
 var touchStartX = 0;
 var touchStartY = 0;
 var touchActive = false;
-
-
-
 
 function initAudio() {
   if (audioCtx) return;
@@ -188,22 +224,34 @@ var sfx = {
   shield:  function() { beep(440, 0.2, 'sine'); },
   slow:    function() { beep(300, 0.25, 'sine'); },
   magnet:  function() { beep(550, 0.08, 'sawtooth'); setTimeout(function() { beep(700, 0.1, 'sawtooth'); }, 60); },
+  fever:   function() { 
+    beep(523, 0.08, 'triangle'); 
+    setTimeout(function() { beep(659, 0.08, 'triangle'); }, 60);
+    setTimeout(function() { beep(784, 0.08, 'triangle'); }, 120);
+    setTimeout(function() { beep(1047, 0.15, 'triangle'); }, 180);
+  },
+  coin:    function() { beep(1200, 0.06, 'sine', 0.6); setTimeout(function() { beep(1600, 0.08, 'sine', 0.6); }, 50); },
   levelUp: function() { beep(523, 0.1, 'triangle'); setTimeout(function() { beep(659, 0.1, 'triangle'); }, 100); setTimeout(function() { beep(784, 0.15, 'triangle'); }, 200); },
   death:   function() { beep(220, 0.3, 'sawtooth'); setTimeout(function() { beep(165, 0.4, 'sawtooth'); }, 150); },
   turn:    function() { beep(440, 0.04, 'sine', 0.5); },
-
+  purchase:function() { beep(800, 0.1, 'triangle'); setTimeout(function() { beep(1000, 0.15, 'triangle'); }, 80); },
   achievement: function() { beep(659, 0.1, 'triangle'); setTimeout(function() { beep(784, 0.1, 'triangle'); }, 100); setTimeout(function() { beep(988, 0.15, 'triangle'); }, 200); }
 };
-
-
-
 
 function randInt(a, b) { return Math.floor(Math.random() * (b - a)) + a; }
 function now() { return performance.now(); }
 
 function hexToRgb(h) {
+  if (h === 'rainbow') return [255, 100, 200];
   var m = h.replace('#', '').match(/.{2}/g);
   return m ? m.map(function(x) { return parseInt(x, 16); }) : [46, 204, 113];
+}
+
+function getRainbowColor(t) {
+  var r = Math.floor(Math.sin(t * 2) * 127 + 128);
+  var g = Math.floor(Math.sin(t * 2 + 2) * 127 + 128);
+  var b = Math.floor(Math.sin(t * 2 + 4) * 127 + 128);
+  return [r, g, b];
 }
 
 var THEME_PALETTES = {
@@ -242,6 +290,12 @@ var THEME_PALETTES = {
         accent: '#ff4ecd', accent2: '#7df9ff', text: '#fff0fb',
         dim: '#c399c5', canvas: '#080111',
         background: 'linear-gradient(-45deg, #10051c, #1b0a31, #28124b, #09051c)'
+    },
+    'cyber-sunset': {
+        bgDark: '#1a0820', panel: '#2d0f3a', card: '#3d1850',
+        accent: '#ff6b9d', accent2: '#feca57', text: '#fff5f9',
+        dim: '#d4a5c4', canvas: '#120518',
+        background: 'linear-gradient(-45deg, #1a0820, #2d0f3a, #4a1850, #ff6b9d22)'
     },
     ocean: {
         bgDark: '#04131c', panel: '#09232e', card: '#0d3440',
@@ -353,7 +407,7 @@ function applyTheme(t) {
   Object.keys(vars).forEach(function(key) {
     root.style.setProperty(key, vars[key]);
   });
-  root.classList.toggle('theme-light', t === 'light' || t === 'paper');
+  root.classList.toggle('theme-light', t === 'light' || t === 'paper' || t === 'arctic' || t === 'spring' || t === 'mint');
   root.dataset.theme = t;
   root.style.background = palette.background;
   root.style.backgroundSize = '400% 400%';
@@ -396,25 +450,17 @@ function resizeCanvas() {
   canvas.height = Math.floor(s / S.grid) * S.grid;
 }
 
-
-
-
-function showNotification(text, subtext) {
+function showNotification(text, subtext, icon) {
   var n = document.createElement('div');
   n.className = 'toast-notification';
-  n.innerHTML = '<div class="toast-icon">🏆</div><div class="toast-text"><b>' + text + '</b>' + (subtext ? '<br><small>' + subtext + '</small>' : '') + '</div>';
+  n.innerHTML = '<div class="toast-icon">' + (icon || '🏆') + '</div><div class="toast-text"><b>' + text + '</b>' + (subtext ? '<br><small>' + subtext + '</small>' : '') + '</div>';
   document.body.appendChild(n);
-
   requestAnimationFrame(function() { n.classList.add('show'); });
-
   setTimeout(function() {
     n.classList.remove('show');
     setTimeout(function() { if (n.parentNode) n.remove(); }, 400);
   }, 3500);
 }
-
-
-
 
 function loadAchievements() {
   var raw = localStorage.getItem('snake-pro-achievements');
@@ -431,76 +477,295 @@ function saveAchievement(key) {
 function checkAchievements() {
   var ach = loadAchievements();
 
-
   if (!ach.firstGame && S.gamesPlayed >= 1) {
     saveAchievement('firstGame');
     sfx.achievement();
-    showNotification(ACHIEVEMENTS.firstGame.name, ACHIEVEMENTS.firstGame.desc);
+    showNotification(ACHIEVEMENTS.firstGame.name, ACHIEVEMENTS.firstGame.desc, '🏆');
   }
-
   if (!ach.eaten10 && S.totalEaten >= 10) {
     saveAchievement('eaten10');
     sfx.achievement();
-    showNotification(ACHIEVEMENTS.eaten10.name, ACHIEVEMENTS.eaten10.desc);
+    showNotification(ACHIEVEMENTS.eaten10.name, ACHIEVEMENTS.eaten10.desc, '🍎');
   }
-
   if (!ach.eaten50 && S.totalEaten >= 50) {
     saveAchievement('eaten50');
     sfx.achievement();
-    showNotification(ACHIEVEMENTS.eaten50.name, ACHIEVEMENTS.eaten50.desc);
+    showNotification(ACHIEVEMENTS.eaten50.name, ACHIEVEMENTS.eaten50.desc, '🍔');
   }
-
   if (!ach.played10 && S.gamesPlayed >= 10) {
     saveAchievement('played10');
     sfx.achievement();
-    showNotification(ACHIEVEMENTS.played10.name, ACHIEVEMENTS.played10.desc);
+    showNotification(ACHIEVEMENTS.played10.name, ACHIEVEMENTS.played10.desc, '🎮');
   }
-
   if (!ach.score100 && S.score >= 100) {
     saveAchievement('score100');
     sfx.achievement();
-    showNotification(ACHIEVEMENTS.score100.name, ACHIEVEMENTS.score100.desc);
+    showNotification(ACHIEVEMENTS.score100.name, ACHIEVEMENTS.score100.desc, '💯');
   }
-
   if (!ach.score500 && S.score >= 500) {
     saveAchievement('score500');
     sfx.achievement();
-    showNotification(ACHIEVEMENTS.score500.name, ACHIEVEMENTS.score500.desc);
+    showNotification(ACHIEVEMENTS.score500.name, ACHIEVEMENTS.score500.desc, '⭐');
   }
-
   if (!ach.level5 && S.level >= 5) {
     saveAchievement('level5');
     sfx.achievement();
-    showNotification(ACHIEVEMENTS.level5.name, ACHIEVEMENTS.level5.desc);
+    showNotification(ACHIEVEMENTS.level5.name, ACHIEVEMENTS.level5.desc, '🧗');
   }
-
   if (!ach.combo8 && S.maxComboThisGame >= 8) {
     saveAchievement('combo8');
     sfx.achievement();
-    showNotification(ACHIEVEMENTS.combo8.name, ACHIEVEMENTS.combo8.desc);
+    showNotification(ACHIEVEMENTS.combo8.name, ACHIEVEMENTS.combo8.desc, '🔥');
+  }
+  if (!ach.fever3 && S.feverCount >= 3) {
+    saveAchievement('fever3');
+    sfx.achievement();
+    showNotification(ACHIEVEMENTS.fever3.name, ACHIEVEMENTS.fever3.desc, '🔥');
+  }
+  if (!ach.coins100 && S.totalCoins >= 100) {
+    saveAchievement('coins100');
+    sfx.achievement();
+    showNotification(ACHIEVEMENTS.coins100.name, ACHIEVEMENTS.coins100.desc, '💰');
   }
 }
 
+function loadCoins() {
+  var raw = localStorage.getItem('snake-pro-coins');
+  if (!raw) return;
+  try {
+    var d = JSON.parse(raw);
+    S.coins = d.coins || 0;
+    S.totalCoins = d.total || 0;
+  } catch (e) {}
+}
 
+function saveCoins() {
+  localStorage.setItem('snake-pro-coins', JSON.stringify({
+    coins: S.coins,
+    total: S.totalCoins
+  }));
+  updateCoinsUI();
+}
 
+function addCoins(amount, reason) {
+  if (amount <= 0) return;
+  S.coins += amount;
+  S.totalCoins += amount;
+  S.sessionCoins += amount;
+  sfx.coin();
+  saveCoins();
+  if (reason) showNotification('+' + amount + ' 🪙', reason, '🪙');
+}
+
+function updateCoinsUI() {
+  if (ui.coinsValue) ui.coinsValue.textContent = S.coins;
+  if (ui.hudCoins) ui.hudCoins.textContent = S.coins;
+  if (ui.shopCoins) ui.shopCoins.textContent = S.coins;
+  if (ui.aboutCoins) ui.aboutCoins.textContent = S.totalCoins;
+}
+
+function loadOwnedSkins() {
+  var raw = localStorage.getItem('snake-pro-owned-skins');
+  if (!raw) return;
+  try {
+    var list = JSON.parse(raw);
+    if (Array.isArray(list) && list.length) S.ownedSkins = list;
+  } catch (e) {}
+}
+
+function saveOwnedSkins() {
+  localStorage.setItem('snake-pro-owned-skins', JSON.stringify(S.ownedSkins));
+}
+
+function renderShop() {
+  if (!ui.shopItems) return;
+  ui.shopItems.innerHTML = '';
+  SKIN_CATALOG.forEach(function(skin) {
+    var owned = S.ownedSkins.indexOf(skin.id) !== -1;
+    var active = S.snakeSkinId === skin.id;
+    var item = document.createElement('div');
+    item.className = 'shop-item' + (active ? ' active' : '') + (owned ? ' owned' : '');
+    item.setAttribute('data-id', skin.id);
+
+    var dotHtml = skin.color === 'rainbow' 
+      ? '<span class="shop-dot rainbow-dot"></span>'
+      : '<span class="shop-dot" style="background:' + skin.color + '"></span>';
+
+    var actionHtml = '';
+    if (active) {
+      actionHtml = '<span class="shop-status active-status">✓ Выбран</span>';
+    } else if (owned) {
+      actionHtml = '<button class="shop-btn select-btn">Выбрать</button>';
+    } else if (skin.price === 0) {
+      actionHtml = '<button class="shop-btn free-btn">Бесплатно</button>';
+    } else {
+      actionHtml = '<button class="shop-btn buy-btn">Купить за ' + skin.price + ' 🪙</button>';
+    }
+
+    item.innerHTML = dotHtml + '<div class="shop-name">' + skin.name + '</div>' + actionHtml;
+    ui.shopItems.appendChild(item);
+  });
+
+  ui.shopItems.querySelectorAll('.shop-item').forEach(function(item) {
+    item.addEventListener('click', function(e) {
+      var id = item.getAttribute('data-id');
+      var skin = SKIN_CATALOG.find(function(s) { return s.id === id; });
+      if (!skin) return;
+      var owned = S.ownedSkins.indexOf(id) !== -1;
+
+      if (e.target.classList.contains('buy-btn')) {
+        if (S.coins < skin.price) {
+          showNotification('Недостаточно монет', 'Нужно ещё ' + (skin.price - S.coins) + ' 🪙', '💸');
+          return;
+        }
+        S.coins -= skin.price;
+        S.ownedSkins.push(id);
+        saveCoins();
+        saveOwnedSkins();
+        sfx.purchase();
+        showNotification('Куплено!', skin.name, '🛍️');
+        renderShop();
+        return;
+      }
+
+      if (e.target.classList.contains('select-btn') || e.target.classList.contains('free-btn')) {
+        if (!owned && skin.price === 0) {
+          S.ownedSkins.push(id);
+          saveOwnedSkins();
+        }
+        S.snakeSkinId = id;
+        S.snakeColor = skin.color === 'rainbow' ? 'rainbow' : skin.color;
+        localStorage.setItem('snakeSkinColor', S.snakeColor);
+        localStorage.setItem('snakeSkinId', S.snakeSkinId);
+        sfx.purchase();
+        renderShop();
+        updateSkinOptionsActive();
+        return;
+      }
+
+      if (owned) {
+        S.snakeSkinId = id;
+        S.snakeColor = skin.color === 'rainbow' ? 'rainbow' : skin.color;
+        localStorage.setItem('snakeSkinColor', S.snakeColor);
+        localStorage.setItem('snakeSkinId', S.snakeSkinId);
+        sfx.purchase();
+        renderShop();
+        updateSkinOptionsActive();
+      }
+    });
+  });
+}
+
+function updateSkinOptionsActive() {
+  if (!ui.skinOptions) return;
+  ui.skinOptions.forEach(function(opt) {
+    var id = opt.getAttribute('data-id');
+    var owned = S.ownedSkins.indexOf(id) !== -1;
+    opt.classList.toggle('locked', !owned);
+    opt.classList.toggle('active', S.snakeSkinId === id);
+    var lockIcon = opt.querySelector('.lock-icon');
+    if (lockIcon) lockIcon.style.display = owned ? 'none' : 'block';
+  });
+}
+
+var QUEST_TEMPLATES = [
+  { id: 'eat10',    text: 'Съешь 10 яблок',       target: 10, type: 'eat',    reward: 15 },
+  { id: 'eat25',    text: 'Съешь 25 яблок',       target: 25, type: 'eat',    reward: 30 },
+  { id: 'score50',  text: 'Набери 50 очков',      target: 50, type: 'score',  reward: 20 },
+  { id: 'score150', text: 'Набери 150 очков',     target: 150, type: 'score', reward: 40 },
+  { id: 'level3',   text: 'Достигни 3 уровня',    target: 3,  type: 'level',  reward: 25 },
+  { id: 'level5',   text: 'Достигни 5 уровня',    target: 5,  type: 'level',  reward: 50 },
+  { id: 'combo5',   text: 'Собери комбо x5',      target: 5,  type: 'combo',  reward: 35 },
+  { id: 'games2',   text: 'Сыграй 2 игры',        target: 2,  type: 'games',  reward: 20 },
+  { id: 'fever1',   text: 'Активируй лихорадку',  target: 1,  type: 'fever',  reward: 30 }
+];
+
+function loadDailyQuests() {
+  var today = new Date().toISOString().slice(0, 10);
+  var raw = localStorage.getItem('snake-pro-daily-quests');
+  if (raw) {
+    try {
+      var data = JSON.parse(raw);
+      if (data.date === today) {
+        S.dailyQuests = data.quests || [];
+        S.dailyQuestsDate = today;
+        return;
+      }
+    } catch (e) {}
+  }
+  generateDailyQuests(today);
+}
+
+function generateDailyQuests(date) {
+  var shuffled = QUEST_TEMPLATES.slice().sort(function() { return Math.random() - 0.5; });
+  S.dailyQuests = shuffled.slice(0, 3).map(function(t) {
+    return { id: t.id, text: t.text, target: t.target, type: t.type, reward: t.reward, progress: 0, claimed: false };
+  });
+  S.dailyQuestsDate = date;
+  saveDailyQuests();
+}
+
+function saveDailyQuests() {
+  localStorage.setItem('snake-pro-daily-quests', JSON.stringify({
+    date: S.dailyQuestsDate,
+    quests: S.dailyQuests
+  }));
+}
+
+function updateQuestProgress(type, value) {
+  var changed = false;
+  S.dailyQuests.forEach(function(q) {
+    if (q.claimed) return;
+    if (q.type === type) {
+      if (type === 'eat' || type === 'score' || type === 'combo' || type === 'fever' || type === 'games') {
+        q.progress += value;
+      } else if (type === 'level') {
+        q.progress = Math.max(q.progress, value);
+      }
+      if (q.progress >= q.target && !q.claimed) {
+        q.claimed = true;
+        addCoins(q.reward, 'Задание: ' + q.text);
+        changed = true;
+      }
+    }
+  });
+  if (changed) saveDailyQuests();
+  renderQuests();
+}
+
+function renderQuests() {
+  if (!ui.questsList) return;
+  ui.questsList.innerHTML = '';
+  if (!S.dailyQuests.length) {
+    ui.questsList.innerHTML = '<div class="quest-empty">Задания загружаются...</div>';
+    return;
+  }
+  S.dailyQuests.forEach(function(q) {
+    var pct = Math.min(100, (q.progress / q.target) * 100);
+    var done = q.progress >= q.target;
+    var item = document.createElement('div');
+    item.className = 'quest-item' + (done ? ' done' : '');
+    item.innerHTML = 
+      '<div class="quest-text">' + (done ? '✅ ' : '') + q.text + '</div>' +
+      '<div class="quest-progress">' +
+        '<div class="quest-bar"><div class="quest-fill" style="width:' + pct + '%"></div></div>' +
+        '<span class="quest-reward">' + (done ? '✓' : q.progress + '/' + q.target) + ' · ' + q.reward + ' 🪙</span>' +
+      '</div>';
+    ui.questsList.appendChild(item);
+  });
+}
 
 function claimDailyReward() {
   var today = new Date().toISOString().slice(0, 10);
   var lastClaim = localStorage.getItem('snake-pro-daily-reward');
-
   if (lastClaim === today) return;
-
-
   S.shield = 3000;
+  addCoins(5, 'Ежедневный бонус');
   localStorage.setItem('snake-pro-daily-reward', today);
-  showNotification('Ежедневная награда', 'Бонусный щит на старте!');
+  showNotification('Ежедневная награда', 'Бонусный щит и 5 🪙!', '🎁');
 }
 
-
-
-
 function updateProgressBars() {
-
   var pbGames = el('pb-games');
   if (pbGames) {
     var gamesGoal = 10;
@@ -509,7 +774,6 @@ function updateProgressBars() {
   }
   var msGamesVal = el('ms-games-val');
   if (msGamesVal) msGamesVal.textContent = S.gamesPlayed;
-
 
   var pbApples = el('pb-apples');
   if (pbApples) {
@@ -521,64 +785,50 @@ function updateProgressBars() {
   if (msEatenVal) msEatenVal.textContent = S.totalEaten;
 }
 
-
-
-
 function updateContinueButton() {
   if (ui.btnContinue) {
     ui.btnContinue.style.display = S.hasSavedGame ? 'block' : 'none';
   }
 }
 
-
-
-
 function setupSkinPalette() {
   if (!ui.skinOptions || ui.skinOptions.length === 0) return;
 
   ui.skinOptions.forEach(function(option) {
-
     var dot = option.querySelector('.dot');
     var color = option.getAttribute('data-color');
-    if (dot && color) dot.style.backgroundColor = color;
+    var id = option.getAttribute('data-id');
+    if (dot && color && color !== 'rainbow') dot.style.backgroundColor = color;
 
     option.addEventListener('click', function() {
-
+      var owned = S.ownedSkins.indexOf(id) !== -1;
+      if (!owned) {
+        showNotification('Скин заблокирован', 'Купите его в магазине 🛒', '🔒');
+        return;
+      }
       ui.skinOptions.forEach(function(o) { o.classList.remove('active'); });
-
       option.classList.add('active');
-
+      S.snakeSkinId = id;
       S.snakeColor = color;
-
       localStorage.setItem('snakeSkinColor', color);
-
-      if (ui.snakeColor) ui.snakeColor.value = color;
+      localStorage.setItem('snakeSkinId', id);
     });
   });
 
-
+  var savedId = localStorage.getItem('snakeSkinId');
   var savedColor = localStorage.getItem('snakeSkinColor');
-  if (!savedColor) savedColor = S.snakeColor; 
-
-  if (savedColor) {
+  if (savedId && S.ownedSkins.indexOf(savedId) !== -1) {
+    S.snakeSkinId = savedId;
+    S.snakeColor = savedColor || '#2ecc71';
+  } else if (savedColor) {
     S.snakeColor = savedColor;
-
-    ui.skinOptions.forEach(function(opt) {
-      if (opt.getAttribute('data-color') === savedColor) {
-        opt.classList.add('active');
-      } else {
-        opt.classList.remove('active');
-      }
-    });
-    if (ui.snakeColor) ui.snakeColor.value = savedColor;
   }
+
+  updateSkinOptionsActive();
 }
 
-
-
-
 function showScreen(name) {
-  ['mainMenu', 'instructions', 'about', 'settings', 'exitConfirm'].forEach(function(k) {
+  ['mainMenu', 'instructions', 'about', 'settings', 'shop', 'exitConfirm'].forEach(function(k) {
     if (screens[k]) screens[k].classList.remove('active');
   });
   if (screens.game)     screens.game.classList.add('hidden');
@@ -591,20 +841,24 @@ function showScreen(name) {
       resizeCanvas();
       startGame();
     }
+  } else if (name === 'shop') {
+    if (screens.shop) {
+      screens.shop.classList.remove('hidden');
+      screens.shop.classList.add('active');
+      renderShop();
+    }
   } else if (screens[name]) {
     screens[name].classList.remove('hidden');
     screens[name].classList.add('active');
   }
 
-
   if (name === 'mainMenu') {
     updateProgressBars();
     updateContinueButton();
+    updateCoinsUI();
+    renderQuests();
   }
 }
-
-
-
 
 function loadSettings() {
   var raw = localStorage.getItem('snake-pro-settings');
@@ -615,6 +869,7 @@ function loadSettings() {
     if (s.grid && ui.gridSize)         { ui.gridSize.value = String(s.grid); S.grid = s.grid; }
     if (s.theme && ui.theme)           { ui.theme.value = s.theme; S.theme = s.theme; applyTheme(S.theme); }
     if (typeof s.showGrid !== 'undefined' && ui.gridToggle)  { ui.gridToggle.checked = s.showGrid; S.showGrid = s.showGrid; }
+    if (typeof s.showTrail !== 'undefined' && ui.trailToggle){ ui.trailToggle.checked = s.showTrail; S.showTrail = s.showTrail; }
     if (typeof s.baseSpeed !== 'undefined' && ui.speedSlider){ ui.speedSlider.value = String(s.baseSpeed); S.baseSpeed = s.baseSpeed; if (ui.speedValue) ui.speedValue.textContent = s.baseSpeed + '/10'; }
     if (s.snakeColor) {
       S.snakeColor = s.snakeColor;
@@ -642,7 +897,6 @@ function loadSettings() {
     console.warn('Не удалось загрузить настройки', e);
   }
 
-
   var skinColor = localStorage.getItem('snakeSkinColor');
   if (skinColor) S.snakeColor = skinColor;
 }
@@ -653,8 +907,9 @@ function saveSettings() {
     grid:       ui.gridSize ? Number(ui.gridSize.value) : 16,
     theme:      ui.theme ? ui.theme.value : 'dark',
     showGrid:   ui.gridToggle ? ui.gridToggle.checked : true,
+    showTrail:  ui.trailToggle ? ui.trailToggle.checked : true,
     baseSpeed:  ui.speedSlider ? Number(ui.speedSlider.value) : 5,
-    snakeColor: S.snakeColor, 
+    snakeColor: S.snakeColor,
     particles:  ui.particles ? ui.particles.checked : true,
     shake:      ui.shake ? ui.shake.checked : true,
     vibration:  ui.vibration ? ui.vibration.checked : true,
@@ -667,7 +922,8 @@ function saveSettings() {
   };
   localStorage.setItem('snake-pro-settings', JSON.stringify(s));
   S.difficulty = s.difficulty; S.grid = s.grid; S.theme = s.theme;
-  S.showGrid = s.showGrid; S.baseSpeed = s.baseSpeed; S.snakeColor = s.snakeColor;
+  S.showGrid = s.showGrid; S.showTrail = s.showTrail;
+  S.baseSpeed = s.baseSpeed; S.snakeColor = s.snakeColor;
   S.showParticles = s.particles; S.showShake = s.shake; S.vibration = s.vibration;
   S.autoPause = s.autoPause; S.volume = s.volume;
   applyMobileSize(s.mobileSize);
@@ -686,6 +942,7 @@ function resetSettings() {
   if (ui.gridSize)    ui.gridSize.value = '16';
   if (ui.theme)       ui.theme.value = 'dark';
   if (ui.gridToggle)  ui.gridToggle.checked = true;
+  if (ui.trailToggle) ui.trailToggle.checked = true;
   if (ui.speedSlider) ui.speedSlider.value = '5';
   if (ui.speedValue)  ui.speedValue.textContent = '5/10';
   if (ui.snakeColor)  ui.snakeColor.value = '#2ecc71';
@@ -700,21 +957,21 @@ function resetSettings() {
   if (ui.volume)      ui.volume.value = '50';
   if (ui.volumeValue) ui.volumeValue.textContent = '50%';
 
-
   if (ui.skinOptions) {
     ui.skinOptions.forEach(function(o) { o.classList.remove('active'); });
     var classic = Array.prototype.find.call(ui.skinOptions, function(o) {
-      return o.getAttribute('data-color') === '#2ecc71';
+      return o.getAttribute('data-id') === 'classic';
     });
     if (classic) classic.classList.add('active');
   }
   localStorage.removeItem('snakeSkinColor');
+  localStorage.removeItem('snakeSkinId');
+  S.snakeSkinId = 'classic';
+  S.snakeColor = '#2ecc71';
+  updateSkinOptionsActive();
 
   saveSettings();
 }
-
-
-
 
 function loadStats() {
   var raw = localStorage.getItem('snake-pro-stats');
@@ -747,9 +1004,6 @@ function saveStats() {
 
   updateProgressBars();
 }
-
-
-
 
 function loadLeaderboard() {
   var raw = localStorage.getItem('snake-pro-leaderboard');
@@ -790,15 +1044,13 @@ function renderLeaderboard() {
   }
 }
 
-
-
-
 var FOOD_TYPES = {
-  normal: { color: '#e74c3c', glow: '#e74c3c', points: 1, grow: 1, weight: 70, label: '+1' },
-  gold:   { color: '#ffd700', glow: '#ffd700', points: 5, grow: 3, weight: 10, label: '+5' },
-  slow:   { color: '#3498db', glow: '#3498db', points: 2, grow: 1, weight: 7, label: 'SLOW', powerup: 'slow' },
-  shield: { color: '#9b59b6', glow: '#9b59b6', points: 2, grow: 1, weight: 7, label: 'SHIELD', powerup: 'shield' },
-  magnet: { color: '#e67e22', glow: '#e67e22', points: 2, grow: 1, weight: 6, label: 'MAGNET', powerup: 'magnet' }
+  normal: { color: '#e74c3c', glow: '#e74c3c', points: 1, grow: 1, weight: 65, label: '+1', coins: 1 },
+  gold:   { color: '#ffd700', glow: '#ffd700', points: 5, grow: 3, weight: 10, label: '+5', coins: 3 },
+  slow:   { color: '#3498db', glow: '#3498db', points: 2, grow: 1, weight: 6, label: 'SLOW', powerup: 'slow', coins: 1 },
+  shield: { color: '#9b59b6', glow: '#9b59b6', points: 2, grow: 1, weight: 6, label: 'SHIELD', powerup: 'shield', coins: 1 },
+  magnet: { color: '#e67e22', glow: '#e67e22', points: 2, grow: 1, weight: 5, label: 'MAGNET', powerup: 'magnet', coins: 1 },
+  fever:  { color: '#ffeb3b', glow: '#ff9800', points: 3, grow: 1, weight: 4, label: 'FEVER', powerup: 'fever', coins: 2 }
 };
 
 function pickFoodType() {
@@ -832,9 +1084,6 @@ function ensureFoods() {
   while (S.foods.length < target) placeFood();
 }
 
-
-
-
 function generateObstacles() {
   S.obstacles = [];
   if (S.level < 3) return;
@@ -852,9 +1101,6 @@ function generateObstacles() {
     if (!dup) { S.obstacles.push({ x: x, y: y }); placed++; }
   }
 }
-
-
-
 
 function spawnParticles(x, y, n, c) {
   if (!S.showParticles) return;
@@ -889,8 +1135,83 @@ function drawParticles() {
   }
 }
 
+function updateTrail() {
+  if (!S.showTrail || !S.isMoving) return;
+  if (S.performanceMode === 'performance') return;
+  var head = S.snake.cells[0];
+  if (!head) return;
+  S.trail.push({
+    x: head.x + S.grid / 2,
+    y: head.y + S.grid / 2,
+    life: 1,
+    color: S.snakeColor === 'rainbow' ? getRainbowColor(now() / 300) : hexToRgb(S.snakeColor)
+  });
+  var maxTrail = S.performanceMode === 'balanced' ? 12 : 20;
+  while (S.trail.length > maxTrail) S.trail.shift();
+  for (var i = S.trail.length - 1; i >= 0; i--) {
+    S.trail[i].life -= 0.06;
+    if (S.trail[i].life <= 0) S.trail.splice(i, 1);
+  }
+}
 
+function drawTrail() {
+  if (!S.showTrail || S.trail.length === 0) return;
+  for (var i = 0; i < S.trail.length; i++) {
+    var t = S.trail[i];
+    var c = t.color;
+    var size = S.grid * 0.5 * t.life;
+    ctx.fillStyle = 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + (t.life * 0.4) + ')';
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, size / 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
 
+function spawnDeathFragments() {
+  if (S.performanceMode === 'performance') return;
+  var rgb = S.snakeColor === 'rainbow' ? [255, 100, 200] : hexToRgb(S.snakeColor);
+  for (var i = 0; i < S.snake.cells.length; i++) {
+    var c = S.snake.cells[i];
+    var angle = Math.random() * Math.PI * 2;
+    var speed = 2 + Math.random() * 4;
+    S.deathFragments.push({
+      x: c.x + S.grid / 2,
+      y: c.y + S.grid / 2,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 1,
+      size: S.grid * 0.7,
+      color: rgb,
+      rot: Math.random() * Math.PI * 2,
+      vrot: (Math.random() - 0.5) * 0.3
+    });
+  }
+}
+
+function updateDeathFragments() {
+  for (var i = S.deathFragments.length - 1; i >= 0; i--) {
+    var f = S.deathFragments[i];
+    f.x += f.vx;
+    f.y += f.vy;
+    f.vy += 0.2;
+    f.vx *= 0.97;
+    f.rot += f.vrot;
+    f.life -= 0.02;
+    if (f.life <= 0) S.deathFragments.splice(i, 1);
+  }
+}
+
+function drawDeathFragments() {
+  for (var i = 0; i < S.deathFragments.length; i++) {
+    var f = S.deathFragments[i];
+    ctx.save();
+    ctx.translate(f.x, f.y);
+    ctx.rotate(f.rot);
+    ctx.fillStyle = 'rgba(' + f.color[0] + ',' + f.color[1] + ',' + f.color[2] + ',' + f.life + ')';
+    ctx.fillRect(-f.size / 2, -f.size / 2, f.size, f.size);
+    ctx.restore();
+  }
+}
 
 function spawnPopup(x, y, text, color) {
   S.popups.push({ x: x + S.grid / 2, y: y, text: text, color: color, life: 1, vy: -1.2 });
@@ -919,9 +1240,6 @@ function drawPopups() {
   ctx.textAlign = 'start';
 }
 
-
-
-
 function shake(a) {
   if (!S.showShake) return;
   if (S.performanceMode === 'performance') return;
@@ -941,16 +1259,14 @@ function applyShake() {
   }
 }
 
-
-
-
 function updatePowerupBar() {
   if (!ui.powerupBar) return;
   ui.powerupBar.innerHTML = '';
   var ups = [
-    { label: 'Щит',     val: S.shield, max: 5000, cls: 'shield' },
+    { label: 'Щит',       val: S.shield, max: 5000, cls: 'shield' },
     { label: 'Замедление', val: S.slow,   max: 5000, cls: 'slow' },
-    { label: 'Магнит',   val: S.magnet, max: 8000, cls: 'magnet' }
+    { label: 'Магнит',    val: S.magnet, max: 8000, cls: 'magnet' },
+    { label: 'Лихорадка', val: S.fever,  max: 6000, cls: 'fever' }
   ];
   for (var i = 0; i < ups.length; i++) {
     var u = ups[i];
@@ -961,26 +1277,40 @@ function updatePowerupBar() {
     chip.innerHTML = '<span>' + u.label + '</span><div class="timer-bar"><div class="timer-fill" style="width:' + pct + '%;background:currentColor"></div></div>';
     ui.powerupBar.appendChild(chip);
   }
+
+  if (ui.feverOverlay) {
+    if (S.fever > 0) ui.feverOverlay.classList.remove('hidden');
+    else ui.feverOverlay.classList.add('hidden');
+  }
 }
-
-
-
 
 function getFrameDelay() {
   var b = S.difficulty === 'easy' ? 7 : S.difficulty === 'hard' ? 3 : 5;
   b -= Math.floor((S.level - 1) / 3);
   b += (5 - S.baseSpeed) * 0.6;
   if (S.slow > 0) b += 4;
+  if (S.fever > 0) b = Math.max(2, b - 1);
   return Math.max(2, b);
 }
 
-
-
-
 function loop(ts) {
-  if (!S.isRunning) return;
+  if (!S.isRunning && S.deathFragments.length === 0) return;
   var dt = ts - lastTime;
   lastTime = ts;
+
+  if (S.deathFragments.length > 0) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawGrid();
+    drawObstacles();
+    drawFoods();
+    updateDeathFragments();
+    drawDeathFragments();
+    drawParticles();
+    updateParticles();
+    applyShake();
+    requestAnimationFrame(loop);
+    return;
+  }
 
   if (S.isPaused) { requestAnimationFrame(loop); return; }
 
@@ -1043,11 +1373,17 @@ function loop(ts) {
     var f = S.foods[fi];
     if (f.x === S.snake.x && f.y === S.snake.y && S.isMoving) {
       var ft = FOOD_TYPES[f.type];
-      S.score += ft.points * S.combo;
+      var multiplier = S.fever > 0 ? 3 : 1;
+      var comboMult = S.combo;
+      S.score += ft.points * comboMult * multiplier;
       S.totalEaten++; sessionEaten++; S.eatenThisLevel++;
       S.snake.maxCells += ft.grow;
-      S.combo = Math.min(S.combo + 1, 8);
 
+      var coinsEarned = ft.coins || 1;
+      if (S.fever > 0) coinsEarned *= 2;
+      addCoins(coinsEarned);
+
+      S.combo = Math.min(S.combo + 1, 8);
       S.maxComboThisGame = Math.max(S.maxComboThisGame, S.combo);
       S.comboTimer = S.comboTimeout;
 
@@ -1062,17 +1398,32 @@ function loop(ts) {
       if (ft.powerup === 'shield') { S.shield = 5000; sfx.shield(); }
       if (ft.powerup === 'slow')    { S.slow = 5000; sfx.slow(); }
       if (ft.powerup === 'magnet')  { S.magnet = 8000; sfx.magnet(); }
+      if (ft.powerup === 'fever') { 
+        S.fever = 6000; 
+        S.feverCount++;
+        sfx.fever(); 
+        shake(6);
+        showNotification('🔥 ЛИХОРАДКА!', 'x3 очки на 6 секунд!', '🔥');
+      }
 
       if (f.type === 'gold') sfx.gold();
       else if (!ft.powerup) sfx.eat();
 
       var c = hexToRgb(ft.glow).join(',');
       spawnParticles(f.x, f.y, f.type === 'gold' ? 16 : 10, c);
-      spawnPopup(f.x, f.y, ft.label, 'rgb(' + c + ')');
+      var label = ft.label;
+      if (S.fever > 0 && f.type !== 'fever') label += ' x3';
+      spawnPopup(f.x, f.y, label, 'rgb(' + c + ')');
 
       S.foods.splice(fi, 1);
       if (S.eatenThisLevel >= S.foodPerLevel) levelUp();
       if (ui.score) ui.score.textContent = S.score;
+
+      updateQuestProgress('eat', 1);
+      updateQuestProgress('score', ft.points * comboMult * multiplier);
+      updateQuestProgress('combo', 0);
+      if (S.combo >= 5) updateQuestProgress('combo', S.combo);
+      if (ft.powerup === 'fever') updateQuestProgress('fever', 1);
 
       checkAchievements();
     }
@@ -1088,11 +1439,13 @@ function loop(ts) {
   if (S.shield > 0) S.shield = Math.max(0, S.shield - dt);
   if (S.slow > 0)   S.slow   = Math.max(0, S.slow - dt);
   if (S.magnet > 0) S.magnet = Math.max(0, S.magnet - dt);
+  if (S.fever > 0)  S.fever  = Math.max(0, S.fever - dt);
   updatePowerupBar();
-
+  updateTrail();
   drawGrid();
   drawObstacles();
   drawFoods();
+  drawTrail();
   drawSnake();
   drawParticles();
   drawPopups();
@@ -1103,12 +1456,9 @@ function loop(ts) {
   requestAnimationFrame(loop);
 }
 
-
-
-
 function drawGrid() {
   if (!S.showGrid) return;
-  var lightTheme = S.theme === 'light' || S.theme === 'paper';
+  var lightTheme = S.theme === 'light' || S.theme === 'paper' || S.theme === 'arctic' || S.theme === 'spring' || S.theme === 'mint';
   if (S.highContrast) {
     ctx.strokeStyle = lightTheme ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.12)';
   } else {
@@ -1142,20 +1492,26 @@ function drawFoods() {
     var pulse = Math.sin(age * 4) * 0.15 + 0.85;
 
     ctx.shadowColor = ft.glow;
-    ctx.shadowBlur = f.type === 'gold' ? 16 : 8;
+    ctx.shadowBlur = f.type === 'gold' ? 16 : (f.type === 'fever' ? 20 : 8);
     var size = (S.grid - 1) * pulse;
     var off = (S.grid - size) / 2;
-    ctx.fillStyle = ft.color;
+
+    if (f.type === 'fever') {
+      var flicker = Math.sin(age * 12) * 0.3 + 0.7;
+      ctx.fillStyle = 'rgba(255, 235, 59, ' + flicker + ')';
+    } else {
+      ctx.fillStyle = ft.color;
+    }
     ctx.fillRect(f.x + off, f.y + off, size, size);
     ctx.shadowBlur = 0;
     ctx.shadowColor = 'transparent';
 
     if (f.type !== 'normal' && f.type !== 'gold') {
-      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
       ctx.font = 'bold ' + Math.max(8, S.grid * 0.55) + 'px system-ui';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      var labels = { slow: 'S', shield: 'D', magnet: 'M' };
+      var labels = { slow: 'S', shield: 'D', magnet: 'M', fever: 'F' };
       ctx.fillText(labels[f.type] || '', f.x + S.grid / 2, f.y + S.grid / 2);
       ctx.textAlign = 'start';
       ctx.textBaseline = 'alphabetic';
@@ -1165,23 +1521,32 @@ function drawFoods() {
 
 function drawSnake() {
   var cells = S.snake.cells;
-  var rgb = hexToRgb(S.snakeColor);
-  var br = rgb[0], bg = rgb[1], bb = rgb[2];
+  var isRainbow = S.snakeColor === 'rainbow';
+  var baseRgb = isRainbow ? null : hexToRgb(S.snakeColor);
+  var tNow = now() / 300;
 
   for (var i = 0; i < cells.length; i++) {
     var c = cells[i];
     var isHead = i === 0;
     var t = i / Math.max(1, cells.length - 1);
 
+    var rgb = isRainbow ? getRainbowColor(tNow + i * 0.3) : baseRgb;
+    var br = rgb[0], bg = rgb[1], bb = rgb[2];
+
     if (isHead) {
-      ctx.shadowColor = S.shield > 0 ? '#9b59b6' : S.snakeColor;
-      ctx.shadowBlur = 10;
+      ctx.shadowColor = S.fever > 0 ? '#ffd700' : (S.shield > 0 ? '#9b59b6' : S.snakeColor);
+      ctx.shadowBlur = S.fever > 0 ? 20 : 10;
     }
 
     if (S.shield > 0) {
       ctx.strokeStyle = 'rgba(155,89,182,' + (0.4 + Math.sin(now() / 200) * 0.2) + ')';
       ctx.lineWidth = 2;
       ctx.strokeRect(c.x - 1, c.y - 1, S.grid + 1, S.grid + 1);
+    }
+
+    if (S.fever > 0) {
+      ctx.shadowColor = '#ffd700';
+      ctx.shadowBlur = 15;
     }
 
     ctx.fillStyle = 'rgb(' + Math.round(br * (1 - t * 0.5)) + ',' + Math.round(bg * (1 - t * 0.5)) + ',' + Math.round(bb * (1 - t * 0.5)) + ')';
@@ -1215,9 +1580,6 @@ function drawSnake() {
   }
 }
 
-
-
-
 function levelUp() {
   S.level++;
   S.eatenThisLevel = 0;
@@ -1233,20 +1595,23 @@ function levelUp() {
   generateObstacles();
   S.shield = Math.max(S.shield, 2000);
 
+  var levelBonus = 5 + S.level * 2;
+  addCoins(levelBonus, 'Бонус за уровень ' + S.level);
+  updateQuestProgress('level', S.level);
+
   checkAchievements();
 }
-
-
-
 
 function startGame() {
   resetGame();
   S.isRunning = true;
   S.sessionStartTime = now();
+  S.sessionCoins = 0;
 
   claimDailyReward();
   lastTime = performance.now();
   requestAnimationFrame(loop);
+  updateQuestProgress('games', 1);
 }
 
 function stopGame() {
@@ -1259,12 +1624,11 @@ function resetGame() {
   var cy = Math.floor(canvas.height / g / 2) * g;
   S.snake = { x: cx, y: cy, dx: 0, dy: 0, cells: [], maxCells: 4 };
   S.score = 0; S.level = 1; S.eatenThisLevel = 0; S.foodPerLevel = 5;
-  S.foods = []; S.obstacles = []; S.particles = []; S.popups = [];
+  S.foods = []; S.obstacles = []; S.particles = []; S.popups = []; S.trail = []; S.deathFragments = [];
   S.combo = 1; S.comboTimer = 0;
-  S.shield = 0; S.slow = 0; S.magnet = 0;
+  S.shield = 0; S.slow = 0; S.magnet = 0; S.fever = 0;
   S.shakeAmount = 0;
   S.isMoving = false; S.isPaused = false; S.count = 0;
-
   S.maxComboThisGame = 1;
   for (var i = 0; i < S.snake.maxCells; i++) {
     S.snake.cells.push({ x: cx, y: cy });
@@ -1274,9 +1638,17 @@ function resetGame() {
   if (ui.level)      ui.level.textContent = '1';
   if (ui.combo)      ui.combo.style.display = 'none';
   if (ui.powerupBar) ui.powerupBar.innerHTML = '';
+  if (ui.feverOverlay) ui.feverOverlay.classList.add('hidden');
   if (screens.gameOver) screens.gameOver.classList.add('hidden');
   if (screens.pause)    screens.pause.classList.add('hidden');
   if (ui.canvasContainer) ui.canvasContainer.style.transform = '';
+}
+
+function formatTime(ms) {
+  var sec = Math.floor(ms / 1000);
+  var m = Math.floor(sec / 60);
+  var s = sec % 60;
+  return m + ':' + (s < 10 ? '0' : '') + s;
 }
 
 function gameOver() {
@@ -1285,8 +1657,19 @@ function gameOver() {
   sfx.death();
   haptic([40, 30, 80]);
   shake(16);
+  spawnDeathFragments();
+  spawnParticles(S.snake.x, S.snake.y, 24, '255,100,100');
+
   var isRecord = S.score > S.highScore;
-  if (isRecord) { S.highScore = S.score; }
+  if (isRecord) { 
+    S.highScore = S.score;
+    var recordBonus = 20;
+    addCoins(recordBonus, 'Бонус за новый рекорд!');
+  }
+
+  var comboBonus = S.maxComboThisGame >= 5 ? 10 : 0;
+  if (comboBonus > 0) addCoins(comboBonus, 'Бонус за комбо x' + S.maxComboThisGame);
+
   saveStats();
   saveLeaderboard(S.score);
   renderLeaderboard();
@@ -1297,10 +1680,13 @@ function gameOver() {
   if (ui.finalScore) ui.finalScore.textContent = S.score;
   if (ui.finalLevel) ui.finalLevel.textContent = S.level;
   if (ui.finalEaten) ui.finalEaten.textContent = sessionEaten;
+  if (ui.finalTime)  ui.finalTime.textContent = formatTime(now() - S.sessionStartTime);
+  if (ui.finalCombo) ui.finalCombo.textContent = 'x' + S.maxComboThisGame;
+  if (ui.finalCoins) ui.finalCoins.textContent = '+' + S.sessionCoins + ' 🪙';
   if (ui.newRecord)  ui.newRecord.style.display = isRecord ? 'block' : 'none';
   setTimeout(function() {
     if (screens.gameOver) screens.gameOver.classList.remove('hidden');
-  }, 300);
+  }, 800);
 }
 
 function togglePause() {
@@ -1323,7 +1709,6 @@ function setDirection(direction) {
   if (direction === 'up') dy = -g;
   if (direction === 'right') dx = g;
   if (direction === 'down') dy = g;
-
 
   if ((dx !== 0 && S.snake.dx !== 0) || (dy !== 0 && S.snake.dy !== 0)) return false;
 
@@ -1355,7 +1740,6 @@ function handleSwipe(dx, dy) {
   if (setDirection(direction)) flashDirectionButton(direction);
 }
 
-
 function handleKey(e) {
   if (e.which === 32) {
     e.preventDefault();
@@ -1376,18 +1760,16 @@ function handleKey(e) {
   if (direction && setDirection(direction)) e.preventDefault();
 }
 
-
 function bindButtons() {
-
   if (ui.play)         ui.play.addEventListener('click', function() { initAudio(); sessionEaten = 0; showScreen('game'); });
+  if (ui.shop)         ui.shop.addEventListener('click', function() { showScreen('shop'); });
+  if (ui.shopBack)     ui.shopBack.addEventListener('click', function() { showScreen('mainMenu'); });
   if (ui.settings)     ui.settings.addEventListener('click', function() { showScreen('settings'); });
   if (ui.instructions) ui.instructions.addEventListener('click', function() { showScreen('instructions'); });
   if (ui.about)        ui.about.addEventListener('click', function() { showScreen('about'); });
   if (ui.exit)          ui.exit.addEventListener('click', function() { showScreen('exitConfirm'); });
 
-
   if (ui.btnContinue)  ui.btnContinue.addEventListener('click', function() { initAudio(); sessionEaten = 0; showScreen('game'); });
-
 
   if (ui.exitYes) ui.exitYes.addEventListener('click', function() {
     S.isRunning = false;
@@ -1396,19 +1778,13 @@ function bindButtons() {
   });
   if (ui.exitNo) ui.exitNo.addEventListener('click', function() { showScreen('mainMenu'); });
 
-
   if (ui.backAbout) ui.backAbout.addEventListener('click', function() { showScreen('mainMenu'); });
-
-
   if (ui.backInstr) ui.backInstr.addEventListener('click', function() { showScreen('mainMenu'); });
-
-
   if (ui.backSettings)  ui.backSettings.addEventListener('click', function() { showScreen('mainMenu'); });
   if (ui.saveSettings)  ui.saveSettings.addEventListener('click', saveSettings);
   if (ui.resetSettings) ui.resetSettings.addEventListener('click', resetSettings);
   if (ui.volume)        ui.volume.addEventListener('input', function() { if (ui.volumeValue) ui.volumeValue.textContent = ui.volume.value + '%'; });
   if (ui.speedSlider)   ui.speedSlider.addEventListener('input', function() { if (ui.speedValue) ui.speedValue.textContent = ui.speedSlider.value + '/10'; });
-
 
   if (ui.pauseBtn) ui.pauseBtn.addEventListener('click', togglePause);
   if (ui.mobilePause) ui.mobilePause.addEventListener('click', togglePause);
@@ -1428,7 +1804,6 @@ function bindButtons() {
       button.addEventListener('pointerleave', function() { button.classList.remove('pressed'); });
     });
   }
-
 
   if (ui.canvasContainer) {
     ui.canvasContainer.addEventListener('touchstart', function(e) {
@@ -1453,29 +1828,22 @@ function bindButtons() {
     ui.canvasContainer.addEventListener('touchcancel', function() { touchActive = false; });
   }
 
-
   if (ui.restartOverlay) ui.restartOverlay.addEventListener('click', function() { initAudio(); sessionEaten = 0; startGame(); });
   if (ui.backToMenu)     ui.backToMenu.addEventListener('click', function() { stopGame(); showScreen('mainMenu'); });
 
-
   if (ui.resume)      ui.resume.addEventListener('click', togglePause);
   if (ui.pauseToMenu) ui.pauseToMenu.addEventListener('click', function() { stopGame(); showScreen('mainMenu'); });
-
 
   if (ui.snakeColor) {
     ui.snakeColor.addEventListener('input', function() {
       S.snakeColor = ui.snakeColor.value;
       localStorage.setItem('snakeSkinColor', S.snakeColor);
-
       if (ui.skinOptions) {
         ui.skinOptions.forEach(function(o) { o.classList.remove('active'); });
       }
     });
   }
 }
-
-
-
 
 function init() {
   bindButtons();
@@ -1488,22 +1856,21 @@ function init() {
   });
   loadSettings();
   loadStats();
+  loadCoins();
+  loadOwnedSkins();
+  loadDailyQuests();
   renderLeaderboard();
-
   setupSkinPalette();
-
   updateProgressBars();
   updateContinueButton();
+  updateCoinsUI();
+  renderQuests();
 
   if (S.gamesPlayed > 0) S.hasSavedGame = true;
   showScreen('mainMenu');
 }
 
 init();
-
-
-
-
 
 (function addTurboAbility() {
   var TURBO_DURATION = 2400;
@@ -1513,7 +1880,6 @@ init();
 
   S.turboUntil = 0;
   S.turboReadyAt = 0;
-
 
   var regularFrameDelay = getFrameDelay;
   getFrameDelay = function() {
@@ -1597,14 +1963,12 @@ init();
     list.appendChild(item);
   }
 
-
   window.addEventListener('keydown', function(e) {
     if (e.key === 'Shift' || e.which === 16) {
       e.preventDefault();
       activateTurbo();
     }
   });
-
 
   if (ui.canvasContainer) {
     ui.canvasContainer.addEventListener('touchend', function(e) {
@@ -1623,9 +1987,6 @@ init();
   updateTurboButton();
   window.setInterval(updateTurboButton, 100);
 })();
-
-
-
 
 (function addDesktopFullscreen() {
   var fullscreenButton = null;
@@ -1701,9 +2062,6 @@ init();
   addButton();
   addKeyboardHint();
 })();
-
-
-
 
 (function addQuickActions() {
   var shareButton = null;
@@ -1812,9 +2170,6 @@ init();
   addShortcutHelp();
 })();
 
-
-
-
 (function addGameResume() {
   var STORAGE_KEY = 'snake-pro-current-game';
   var continueButton = null;
@@ -1843,7 +2198,11 @@ init();
       shield: S.shield,
       slow: S.slow,
       magnet: S.magnet,
+      fever: S.fever,
       sessionEaten: sessionEaten,
+      sessionCoins: S.sessionCoins,
+      feverCount: S.feverCount,
+      maxComboThisGame: S.maxComboThisGame,
       savedAt: Date.now()
     };
 
@@ -1851,9 +2210,7 @@ init();
       localStorage.setItem(STORAGE_KEY, JSON.stringify(checkpoint));
       S.hasSavedGame = true;
       updateContinueButton();
-    } catch (e) {
-
-    }
+    } catch (e) {}
   }
 
   function clearCheckpoint() {
@@ -1891,6 +2248,10 @@ init();
     S.shield = checkpoint.shield || 0;
     S.slow = checkpoint.slow || 0;
     S.magnet = checkpoint.magnet || 0;
+    S.fever = checkpoint.fever || 0;
+    S.sessionCoins = checkpoint.sessionCoins || 0;
+    S.feverCount = checkpoint.feverCount || 0;
+    S.maxComboThisGame = checkpoint.maxComboThisGame || 1;
     S.isMoving = Boolean(S.snake.dx || S.snake.dy);
     S.isPaused = false;
     S.isRunning = true;
@@ -1937,9 +2298,6 @@ init();
   window.addEventListener('beforeunload', saveCheckpoint);
   updateResumeButton();
 })();
-
-
-
 
 (function addGamepadSupport() {
   var previousButtons = {};
