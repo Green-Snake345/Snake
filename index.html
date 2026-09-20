@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#0b1020" />
-    <meta name="description" content="Игра «Змейка» с бустами, комбо и мобильным управлением" />
+    <meta name="description" content="Игра «Змейка» с бустами, комбо, магазином скинов, монетами и мобильным управлением" />
     <title>Змейка</title>
     <link rel="stylesheet" href="style.css" />
 </head>
@@ -19,10 +19,21 @@
             <p class="version"><span></span></p>
             <p class="tagline">Собирай бусты. Расти. Не врежься.</p>
         </div>
+
+        <div class="coins-display">
+            <span class="coin-icon">🪙</span>
+            <span id="coins-value">0</span>
+        </div>
+
         <div class="stats-bar">
             <div><span class="stat-label">Рекорд</span><span class="stat-val" id="ms-highscore">0</span></div>
             <div><span class="stat-label">Игр сыграно</span><span class="stat-val" id="ms-games">0</span></div>
             <div><span class="stat-label">Всего съедено</span><span class="stat-val" id="ms-eaten">0</span></div>
+        </div>
+
+        <div id="daily-quests-panel" class="quests-panel">
+            <h3>📋 Ежедневные задания</h3>
+            <div id="quests-list" class="quests-list"></div>
         </div>
 
         <div class="leaderboard-panel">
@@ -32,6 +43,7 @@
 
         <div class="btn-group">
             <button id="btn-play" class="btn btn-primary">Играть</button>
+            <button id="btn-shop" class="btn btn-secondary">🛒 Магазин</button>
             <button id="btn-settings" class="btn btn-secondary">Настройки</button>
             <button id="btn-instructions" class="btn btn-secondary">Как играть</button>
             <button id="btn-about" class="btn btn-secondary">О игре</button>
@@ -39,6 +51,14 @@
         </div>
     </div>
 
+    <div id="shop-screen" class="menu-screen">
+        <h2>🛒 Магазин скинов</h2>
+        <p class="shop-coins">Ваши монеты: <b id="shop-coins-value">0</b>🟡</p>
+        <div id="shop-items" class="shop-items"></div>
+        <div class="btn-group">
+            <button id="btn-back-from-shop" class="btn btn-secondary">Назад</button>
+        </div>
+    </div>
 
     <div id="instructions-screen" class="menu-screen">
         <h2>Как играть</h2>
@@ -51,8 +71,10 @@
             <li><span class="dot blue"></span>Синяя — <b>замедление</b> на 5 секунд</li>
             <li><span class="dot purple"></span>Фиолетовая — <b>щит</b>: одно столкновение без смерти</li>
             <li><span class="dot orange"></span>Оранжевая — <b>магнит</b>: притягивает еду 8 секунд</li>
+            <li><span class="dot fever"></span>Золотая искра — <b>лихорадка x3</b> на 6 секунд</li>
             <li>Быстро ешьте подряд — растёт <b>комбо</b>!</li>
             <li>С каждым уровнем скорость растёт, появляются стены</li>
+            <li>Зарабатывайте <b>монеты</b> и покупайте скины в магазине!</li>
         </ul>
         <button id="btn-back-from-instructions" class="btn btn-secondary">Назад</button>
     </div>
@@ -61,14 +83,14 @@
     <div id="about-screen" class="menu-screen">
         <h2>О игре</h2>
         <div class="about-content">
-            <p><b>Змейка</b></p>
-            <p class="about-text">Классическая змейка с современными фишками: бусты, комбо, уровни, препятствия, частицы
-                и тряска экрана.</p>
+            <p><b>Змейка v5.0</b></p>
+            <p class="about-text">Классическая змейка с современными фишками: бусты, комбо, уровни, препятствия, частицы, тряска экрана, магазин скинов и ежедневные задания.</p>
             <p class="about-text"><b>Управление:</b> стрелки или WASD, пробел — пауза</p>
-            <p class="about-text"><b>Сохранение:</b> настройки и рекорды хранятся в игре</p>
+            <p class="about-text"><b>Сохранение:</b> настройки, рекорды, монеты и купленные скины хранятся локально</p>
             <p class="about-text"><b>Всего игр сыграно:</b> <span id="about-games">0</span></p>
             <p class="about-text"><b>Всего съедено:</b> <span id="about-eaten">0</span></p>
             <p class="about-text"><b>Лучший результат:</b> <span id="about-best">0</span></p>
+            <p class="about-text"><b>Монет собрано:</b> <span id="about-coins">0</span>0</p>
         </div>
         <button id="btn-back-from-about" class="btn btn-secondary">Назад</button>
     </div>
@@ -98,6 +120,7 @@
                 <option value="forest">Изумрудный лес</option>
                 <option value="sunset">Закат</option>
                 <option value="cyberpunk">Киберпанк</option>
+                <option value="cyber-sunset">Кибер-закат</option>
                 <option value="ocean">Океан</option>
                 <option value="rose">Розовый космос</option>
                 <option value="paper">Тёплая бумага</option>
@@ -118,91 +141,108 @@
         <label class="setting-row"><span>Сетка:</span>
             <input type="checkbox" id="grid-toggle" checked />
         </label>
+        <label class="setting-row"><span>След змейки:</span>
+            <input type="checkbox" id="trail-toggle" checked />
+        </label>
         <label class="setting-row"><span>Скорость:</span>
             <input type="range" id="speed-slider" min="1" max="10" value="5" />
             <span id="speed-value" class="vol-label">5/10</span>
         </label>
 
-
         <div class="setting-row">
             <span>Стиль змейки:</span>
             <div class="skin-options">
-                <div class="skin-option active" data-color="#2ecc71">
+                <div class="skin-option active" data-color="#2ecc71" data-id="classic">
                     <span class="dot"></span>
                     <span>Классика</span>
                 </div>
-                <div class="skin-option" data-color="#00FFFF">
+                <div class="skin-option" data-color="#00FFFF" data-id="neon">
                     <span class="dot"></span>
                     <span>Неоновый</span>
                 </div>
-                <div class="skin-option" data-color="#8E44AD">
+                <div class="skin-option" data-color="#8E44AD" data-id="violet">
                     <span class="dot"></span>
                     <span>Фиолетовый</span>
                 </div>
-                <div class="skin-option" data-color="#F1C40F">
+                <div class="skin-option" data-color="#F1C40F" data-id="golden">
                     <span class="dot"></span>
                     <span>Золотой</span>
                 </div>
-                <div class="skin-option" data-color="#e74c3c">
+                <div class="skin-option" data-color="#e74c3c" data-id="scarlet">
                     <span class="dot"></span>
                     <span>Алый</span>
                 </div>
-                <div class="skin-option" data-color="#000000">
+                <div class="skin-option" data-color="#000000" data-id="shadow">
                     <span class="dot"></span>
                     <span>Тень</span>
                 </div>
-
-                <div class="skin-option" data-color="#1abc9c">
+                <div class="skin-option locked" data-color="#1abc9c" data-id="turquoise" data-price="50">
+                    <span class="lock-icon">🔒</span>
                     <span class="dot"></span>
                     <span>Бирюзовый</span>
                 </div>
-                <div class="skin-option" data-color="#ff6b6b">
+                <div class="skin-option locked" data-color="#ff6b6b" data-id="coral" data-price="50">
+                    <span class="lock-icon">🔒</span>
                     <span class="dot"></span>
                     <span>Коралловый</span>
                 </div>
-                <div class="skin-option" data-color="#4b0082">
+                <div class="skin-option locked" data-color="#4b0082" data-id="indigo" data-price="75">
+                    <span class="lock-icon">🔒</span>
                     <span class="dot"></span>
                     <span>Индиго</span>
                 </div>
-                <div class="skin-option" data-color="#c4e538">
+                <div class="skin-option locked" data-color="#c4e538" data-id="lime" data-price="75">
+                    <span class="lock-icon">🔒</span>
                     <span class="dot"></span>
                     <span>Лаймовый</span>
                 </div>
-                <div class="skin-option" data-color="#e91e63">
+                <div class="skin-option locked" data-color="#e91e63" data-id="raspberry" data-price="100">
+                    <span class="lock-icon">🔒</span>
                     <span class="dot"></span>
                     <span>Малиновый</span>
                 </div>
-                <div class="skin-option" data-color="#cd7f32">
+                <div class="skin-option locked" data-color="#cd7f32" data-id="bronze" data-price="100">
+                    <span class="lock-icon">🔒</span>
                     <span class="dot"></span>
                     <span>Бронзовый</span>
                 </div>
-                <div class="skin-option" data-color="#c0c0c0">
+                <div class="skin-option locked" data-color="#c0c0c0" data-id="silver" data-price="120">
+                    <span class="lock-icon">🔒</span>
                     <span class="dot"></span>
                     <span>Серебряный</span>
                 </div>
-                <div class="skin-option" data-color="#98fb98">
+                <div class="skin-option locked" data-color="#98fb98" data-id="mint" data-price="120">
+                    <span class="lock-icon">🔒</span>
                     <span class="dot"></span>
                     <span>Мятный</span>
                 </div>
-                <div class="skin-option" data-color="#ffb07c">
+                <div class="skin-option locked" data-color="#ffb07c" data-id="peach" data-price="150">
+                    <span class="lock-icon">🔒</span>
                     <span class="dot"></span>
                     <span>Персиковый</span>
                 </div>
-                <div class="skin-option" data-color="#0f52ba">
+                <div class="skin-option locked" data-color="#0f52ba" data-id="sapphire" data-price="150">
+                    <span class="lock-icon">🔒</span>
                     <span class="dot"></span>
                     <span>Сапфировый</span>
                 </div>
-                <div class="skin-option" data-color="#ff00ff">
+                <div class="skin-option locked" data-color="#ff00ff" data-id="fuchsia" data-price="200">
+                    <span class="lock-icon">🔒</span>
                     <span class="dot"></span>
                     <span>Фуксия</span>
                 </div>
-                <div class="skin-option" data-color="#e6e6fa">
+                <div class="skin-option locked" data-color="#e6e6fa" data-id="lavender" data-price="200">
+                    <span class="lock-icon">🔒</span>
                     <span class="dot"></span>
                     <span>Лавандовый</span>
                 </div>
+                <div class="skin-option locked" data-color="rainbow" data-id="rainbow" data-price="500">
+                    <span class="lock-icon">🔒</span>
+                    <span class="dot rainbow-dot"></span>
+                    <span>Радужный</span>
+                </div>
             </div>
         </div>
-
 
         <label class="setting-row"><span>Громкость:</span>
             <input type="range" id="volume-slider" min="0" max="100" value="50" />
@@ -235,10 +275,10 @@
         </label>
         <label class="setting-row"><span>Режим графики:</span>
             <select id="performance-mode-select">
-                <option value="quality">Качество</option>
-                <option value="balanced" selected>Сбалансированный</option>
-                <option value="performance">Производительность</option>
-            </select>
+            <option value="quality">Качество</option>
+            <option value="balanced" selected>Сбалансированный</option>
+            <option value="performance">Производительность</option>
+        </select>
         </label>
         <div class="btn-group">
             <button id="btn-reset-settings" class="btn btn-danger">Сбросить</button>
@@ -254,6 +294,7 @@
                 <span class="hud-item">Очки: <b id="score-display">0</b></span>
                 <span class="hud-item">Уровень: <b id="level-display">1</b></span>
                 <span class="hud-item" id="combo-display" style="display:none;">Комбо x<b id="combo-val">1</b></span>
+                <span class="hud-item hud-coins">🟡<b id="hud-coins">0</b></span>
             </div>
             <div class="hud-right">
                 <span class="hud-item">Рекорд: <b id="high-score-display">0</b></span>
@@ -262,13 +303,17 @@
         <div class="powerup-bar" id="powerup-bar"></div>
         <div class="canvas-container" id="canvas-container">
             <canvas id="game"></canvas>
+            <div id="fever-overlay" class="fever-overlay hidden"></div>
             <div id="game-over-overlay" class="overlay hidden">
                 <h2>Игра окончена</h2>
                 <div class="end-stats">
                     <p>Счёт: <b id="final-score">0</b></p>
                     <p>Уровень: <b id="final-level">1</b></p>
                     <p>Съедено: <b id="final-eaten">0</b></p>
-                    <p id="new-record" style="display:none;color:#ffd700;">Новый рекорд</p>
+                    <p>Время: <b id="final-time">0:00</b></p>
+                    <p>Лучшее комбо: <b id="final-combo">x1</b></p>
+                    <p>Монеты: <b id="final-coins" class="coins-earned">+0 🟡</b></p>
+                    <p id="new-record" style="display:none;color:#ffd700;">🏆 Новый рекорд</p>
                 </div>
                 <button id="btn-restart-from-overlay" class="btn btn-primary">Ещё раз</button>
                 <button id="btn-back-to-menu" class="btn btn-secondary">В меню</button>
