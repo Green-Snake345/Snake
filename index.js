@@ -109,6 +109,7 @@ var ACHIEVEMENTS = {
   coins100:   { name: 'Копилка',    desc: 'Соберите 100 монет за всё время', icon: '💰' }
 };
 
+
 var SKIN_CATALOG = [
   { id: 'classic',    color: '#2ecc71', name: 'Классика',     price: 0 },
   { id: 'neon',       color: '#00FFFF', name: 'Неоновый',     price: 0 },
@@ -128,6 +129,7 @@ var SKIN_CATALOG = [
   { id: 'sapphire',   color: '#0f52ba', name: 'Сапфировый',   price: 150 },
   { id: 'fuchsia',    color: '#ff00ff', name: 'Фуксия',       price: 200 },
   { id: 'lavender',   color: '#e6e6fa', name: 'Лавандовый',   price: 200 },
+  { id: 'flame',      color: 'flame',   name: 'Огненный 🔥',  price: 9000 },
   { id: 'rainbow',    color: 'rainbow', name: 'Радужный',     price: 500 }
 ];
 
@@ -182,7 +184,7 @@ var S = {
   totalCoins: 0,
   sessionCoins: 0,
   feverCount: 0,
-  ownedSkins: ['classic', 'neon', 'violet', 'golden', 'scarlet', 'shadow'],
+  ownedSkins: ['classic', 'neon', 'violet', 'golden', 'scarlet', 'shadow', 'flame'],
   dailyQuests: [],
   dailyQuestsDate: ''
 };
@@ -241,10 +243,21 @@ var sfx = {
 function randInt(a, b) { return Math.floor(Math.random() * (b - a)) + a; }
 function now() { return performance.now(); }
 
+
 function hexToRgb(h) {
   if (h === 'rainbow') return [255, 100, 200];
+  if (h === 'flame')   return [255, 100, 0];
   var m = h.replace('#', '').match(/.{2}/g);
   return m ? m.map(function(x) { return parseInt(x, 16); }) : [46, 204, 113];
+}
+
+
+function getFlameColor(t, segmentIndex) {
+  var flicker = Math.sin(t * 8 + segmentIndex * 0.5) * 0.5 + 0.5;
+  var r = 255;
+  var g = Math.floor(60 + flicker * 160);
+  var b = Math.floor(flicker * 40);
+  return [r, g, b];
 }
 
 function getRainbowColor(t) {
@@ -577,6 +590,7 @@ function saveOwnedSkins() {
   localStorage.setItem('snake-pro-owned-skins', JSON.stringify(S.ownedSkins));
 }
 
+
 function renderShop() {
   if (!ui.shopItems) return;
   ui.shopItems.innerHTML = '';
@@ -587,9 +601,14 @@ function renderShop() {
     item.className = 'shop-item' + (active ? ' active' : '') + (owned ? ' owned' : '');
     item.setAttribute('data-id', skin.id);
 
-    var dotHtml = skin.color === 'rainbow' 
-      ? '<span class="shop-dot rainbow-dot"></span>'
-      : '<span class="shop-dot" style="background:' + skin.color + '"></span>';
+    var dotHtml;
+    if (skin.color === 'rainbow') {
+      dotHtml = '<span class="shop-dot rainbow-dot"></span>';
+    } else if (skin.color === 'flame') {
+      dotHtml = '<span class="shop-dot flame-dot"></span>';
+    } else {
+      dotHtml = '<span class="shop-dot" style="background:' + skin.color + '"></span>';
+    }
 
     var actionHtml = '';
     if (active) {
@@ -634,7 +653,7 @@ function renderShop() {
           saveOwnedSkins();
         }
         S.snakeSkinId = id;
-        S.snakeColor = skin.color === 'rainbow' ? 'rainbow' : skin.color;
+        S.snakeColor = skin.color;
         localStorage.setItem('snakeSkinColor', S.snakeColor);
         localStorage.setItem('snakeSkinId', S.snakeSkinId);
         sfx.purchase();
@@ -645,7 +664,7 @@ function renderShop() {
 
       if (owned) {
         S.snakeSkinId = id;
-        S.snakeColor = skin.color === 'rainbow' ? 'rainbow' : skin.color;
+        S.snakeColor = skin.color;
         localStorage.setItem('snakeSkinColor', S.snakeColor);
         localStorage.setItem('snakeSkinId', S.snakeSkinId);
         sfx.purchase();
@@ -791,6 +810,7 @@ function updateContinueButton() {
   }
 }
 
+
 function setupSkinPalette() {
   if (!ui.skinOptions || ui.skinOptions.length === 0) return;
 
@@ -798,7 +818,9 @@ function setupSkinPalette() {
     var dot = option.querySelector('.dot');
     var color = option.getAttribute('data-color');
     var id = option.getAttribute('data-id');
-    if (dot && color && color !== 'rainbow') dot.style.backgroundColor = color;
+    if (dot && color && color !== 'rainbow' && color !== 'flame') {
+      dot.style.backgroundColor = color;
+    }
 
     option.addEventListener('click', function() {
       var owned = S.ownedSkins.indexOf(id) !== -1;
@@ -1135,16 +1157,27 @@ function drawParticles() {
   }
 }
 
+
 function updateTrail() {
   if (!S.showTrail || !S.isMoving) return;
   if (S.performanceMode === 'performance') return;
   var head = S.snake.cells[0];
   if (!head) return;
+
+  var trailColor;
+  if (S.snakeColor === 'rainbow') {
+    trailColor = getRainbowColor(now() / 300);
+  } else if (S.snakeColor === 'flame') {
+    trailColor = getFlameColor(now() / 300, 0);
+  } else {
+    trailColor = hexToRgb(S.snakeColor);
+  }
+
   S.trail.push({
     x: head.x + S.grid / 2,
     y: head.y + S.grid / 2,
     life: 1,
-    color: S.snakeColor === 'rainbow' ? getRainbowColor(now() / 300) : hexToRgb(S.snakeColor)
+    color: trailColor
   });
   var maxTrail = S.performanceMode === 'balanced' ? 12 : 20;
   while (S.trail.length > maxTrail) S.trail.shift();
@@ -1153,6 +1186,7 @@ function updateTrail() {
     if (S.trail[i].life <= 0) S.trail.splice(i, 1);
   }
 }
+
 
 function drawTrail() {
   if (!S.showTrail || S.trail.length === 0) return;
@@ -1167,9 +1201,19 @@ function drawTrail() {
   }
 }
 
+
 function spawnDeathFragments() {
   if (S.performanceMode === 'performance') return;
-  var rgb = S.snakeColor === 'rainbow' ? [255, 100, 200] : hexToRgb(S.snakeColor);
+
+  var rgb;
+  if (S.snakeColor === 'rainbow') {
+    rgb = [255, 100, 200];
+  } else if (S.snakeColor === 'flame') {
+    rgb = [255, 80, 0];
+  } else {
+    rgb = hexToRgb(S.snakeColor);
+  }
+
   for (var i = 0; i < S.snake.cells.length; i++) {
     var c = S.snake.cells[i];
     var angle = Math.random() * Math.PI * 2;
@@ -1403,7 +1447,7 @@ function loop(ts) {
         S.feverCount++;
         sfx.fever(); 
         shake(6);
-        showNotification('🔥 ЛИХОРАДКА!', 'x3 очки на 6 секунд!', '🔥');
+        showNotification('😵 ЛИХОРАДКА!', 'x3 очки на 6 секунд!', '😵');
       }
 
       if (f.type === 'gold') sfx.gold();
@@ -1441,6 +1485,7 @@ function loop(ts) {
   if (S.magnet > 0) S.magnet = Math.max(0, S.magnet - dt);
   if (S.fever > 0)  S.fever  = Math.max(0, S.fever - dt);
   updatePowerupBar();
+
   updateTrail();
   drawGrid();
   drawObstacles();
@@ -1519,10 +1564,12 @@ function drawFoods() {
   }
 }
 
+
 function drawSnake() {
   var cells = S.snake.cells;
   var isRainbow = S.snakeColor === 'rainbow';
-  var baseRgb = isRainbow ? null : hexToRgb(S.snakeColor);
+  var isFlame = S.snakeColor === 'flame';
+  var baseRgb = (isRainbow || isFlame) ? null : hexToRgb(S.snakeColor);
   var tNow = now() / 300;
 
   for (var i = 0; i < cells.length; i++) {
@@ -1530,12 +1577,31 @@ function drawSnake() {
     var isHead = i === 0;
     var t = i / Math.max(1, cells.length - 1);
 
-    var rgb = isRainbow ? getRainbowColor(tNow + i * 0.3) : baseRgb;
+    var rgb;
+    if (isRainbow) {
+      rgb = getRainbowColor(tNow + i * 0.3);
+    } else if (isFlame) {
+      rgb = getFlameColor(tNow, i);
+    } else {
+      rgb = baseRgb;
+    }
+
     var br = rgb[0], bg = rgb[1], bb = rgb[2];
 
     if (isHead) {
-      ctx.shadowColor = S.fever > 0 ? '#ffd700' : (S.shield > 0 ? '#9b59b6' : S.snakeColor);
-      ctx.shadowBlur = S.fever > 0 ? 20 : 10;
+      var headGlow;
+      if (isFlame) {
+        headGlow = '#ff4500';
+      } else if (S.fever > 0) {
+        headGlow = '#ffd700';
+      } else if (S.shield > 0) {
+        headGlow = '#9b59b6';
+      } else {
+        headGlow = S.snakeColor;
+      }
+      ctx.shadowColor = headGlow;
+      
+      ctx.shadowBlur = isFlame ? 18 : (S.fever > 0 ? 20 : 10);
     }
 
     if (S.shield > 0) {
@@ -1544,7 +1610,7 @@ function drawSnake() {
       ctx.strokeRect(c.x - 1, c.y - 1, S.grid + 1, S.grid + 1);
     }
 
-    if (S.fever > 0) {
+    if (S.fever > 0 && !isFlame) {
       ctx.shadowColor = '#ffd700';
       ctx.shadowBlur = 15;
     }
