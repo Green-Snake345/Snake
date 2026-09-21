@@ -731,7 +731,6 @@ input[type="color"] {
 .dot.blue { background: var(--blue) }
 .dot.purple { background: var(--purple) }
 .dot.orange { background: var(--orange) }
-
 .dot.fever {
   background: linear-gradient(135deg, #ffeb3b, #ff9800);
   box-shadow: 0 0 6px rgba(255, 152, 0, 0.6);
@@ -899,6 +898,60 @@ body.theme-light {
   background: linear-gradient(135deg, #ff0000, #ff9900, #ffff00, #00ff00, #0099ff, #9900ff);
   background-size: 200% 200%;
   animation: rainbowShift 3s linear infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ✦ НОВОЕ ✦: СКИН «ОГНЕННЫЙ» ✦
+   СТИЛИ ДЛЯ ОГНЕННОЙ ТОЧКИ В ПАЛИТРЕ НАСТРОЕК
+   Радиальный градиент имитирует настоящее пламя:
+   - Жёлтое ядро в центре (#fff59d)
+   - Оранжевый переход (#ffb300 → #ff6f00)
+   - Красные края (#d84315 → #8b0000)
+   Анимация flameFlicker создаёт эффект мерцания огня
+   с изменением яркости и лёгким растяжением по вертикали
+═══════════════════════════════════════════════════════════ */
+.skin-option .dot.flame-dot {
+  background: radial-gradient(circle at 50% 70%, 
+    #fff59d 0%, 
+    #ffb300 25%, 
+    #ff6f00 55%, 
+    #d84315 80%, 
+    #8b0000 100%);
+  background-size: 100% 100%;
+  animation: flameFlicker 0.4s ease-in-out infinite alternate;
+  box-shadow: 
+    0 0 12px rgba(255, 100, 0, 0.8),
+    0 0 24px rgba(255, 60, 0, 0.5),
+    inset 0 -4px 8px rgba(139, 0, 0, 0.6);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ✦ НОВОЕ ✦: СКИН «ОГНЕННЫЙ» ✦
+   АНИМАЦИЯ МЕРЦАНИЯ ПЛАМЕНИ
+   Три ключевых кадра создают эффект "живого" огня:
+   0%   — спокойное пламя, центр смещён вниз
+   50%  — вспышка, яркость увеличена, центр поднят вверх
+   100% — затухание, лёгкое сжатие по вертикали
+═══════════════════════════════════════════════════════════ */
+@keyframes flameFlicker {
+  0% {
+    background: radial-gradient(circle at 50% 75%, 
+      #fff59d 0%, #ffb300 25%, #ff6f00 55%, #d84315 80%, #8b0000 100%);
+    filter: brightness(1);
+    transform: scaleY(1);
+  }
+  50% {
+    background: radial-gradient(circle at 50% 65%, 
+      #fffde7 0%, #ffc107 25%, #ff8f00 55%, #e64a19 80%, #b71c1c 100%);
+    filter: brightness(1.2);
+    transform: scaleY(1.05);
+  }
+  100% {
+    background: radial-gradient(circle at 50% 70%, 
+      #fff9c4 0%, #ffa000 25%, #ff5722 55%, #d84315 80%, #8b0000 100%);
+    filter: brightness(1.1);
+    transform: scaleY(0.98);
+  }
 }
 
 @keyframes rainbowShift {
@@ -1209,6 +1262,30 @@ body.theme-light {
   background: linear-gradient(135deg, #ff0000, #ff9900, #ffff00, #00ff00, #0099ff, #9900ff);
   background-size: 200% 200%;
   animation: rainbowShift 3s linear infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ✦ НОВОЕ ✦: СКИН «ОГНЕННЫЙ» ✦
+   ОГНЕННАЯ ТОЧКА В МАГАЗИНЕ
+   Крупная версия (44×44 px) с усиленным свечением пламени
+   Использует ту же анимацию flameFlicker, что и в настройках
+   Тройной box-shadow создаёт объёмный эффект огня:
+   - внутреннее ядро (16px)
+   - внешнее пламя (32px)
+   - тёмный низ для глубины (inset)
+═══════════════════════════════════════════════════════════ */
+.shop-dot.flame-dot {
+  background: radial-gradient(circle at 50% 70%, 
+    #fff59d 0%, 
+    #ffb300 25%, 
+    #ff6f00 55%, 
+    #d84315 80%, 
+    #8b0000 100%);
+  animation: flameFlicker 0.4s ease-in-out infinite alternate;
+  box-shadow: 
+    0 0 16px rgba(255, 100, 0, 0.9),
+    0 0 32px rgba(255, 60, 0, 0.6),
+    inset 0 -6px 10px rgba(139, 0, 0, 0.7);
 }
 
 .shop-name {
