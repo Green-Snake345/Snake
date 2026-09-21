@@ -129,7 +129,7 @@ var SKIN_CATALOG = [
   { id: 'sapphire',   color: '#0f52ba', name: 'Сапфировый',   price: 150 },
   { id: 'fuchsia',    color: '#ff00ff', name: 'Фуксия',       price: 200 },
   { id: 'lavender',   color: '#e6e6fa', name: 'Лавандовый',   price: 200 },
-  { id: 'flame',      color: 'flame',   name: 'Огненный 🔥',  price: 9000 },
+  { id: 'flame',      color: 'flame',   name: 'Огненный',  price: 9000 },
   { id: 'rainbow',    color: 'rainbow', name: 'Радужный',     price: 500 }
 ];
 
@@ -538,7 +538,7 @@ function checkAchievements() {
   if (!ach.coins100 && S.totalCoins >= 100) {
     saveAchievement('coins100');
     sfx.achievement();
-    showNotification(ACHIEVEMENTS.coins100.name, ACHIEVEMENTS.coins100.desc, '💰');
+    showNotification(ACHIEVEMENTS.coins100.name, ACHIEVEMENTS.coins100.desc, '🟡');
   }
 }
 
@@ -567,7 +567,7 @@ function addCoins(amount, reason) {
   S.sessionCoins += amount;
   sfx.coin();
   saveCoins();
-  if (reason) showNotification('+' + amount + ' 🪙', reason, '🪙');
+  if (reason) showNotification('+' + amount + '🟡', reason, '🟡');
 }
 
 function updateCoinsUI() {
@@ -634,7 +634,7 @@ function renderShop() {
 
       if (e.target.classList.contains('buy-btn')) {
         if (S.coins < skin.price) {
-          showNotification('Недостаточно монет', 'Нужно ещё ' + (skin.price - S.coins) + ' 🪙', '💸');
+          showNotification('Недостаточно монет', 'Нужно ещё ' + (skin.price - S.coins) + ' 🟡', '💸');
           return;
         }
         S.coins -= skin.price;
@@ -781,7 +781,7 @@ function claimDailyReward() {
   S.shield = 3000;
   addCoins(5, 'Ежедневный бонус');
   localStorage.setItem('snake-pro-daily-reward', today);
-  showNotification('Ежедневная награда', 'Бонусный щит и 5 🪙!', '🎁');
+  showNotification('Ежедневная награда', 'Бонусный щит и 5 🟡!', '🎁');
 }
 
 function updateProgressBars() {
@@ -926,21 +926,21 @@ function loadSettings() {
 function saveSettings() {
   var s = {
     difficulty: ui.difficulty ? ui.difficulty.value : 'normal',
-    grid:       ui.gridSize ? Number(ui.gridSize.value) : 16,
-    theme:      ui.theme ? ui.theme.value : 'dark',
-    showGrid:   ui.gridToggle ? ui.gridToggle.checked : true,
-    showTrail:  ui.trailToggle ? ui.trailToggle.checked : true,
-    baseSpeed:  ui.speedSlider ? Number(ui.speedSlider.value) : 5,
+    grid: ui.gridSize ? Number(ui.gridSize.value) : 16,
+    theme: ui.theme ? ui.theme.value : 'dark',
+    showGrid: ui.gridToggle ? ui.gridToggle.checked : true,
+    showTrail: ui.trailToggle ? ui.trailToggle.checked : true,
+    baseSpeed: ui.speedSlider ? Number(ui.speedSlider.value) : 5,
     snakeColor: S.snakeColor,
-    particles:  ui.particles ? ui.particles.checked : true,
-    shake:      ui.shake ? ui.shake.checked : true,
-    vibration:  ui.vibration ? ui.vibration.checked : true,
-    autoPause:  ui.autoPause ? ui.autoPause.checked : true,
+    particles: ui.particles ? ui.particles.checked : true,
+    shake: ui.shake ? ui.shake.checked : true,
+    vibration: ui.vibration ? ui.vibration.checked : true,
+    autoPause: ui.autoPause ? ui.autoPause.checked : true,
     mobileSize: ui.mobileSize ? ui.mobileSize.value : 'standard',
     leftHanded: ui.leftHanded ? ui.leftHanded.checked : false,
     highContrast: ui.highContrast ? ui.highContrast.checked : false,
     performanceMode: ui.performanceMode ? ui.performanceMode.value : 'balanced',
-    volume:     ui.volume ? Number(ui.volume.value) / 100 : 0.5
+    volume: ui.volume ? Number(ui.volume.value) / 100 : 0.5
   };
   localStorage.setItem('snake-pro-settings', JSON.stringify(s));
   S.difficulty = s.difficulty; S.grid = s.grid; S.theme = s.theme;
