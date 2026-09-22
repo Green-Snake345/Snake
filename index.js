@@ -538,7 +538,7 @@ function checkAchievements() {
   if (!ach.coins100 && S.totalCoins >= 100) {
     saveAchievement('coins100');
     sfx.achievement();
-    showNotification(ACHIEVEMENTS.coins100.name, ACHIEVEMENTS.coins100.desc, '🟡');
+    showNotification(ACHIEVEMENTS.coins100.name, ACHIEVEMENTS.coins100.desc, '💰');
   }
 }
 
