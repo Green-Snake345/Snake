@@ -567,7 +567,7 @@ function addCoins(amount, reason) {
   S.sessionCoins += amount;
   sfx.coin();
   saveCoins();
-  if (reason) showNotification('+' + amount + '🟡', reason, '🟡');
+  if (reason) showNotification('+' + amount + '💰', reason, '💰');
 }
 
 function updateCoinsUI() {
@@ -634,7 +634,7 @@ function renderShop() {
 
       if (e.target.classList.contains('buy-btn')) {
         if (S.coins < skin.price) {
-          showNotification('Недостаточно монет', 'Нужно ещё ' + (skin.price - S.coins) + ' 🟡', '💸');
+          showNotification('Недостаточно монет', 'Нужно ещё ' + (skin.price - S.coins) + '💰', '💸');
           return;
         }
         S.coins -= skin.price;
@@ -781,7 +781,7 @@ function claimDailyReward() {
   S.shield = 3000;
   addCoins(5, 'Ежедневный бонус');
   localStorage.setItem('snake-pro-daily-reward', today);
-  showNotification('Ежедневная награда', 'Бонусный щит и 5 🟡!', '🎁');
+  showNotification('Ежедневная награда', 'Бонусный щит и 5 💰!', '🎁');
 }
 
 function updateProgressBars() {
