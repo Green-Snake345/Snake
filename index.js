@@ -2430,7 +2430,7 @@ init();
   if (list && !list.querySelector('.gamepad-help')) {
     var item = document.createElement('li');
     item.className = 'gamepad-help';
-    item.innerHTML = '<b>Геймпад</b> — крестовина или левый стик: движение, Start: пауза, A: турбо.';
+    item.innerHTML = '<b>Геймпад</b> — крестовина или левый стик: движение, Start: пауза, A: турбо';
     list.appendChild(item);
   }
 
