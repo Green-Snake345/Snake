@@ -1,0 +1,29 @@
+{
+  "name": "snake-game",
+  "version": "1.0.0",
+  "description": "Classic Snake game with modern features including boosts, combos, skins shop, and mobile controls",
+  "main": "index.js",
+  "scripts": {
+    "dev": "python main.py",
+    "start": "python main.py",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Green-Snake345/Snake.git"
+  },
+  "keywords": [
+    "snake",
+    "game",
+    "javascript"
+  ],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Green-Snake345/Snake/issues"
+  },
+  "homepage": "https://github.com/Green-Snake345/Snake#readme",
+  "dependencies": {
+    "@vercel/speed-insights": "^2.0.0"
+  }
+}
