@@ -1,0 +1,6 @@
+{
+  "buildCommand": "echo 'No build needed for static site'",
+  "outputDirectory": ".",
+  "installCommand": "npm install",
+  "devCommand": "python main.py"
+}
