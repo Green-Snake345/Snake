@@ -768,7 +768,7 @@ function renderQuests() {
       '<div class="quest-text">' + (done ? '✅ ' : '') + q.text + '</div>' +
       '<div class="quest-progress">' +
         '<div class="quest-bar"><div class="quest-fill" style="width:' + pct + '%"></div></div>' +
-        '<span class="quest-reward">' + (done ? '✓' : q.progress + '/' + q.target) + ' · ' + q.reward + ' 🪙</span>' +
+        '<span class="quest-reward">' + (done ? '✓' : q.progress + '/' + q.target) + ' · ' + q.reward + ' 💰</span>' +
       '</div>';
     ui.questsList.appendChild(item);
   });
