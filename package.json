@@ -1,0 +1,25 @@
+{
+  "name": "snake",
+  "version": "1.0.0",
+  "description": "Игра «Змейка» с бустами, комбо, магазином скинов, монетами и мобильным управлением",
+  "main": "index.js",
+  "scripts": {
+    "dev": "npx serve .",
+    "preview": "npx serve .",
+    "test": "echo \"No tests configured\" && exit 0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Green-Snake345/Snake.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Green-Snake345/Snake/issues"
+  },
+  "homepage": "https://github.com/Green-Snake345/Snake#readme",
+  "dependencies": {
+    "@vercel/analytics": "^2.0.1"
+  }
+}
