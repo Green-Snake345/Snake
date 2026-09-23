@@ -130,7 +130,7 @@ var SKIN_CATALOG = [
   { id: 'fuchsia',    color: '#ff00ff', name: 'Фуксия',       price: 200 },
   { id: 'lavender',   color: '#e6e6fa', name: 'Лавандовый',   price: 200 },
   { id: 'flame',      color: 'flame',   name: 'Огненный',  price: 9000 },
-  { id: 'rainbow',    color: 'rainbow', name: 'Радужный',     price: 500 }
+  { id: 'rainbow',    color: 'rainbow', name: 'Радужный',     price: 400 }
 ];
 
 var S = {
@@ -768,7 +768,7 @@ function renderQuests() {
       '<div class="quest-text">' + (done ? '✅ ' : '') + q.text + '</div>' +
       '<div class="quest-progress">' +
         '<div class="quest-bar"><div class="quest-fill" style="width:' + pct + '%"></div></div>' +
-        '<span class="quest-reward">' + (done ? '✓' : q.progress + '/' + q.target) + ' · ' + q.reward + ' 💰</span>' +
+        '<span class="quest-reward">' + (done ? '✓' : q.progress + '/' + q.target) + ' · ' + q.reward + ' 🪙</span>' +
       '</div>';
     ui.questsList.appendChild(item);
   });
@@ -1600,7 +1600,7 @@ function drawSnake() {
         headGlow = S.snakeColor;
       }
       ctx.shadowColor = headGlow;
-      
+
       ctx.shadowBlur = isFlame ? 18 : (S.fever > 0 ? 20 : 10);
     }
 
