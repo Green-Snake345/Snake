@@ -102,6 +102,18 @@
                 <option value="hard">Сложная</option>
             </select>
         </label>
+        <label class="setting-row"><span>Режим игры:</span>
+            <select id="game-mode-select">
+                <option value="classic" selected>Классика</option>
+                <option value="survival">Выживание</option>
+            </select>
+        </label>
+        <label class="setting-row"><span>Границы поля:</span>
+            <select id="wall-mode-select">
+                <option value="wrap" selected>Проходить сквозь край</option>
+                <option value="danger">Стены опасны</option>
+            </select>
+        </label>
         <label class="setting-row"><span>Размер клетки:</span>
             <select id="grid-size-select">
                 <option value="12">12 px</option>
@@ -266,6 +278,12 @@
         <label class="setting-row"><span>Частицы:</span>
             <input type="checkbox" id="particles-toggle" checked />
         </label>
+        <label class="setting-row"><span>Всплывающие очки:</span>
+            <input type="checkbox" id="popups-toggle" checked />
+        </label>
+        <label class="setting-row"><span>Подсказки интерфейса:</span>
+            <input type="checkbox" id="hints-toggle" checked />
+        </label>
         <label class="setting-row"><span>Тряска экрана:</span>
             <input type="checkbox" id="shake-toggle" checked />
         </label>
@@ -340,6 +358,7 @@
             <div id="level-up-banner" class="level-banner hidden">
                 <span>Уровень <b id="level-up-num">2</b></span>
             </div>
+            <div id="start-countdown" class="start-countdown hidden" aria-live="assertive"></div>
         </div>
         <div class="game-controls">
             <button id="btn-pause" class="btn btn-small" type="button">|| Пауза</button>
