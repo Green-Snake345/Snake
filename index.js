@@ -92,6 +92,7 @@ var ui = {
   skinOptions:     document.querySelectorAll('.skin-option'),
   btnContinue:     el('btn-continue'),
   mobilePause:     el('btn-mobile-pause'),
+  startCountdown:  el('start-countdown'),
   directionButtons: document.querySelectorAll('.direction-btn[data-direction]'),
   questsList:      el('quests-list')
 };
@@ -1678,9 +1679,12 @@ function startGame() {
   lastTime = performance.now();
   requestAnimationFrame(loop);
   updateQuestProgress('games', 1);
+
+  runCountdown();
 }
 
 function stopGame() {
+  hideCountdown();
   S.isRunning = false;
 }
 
@@ -1756,6 +1760,7 @@ function gameOver() {
 }
 
 function togglePause() {
+  if (countdown.active) return;
   if (!S.isRunning) return;
   S.isPaused = !S.isPaused;
   if (screens.pause) {
@@ -1765,6 +1770,7 @@ function togglePause() {
 }
 
 function setDirection(direction) {
+  if (countdown.active) return false;
   if (!S.isRunning || S.isPaused) return false;
 
   var g = S.grid;
@@ -1938,6 +1944,105 @@ function init() {
 
 init();
 
+var countdown = {
+  active: false,
+  step: 0,
+  timerId: null,
+  steps: ['3', '2', '1', 'Поехали!']
+};
+
+function showCountdownValue(text, isGo) {
+  var box = ui.startCountdown;
+  if (!box) return;
+  box.classList.remove('hidden');
+  box.classList.toggle('go', Boolean(isGo));
+  box.innerHTML = '<span class="countdown-tick">' + text + '</span>';
+}
+
+function clearCountdownTimers() {
+  if (countdown.timerId) {
+    clearTimeout(countdown.timerId);
+    countdown.timerId = null;
+  }
+}
+
+function hideCountdown() {
+  clearCountdownTimers();
+  if (ui.startCountdown) {
+    ui.startCountdown.classList.add('hidden');
+    ui.startCountdown.classList.remove('go');
+    ui.startCountdown.innerHTML = '';
+  }
+  countdown.active = false;
+  countdown.step = 0;
+}
+
+function finishCountdown() {
+  hideCountdown();
+  S.isPaused = false;
+  if (screens.pause) screens.pause.classList.add('hidden');
+}
+
+function runCountdown() {
+  hideCountdown();
+  countdown.active = true;
+  countdown.step = 0;
+
+  S.isMoving = false;
+  S.snake.dx = 0;
+  S.snake.dy = 0;
+  S.isPaused = false;
+
+  function tick() {
+    if (!countdown.active || !S.isRunning) { hideCountdown(); return; }
+
+    var value = countdown.steps[countdown.step];
+    var isGo = countdown.step === countdown.steps.length - 1;
+
+    showCountdownValue(value, isGo);
+
+    if (isGo) {
+      beep(880, 0.12, 'triangle', 0.9);
+      countdown.timerId = setTimeout(function() {
+        if (!countdown.active) return;
+        finishCountdown();
+      }, 650);
+      countdown.step++;
+      return;
+    }
+
+    beep(520, 0.08, 'sine', 0.7);
+    countdown.step++;
+    countdown.timerId = setTimeout(tick, 700);
+  }
+
+  tick();
+}
+
+document.addEventListener('visibilitychange', function() {
+  if (!countdown.active) return;
+  if (document.hidden) {
+    clearCountdownTimers();
+  } else if (S.isRunning && countdown.active) {
+    var resume = function() {
+      if (!countdown.active || !S.isRunning) { hideCountdown(); return; }
+      var value = countdown.steps[countdown.step];
+      var isGo = countdown.step === countdown.steps.length - 1;
+      showCountdownValue(value, isGo);
+      if (isGo) {
+        countdown.timerId = setTimeout(function() {
+          if (countdown.active) finishCountdown();
+        }, 650);
+        countdown.step++;
+      } else {
+        countdown.step++;
+        countdown.timerId = setTimeout(resume, 700);
+      }
+    };
+    resume();
+  }
+});
+
 (function addTurboAbility() {
   var TURBO_DURATION = 2400;
   var TURBO_COOLDOWN = 7000;
@@ -2001,7 +2106,7 @@ init();
   }
 
   function activateTurbo() {
-    if (!S.isRunning || S.isPaused || now() < S.turboReadyAt) return;
+    if (!S.isRunning || S.isPaused || countdown.active || now() < S.turboReadyAt) return;
 
     S.turboUntil = now() + TURBO_DURATION;
     S.turboReadyAt = now() + TURBO_COOLDOWN;
@@ -2323,6 +2428,8 @@ init();
     S.isRunning = true;
     sessionEaten = checkpoint.sessionEaten || 0;
     lastTime = performance.now();
+
+    hideCountdown();
 
     if (ui.score) ui.score.textContent = S.score;
     if (ui.level) ui.level.textContent = S.level;
