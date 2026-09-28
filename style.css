@@ -900,16 +900,6 @@ body.theme-light {
   animation: rainbowShift 3s linear infinite;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   ✦ НОВОЕ ✦: СКИН «ОГНЕННЫЙ» ✦
-   СТИЛИ ДЛЯ ОГНЕННОЙ ТОЧКИ В ПАЛИТРЕ НАСТРОЕК
-   Радиальный градиент имитирует настоящее пламя:
-   - Жёлтое ядро в центре (#fff59d)
-   - Оранжевый переход (#ffb300 → #ff6f00)
-   - Красные края (#d84315 → #8b0000)
-   Анимация flameFlicker создаёт эффект мерцания огня
-   с изменением яркости и лёгким растяжением по вертикали
-═══════════════════════════════════════════════════════════ */
 .skin-option .dot.flame-dot {
   background: radial-gradient(circle at 50% 70%, 
     #fff59d 0%, 
@@ -925,14 +915,6 @@ body.theme-light {
     inset 0 -4px 8px rgba(139, 0, 0, 0.6);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   ✦ НОВОЕ ✦: СКИН «ОГНЕННЫЙ» ✦
-   АНИМАЦИЯ МЕРЦАНИЯ ПЛАМЕНИ
-   Три ключевых кадра создают эффект "живого" огня:
-   0%   — спокойное пламя, центр смещён вниз
-   50%  — вспышка, яркость увеличена, центр поднят вверх
-   100% — затухание, лёгкое сжатие по вертикали
-═══════════════════════════════════════════════════════════ */
 @keyframes flameFlicker {
   0% {
     background: radial-gradient(circle at 50% 75%, 
@@ -1264,16 +1246,6 @@ body.theme-light {
   animation: rainbowShift 3s linear infinite;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   ✦ НОВОЕ ✦: СКИН «ОГНЕННЫЙ» ✦
-   ОГНЕННАЯ ТОЧКА В МАГАЗИНЕ
-   Крупная версия (44×44 px) с усиленным свечением пламени
-   Использует ту же анимацию flameFlicker, что и в настройках
-   Тройной box-shadow создаёт объёмный эффект огня:
-   - внутреннее ядро (16px)
-   - внешнее пламя (32px)
-   - тёмный низ для глубины (inset)
-═══════════════════════════════════════════════════════════ */
 .shop-dot.flame-dot {
   background: radial-gradient(circle at 50% 70%, 
     #fff59d 0%, 
@@ -1625,6 +1597,82 @@ canvas {
 
 .btn-primary:hover {
   box-shadow: 0 8px 28px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+.start-countdown {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 18;
+  pointer-events: none;
+  font-size: clamp(3rem, 14vw, 6rem);
+  font-weight: 900;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-shadow:
+    0 0 24px rgba(0, 224, 198, .8),
+    0 0 60px rgba(0, 224, 198, .4);
+  user-select: none;
+  -webkit-user-select: none;
+  text-align: center;
+  line-height: 1;
+  overflow: hidden;
+}
+
+.start-countdown.hidden {
+  display: none;
+}
+
+.start-countdown .countdown-tick {
+  display: inline-block;
+  animation: countdownPop .9s cubic-bezier(.25, .1, .25, 1) both;
+  will-change: opacity, transform;
+}
+
+.start-countdown.go .countdown-tick {
+  color: var(--gold);
+  text-shadow:
+    0 0 24px rgba(255, 215, 0, .9),
+    0 0 60px rgba(255, 152, 0, .5);
+  font-size: .72em;
+  letter-spacing: 2px;
+}
+
+@keyframes countdownPop {
+  0% {
+    opacity: 0;
+    transform: scale(.4);
+  }
+  35% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .start-countdown .countdown-tick {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+body.performance-performance .start-countdown .countdown-tick {
+  animation: none !important;
+  opacity: 1 !important;
 }
 
 select:focus,
