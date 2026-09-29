@@ -28,4 +28,4 @@ def internal_error(error):
     return "Ошибка сервера", 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080, debug=False, threaded=True)
+    app.run(host='0.0.0.0', port=3000, debug=False, threaded=True)
