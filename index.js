@@ -196,6 +196,7 @@ var audioCtx = null;
 var touchStartX = 0;
 var touchStartY = 0;
 var touchActive = false;
+var powerupTimers = {};
 
 function initAudio() {
   if (audioCtx) return;
@@ -1306,21 +1307,51 @@ function applyShake() {
 
 function updatePowerupBar() {
   if (!ui.powerupBar) return;
-  ui.powerupBar.innerHTML = '';
+
   var ups = [
-    { label: 'Щит',       val: S.shield, max: 5000, cls: 'shield' },
-    { label: 'Замедление', val: S.slow,   max: 5000, cls: 'slow' },
-    { label: 'Магнит',    val: S.magnet, max: 8000, cls: 'magnet' },
-    { label: 'Лихорадка', val: S.fever,  max: 6000, cls: 'fever' }
+    { key: 'shield', label: 'Щит',       val: S.shield, max: 5000, cls: 'shield' },
+    { key: 'slow',   label: 'Замедление', val: S.slow,   max: 5000, cls: 'slow' },
+    { key: 'magnet', label: 'Магнит',    val: S.magnet, max: 8000, cls: 'magnet' },
+    { key: 'fever',  label: 'Лихорадка', val: S.fever,  max: 6000, cls: 'fever' }
   ];
+
   for (var i = 0; i < ups.length; i++) {
     var u = ups[i];
-    if (u.val <= 0) continue;
-    var chip = document.createElement('div');
-    chip.className = 'powerup-chip ' + u.cls;
-    var pct = Math.max(0, (u.val / u.max) * 100);
-    chip.innerHTML = '<span>' + u.label + '</span><div class="timer-bar"><div class="timer-fill" style="width:' + pct + '%;background:currentColor"></div></div>';
-    ui.powerupBar.appendChild(chip);
+    var chip = ui.powerupBar.querySelector('[data-key="' + u.key + '"]');
+
+    if (u.val > 0) {
+      if (powerupTimers[u.key]) {
+        clearTimeout(powerupTimers[u.key]);
+        powerupTimers[u.key] = null;
+      }
+
+      if (!chip) {
+        chip = document.createElement('div');
+        chip.className = 'powerup-chip ' + u.cls;
+        chip.setAttribute('data-key', u.key);
+        chip.innerHTML = '<span>' + u.label + '</span><div class="timer-bar"><div class="timer-fill" style="width:' + pct + '%"></div></div>';
+        ui.powerupBar.appendChild(chip);
+
+        void chip.offsetWidth;
+      }
+
+      var pct = Math.max(0, (u.val / u.max) * 100);
+      var fill = chip.querySelector('.timer-fill');
+      if (fill) fill.style.width = pct + '%';
+
+      chip.classList.remove('fading');
+
+    } else if (chip && !chip.classList.contains('fading')) {
+
+      chip.classList.add('fading');
+
+      powerupTimers[u.key] = setTimeout(function(c, key) {
+        return function() {
+          if (c.parentNode) c.parentNode.removeChild(c);
+          powerupTimers[key] = null;
+        };
+      }(chip, u.key), 300);
+    }
   }
 
   if (ui.feverOverlay) {
@@ -1707,7 +1738,13 @@ function resetGame() {
   if (ui.score)      ui.score.textContent = '0';
   if (ui.level)      ui.level.textContent = '1';
   if (ui.combo)      ui.combo.style.display = 'none';
-  if (ui.powerupBar) ui.powerupBar.innerHTML = '';
+  if (ui.powerupBar) {
+    ui.powerupBar.innerHTML = '';
+    for (var pk in powerupTimers) {
+      if (powerupTimers[pk]) clearTimeout(powerupTimers[pk]);
+      powerupTimers[pk] = null;
+    }
+  }
   if (ui.feverOverlay) ui.feverOverlay.classList.add('hidden');
   if (screens.gameOver) screens.gameOver.classList.add('hidden');
   if (screens.pause)    screens.pause.classList.add('hidden');
