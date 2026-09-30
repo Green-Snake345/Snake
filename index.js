@@ -209,7 +209,7 @@ var countdown = {
 function initAudio() {
   if (audioCtx) return;
   try { 
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)(); 
+     audioCtx = new window.AudioContext();
     
     if (audioCtx && audioCtx.state === 'suspended') {
       audioCtx.resume();
