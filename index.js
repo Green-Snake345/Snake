@@ -49,6 +49,7 @@ var ui = {
   score:           el('score-display'),
   level:           el('level-display'),
   highScore:       el('high-score-display'),
+  leaderboard:     el('leaderboard-list'),
   finalScore:      el('final-score'),
   finalLevel:      el('final-level'),
   finalEaten:      el('final-eaten'),
@@ -63,7 +64,7 @@ var ui = {
   canvasContainer: el('canvas-container'),
   feverOverlay:    el('fever-overlay'),
   msHighscore:     el('ms-highscore'),
-  msGames:         el('ms-games'),
+  msGames:         el('ms-games-val'),
   msEaten:         el('ms-eaten'),
   coinsValue:      el('coins-value'),
   hudCoins:        el('hud-coins'),
@@ -198,13 +199,32 @@ var touchStartY = 0;
 var touchActive = false;
 var powerupTimers = {};
 
+var countdown = {
+  active: false,
+  step: 0,
+  timerId: null,
+  steps: ['3', '2', '1', 'Поехали!']
+};
+
 function initAudio() {
   if (audioCtx) return;
-  try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+  try { 
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)(); 
+    
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  } catch (e) {
+    console.warn('AudioContext не поддерживается:', e);
+  }
 }
 
 function beep(f, d, t, v) {
   if (!audioCtx || S.volume <= 0) return;
+  
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
   var o = audioCtx.createOscillator();
   var g = audioCtx.createGain();
   o.type = t || 'square';
@@ -461,6 +481,8 @@ function resizeCanvas() {
   var availableWidth = Math.max(S.grid * 10, window.innerWidth - (isMobile ? 24 : 40));
   var availableHeight = Math.max(S.grid * 10, window.innerHeight - reservedHeight);
   var s = Math.min(availableWidth, availableHeight, 520);
+
+  if (S.grid < 4 || S.grid > 64 || !isFinite(S.grid)) S.grid = 16;
   canvas.width  = Math.floor(s / S.grid) * S.grid;
   canvas.height = Math.floor(s / S.grid) * S.grid;
 }
@@ -486,7 +508,12 @@ function loadAchievements() {
 function saveAchievement(key) {
   var ach = loadAchievements();
   ach[key] = true;
-  localStorage.setItem('snake-pro-achievements', JSON.stringify(ach));
+
+  try {
+    localStorage.setItem('snake-pro-achievements', JSON.stringify(ach));
+  } catch (e) {
+    console.warn('Не удалось сохранить ачивку:', e);
+  }
 }
 
 function checkAchievements() {
@@ -555,10 +582,15 @@ function loadCoins() {
 }
 
 function saveCoins() {
-  localStorage.setItem('snake-pro-coins', JSON.stringify({
-    coins: S.coins,
-    total: S.totalCoins
-  }));
+
+  try {
+    localStorage.setItem('snake-pro-coins', JSON.stringify({
+      coins: S.coins,
+      total: S.totalCoins
+    }));
+  } catch (e) {
+    console.warn('Не удалось сохранить монеты:', e);
+  }
   updateCoinsUI();
 }
 
@@ -589,7 +621,12 @@ function loadOwnedSkins() {
 }
 
 function saveOwnedSkins() {
-  localStorage.setItem('snake-pro-owned-skins', JSON.stringify(S.ownedSkins));
+  
+  try {
+    localStorage.setItem('snake-pro-owned-skins', JSON.stringify(S.ownedSkins));
+  } catch (e) {
+    console.warn('Не удалось сохранить скины:', e);
+  }
 }
 
 
@@ -656,8 +693,13 @@ function renderShop() {
         }
         S.snakeSkinId = id;
         S.snakeColor = skin.color;
-        localStorage.setItem('snakeSkinColor', S.snakeColor);
-        localStorage.setItem('snakeSkinId', S.snakeSkinId);
+        
+        try {
+          localStorage.setItem('snakeSkinColor', S.snakeColor);
+          localStorage.setItem('snakeSkinId', S.snakeSkinId);
+        } catch (e) {
+          console.warn('Не удалось сохранить скин:', e);
+        }
         sfx.purchase();
         renderShop();
         updateSkinOptionsActive();
@@ -667,8 +709,13 @@ function renderShop() {
       if (owned) {
         S.snakeSkinId = id;
         S.snakeColor = skin.color;
-        localStorage.setItem('snakeSkinColor', S.snakeColor);
-        localStorage.setItem('snakeSkinId', S.snakeSkinId);
+        
+        try {
+          localStorage.setItem('snakeSkinColor', S.snakeColor);
+          localStorage.setItem('snakeSkinId', S.snakeSkinId);
+        } catch (e) {
+          console.warn('Не удалось сохранить скин:', e);
+        }
         sfx.purchase();
         renderShop();
         updateSkinOptionsActive();
@@ -727,10 +774,15 @@ function generateDailyQuests(date) {
 }
 
 function saveDailyQuests() {
-  localStorage.setItem('snake-pro-daily-quests', JSON.stringify({
-    date: S.dailyQuestsDate,
-    quests: S.dailyQuests
-  }));
+  
+  try {
+    localStorage.setItem('snake-pro-daily-quests', JSON.stringify({
+      date: S.dailyQuestsDate,
+      quests: S.dailyQuests
+    }));
+  } catch (e) {
+    console.warn('Не удалось сохранить квесты:', e);
+  }
 }
 
 function updateQuestProgress(type, value) {
@@ -782,7 +834,12 @@ function claimDailyReward() {
   if (lastClaim === today) return;
   S.shield = 3000;
   addCoins(5, 'Ежедневный бонус');
-  localStorage.setItem('snake-pro-daily-reward', today);
+
+  try {
+    localStorage.setItem('snake-pro-daily-reward', today);
+  } catch (e) {
+    console.warn('Не удалось сохранить ежедневную награду:', e);
+  }
   showNotification('Ежедневная награда', 'Бонусный щит и 5 💰!', '🎁');
 }
 
@@ -834,8 +891,13 @@ function setupSkinPalette() {
       option.classList.add('active');
       S.snakeSkinId = id;
       S.snakeColor = color;
-      localStorage.setItem('snakeSkinColor', color);
-      localStorage.setItem('snakeSkinId', id);
+  
+      try {
+        localStorage.setItem('snakeSkinColor', color);
+        localStorage.setItem('snakeSkinId', id);
+      } catch (e) {
+        console.warn('Не удалось сохранить скин:', e);
+      }
     });
   });
 
@@ -890,7 +952,15 @@ function loadSettings() {
   try {
     var s = JSON.parse(raw);
     if (s.difficulty && ui.difficulty) { ui.difficulty.value = s.difficulty; S.difficulty = s.difficulty; }
-    if (s.grid && ui.gridSize)         { ui.gridSize.value = String(s.grid); S.grid = s.grid; }
+    if (s.grid && ui.gridSize)         { 
+      ui.gridSize.value = String(s.grid); 
+    
+      if (s.grid >= 4 && s.grid <= 64 && isFinite(s.grid)) {
+        S.grid = s.grid; 
+      } else {
+        S.grid = 16;
+      }
+    }
     if (s.theme && ui.theme)           { ui.theme.value = s.theme; S.theme = s.theme; applyTheme(S.theme); }
     if (typeof s.showGrid !== 'undefined' && ui.gridToggle)  { ui.gridToggle.checked = s.showGrid; S.showGrid = s.showGrid; }
     if (typeof s.showTrail !== 'undefined' && ui.trailToggle){ ui.trailToggle.checked = s.showTrail; S.showTrail = s.showTrail; }
@@ -944,7 +1014,12 @@ function saveSettings() {
     performanceMode: ui.performanceMode ? ui.performanceMode.value : 'balanced',
     volume: ui.volume ? Number(ui.volume.value) / 100 : 0.5
   };
-  localStorage.setItem('snake-pro-settings', JSON.stringify(s));
+
+  try {
+    localStorage.setItem('snake-pro-settings', JSON.stringify(s));
+  } catch (e) {
+    console.warn('Не удалось сохранить настройки:', e);
+  }
   S.difficulty = s.difficulty; S.grid = s.grid; S.theme = s.theme;
   S.showGrid = s.showGrid; S.showTrail = s.showTrail;
   S.baseSpeed = s.baseSpeed; S.snakeColor = s.snakeColor;
@@ -955,7 +1030,11 @@ function saveSettings() {
   applyHighContrast(s.highContrast);
   applyPerformanceMode(s.performanceMode);
 
-  localStorage.setItem('snakeSkinColor', s.snakeColor);
+  try {
+    localStorage.setItem('snakeSkinColor', s.snakeColor);
+  } catch (e) {
+    console.warn('Не удалось сохранить цвет змейки:', e);
+  }
   applyTheme(S.theme);
   resizeCanvas();
   showScreen('mainMenu');
@@ -988,8 +1067,13 @@ function resetSettings() {
     });
     if (classic) classic.classList.add('active');
   }
-  localStorage.removeItem('snakeSkinColor');
-  localStorage.removeItem('snakeSkinId');
+  
+  try {
+    localStorage.removeItem('snakeSkinColor');
+    localStorage.removeItem('snakeSkinId');
+  } catch (e) {
+    console.warn('Не удалось очистить скины:', e);
+  }
   S.snakeSkinId = 'classic';
   S.snakeColor = '#2ecc71';
   updateSkinOptionsActive();
@@ -1016,9 +1100,14 @@ function loadStats() {
 }
 
 function saveStats() {
-  localStorage.setItem('snake-pro-stats', JSON.stringify({
-    highScore: S.highScore, games: S.gamesPlayed, eaten: S.totalEaten
-  }));
+
+  try {
+    localStorage.setItem('snake-pro-stats', JSON.stringify({
+      highScore: S.highScore, games: S.gamesPlayed, eaten: S.totalEaten
+    }));
+  } catch (e) {
+    console.warn('Не удалось сохранить статистику:', e);
+  }
   if (ui.msHighscore) ui.msHighscore.textContent = S.highScore;
   if (ui.msGames)     ui.msGames.textContent = S.gamesPlayed;
   if (ui.msEaten)     ui.msEaten.textContent = S.totalEaten;
@@ -1046,7 +1135,12 @@ function saveLeaderboard(score) {
   list.push({ score: score, date: new Date().toLocaleDateString() });
   list.sort(function(a, b) { return b.score - a.score; });
   if (list.length > 10) list.splice(10);
-  localStorage.setItem('snake-pro-leaderboard', JSON.stringify(list));
+
+  try {
+    localStorage.setItem('snake-pro-leaderboard', JSON.stringify(list));
+  } catch (e) {
+    console.warn('Не удалось сохранить таблицу лидеров:', e);
+  }
 }
 
 function renderLeaderboard() {
@@ -1325,6 +1419,8 @@ function updatePowerupBar() {
         powerupTimers[u.key] = null;
       }
 
+      var pct = Math.max(0, (u.val / u.max) * 100);
+
       if (!chip) {
         chip = document.createElement('div');
         chip.className = 'powerup-chip ' + u.cls;
@@ -1333,11 +1429,10 @@ function updatePowerupBar() {
         ui.powerupBar.appendChild(chip);
 
         void chip.offsetWidth;
+      } else {
+        var fill = chip.querySelector('.timer-fill');
+        if (fill) fill.style.width = pct + '%';
       }
-
-      var pct = Math.max(0, (u.val / u.max) * 100);
-      var fill = chip.querySelector('.timer-fill');
-      if (fill) fill.style.width = pct + '%';
 
       chip.classList.remove('fading');
 
@@ -1781,8 +1876,6 @@ function gameOver() {
   saveLeaderboard(S.score);
   renderLeaderboard();
 
-  S.hasSavedGame = true;
-
   checkAchievements();
   if (ui.finalScore) ui.finalScore.textContent = S.score;
   if (ui.finalLevel) ui.finalLevel.textContent = S.level;
@@ -1946,11 +2039,45 @@ function bindButtons() {
   if (ui.snakeColor) {
     ui.snakeColor.addEventListener('input', function() {
       S.snakeColor = ui.snakeColor.value;
-      localStorage.setItem('snakeSkinColor', S.snakeColor);
+  
+      try {
+        localStorage.setItem('snakeSkinColor', S.snakeColor);
+      } catch (e) {
+        console.warn('Не удалось сохранить цвет змейки:', e);
+      }
       if (ui.skinOptions) {
         ui.skinOptions.forEach(function(o) { o.classList.remove('active'); });
       }
     });
+  }
+}
+
+function handleVisibilityChange() {
+  if (countdown.active) {
+    if (document.hidden) {
+      clearCountdownTimers();
+    } else if (S.isRunning && countdown.active) {
+      var resume = function() {
+        if (!countdown.active || !S.isRunning) { hideCountdown(); return; }
+        var value = countdown.steps[countdown.step];
+        var isGo = countdown.step === countdown.steps.length - 1;
+        showCountdownValue(value, isGo);
+        if (isGo) {
+          countdown.timerId = setTimeout(function() {
+            if (countdown.active) finishCountdown();
+          }, 650);
+          countdown.step++;
+        } else {
+          countdown.step++;
+          countdown.timerId = setTimeout(resume, 700);
+        }
+      };
+      resume();
+    }
+  }
+
+  if (S.autoPause && document.hidden && S.isRunning && !S.isPaused) {
+    togglePause();
   }
 }
 
@@ -1960,9 +2087,8 @@ function init() {
   window.addEventListener('resize', function() {
     if (screens.game && !screens.game.classList.contains('hidden')) resizeCanvas();
   });
-  document.addEventListener('visibilitychange', function() {
-    if (S.autoPause && document.hidden && S.isRunning && !S.isPaused) togglePause();
-  });
+  
+  document.addEventListener('visibilitychange', handleVisibilityChange);
   loadSettings();
   loadStats();
   loadCoins();
@@ -1980,13 +2106,6 @@ function init() {
 }
 
 init();
-
-var countdown = {
-  active: false,
-  step: 0,
-  timerId: null,
-  steps: ['3', '2', '1', 'Поехали!']
-};
 
 function showCountdownValue(text, isGo) {
   var box = ui.startCountdown;
@@ -2055,30 +2174,6 @@ function runCountdown() {
 
   tick();
 }
-
-document.addEventListener('visibilitychange', function() {
-  if (!countdown.active) return;
-  if (document.hidden) {
-    clearCountdownTimers();
-  } else if (S.isRunning && countdown.active) {
-    var resume = function() {
-      if (!countdown.active || !S.isRunning) { hideCountdown(); return; }
-      var value = countdown.steps[countdown.step];
-      var isGo = countdown.step === countdown.steps.length - 1;
-      showCountdownValue(value, isGo);
-      if (isGo) {
-        countdown.timerId = setTimeout(function() {
-          if (countdown.active) finishCountdown();
-        }, 650);
-        countdown.step++;
-      } else {
-        countdown.step++;
-        countdown.timerId = setTimeout(resume, 700);
-      }
-    };
-    resume();
-  }
-});
 
 (function addTurboAbility() {
   var TURBO_DURATION = 2400;
@@ -2418,7 +2513,9 @@ document.addEventListener('visibilitychange', function() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(checkpoint));
       S.hasSavedGame = true;
       updateContinueButton();
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Не удалось сохранить чекпоинт:', e);
+    }
   }
 
   function clearCheckpoint() {
@@ -2512,6 +2609,7 @@ document.addEventListener('visibilitychange', function() {
 (function addGamepadSupport() {
   var previousButtons = {};
   var lastDirection = null;
+  var gamepadPollingId = null;
 
   function buttonPressed(gamepad, index) {
     return Boolean(gamepad.buttons[index] && gamepad.buttons[index].pressed);
@@ -2560,14 +2658,31 @@ document.addEventListener('visibilitychange', function() {
       previousButtons = {};
     }
 
-    window.setTimeout(pollGamepads, 100);
+    gamepadPollingId = requestAnimationFrame(pollGamepads);
+  }
+
+  function startGamepadPolling() {
+    if (gamepadPollingId) return;
+    gamepadPollingId = requestAnimationFrame(pollGamepads);
+  }
+
+  function stopGamepadPolling() {
+    if (gamepadPollingId) {
+      cancelAnimationFrame(gamepadPollingId);
+      gamepadPollingId = null;
+    }
   }
 
   window.addEventListener('gamepadconnected', function(e) {
-    showNotification('Контроллер подключён', 'Крестовина или стик — движение, Start — пауза, A — турбо');
+    var controllerName = (e.gamepad && e.gamepad.id) ? e.gamepad.id : 'Геймпад';
+
+    showNotification('Контроллер подключён', controllerName + '\nКрестовина: движение, Start: пауза, A: турбо');
+    startGamepadPolling();
   });
+
   window.addEventListener('gamepaddisconnected', function() {
     showNotification('Контроллер отключён', 'Можно продолжить с клавиатуры или сенсорных кнопок');
+    stopGamepadPolling();
   });
 
   var list = document.querySelector('.info-list');
@@ -2578,5 +2693,5 @@ document.addEventListener('visibilitychange', function() {
     list.appendChild(item);
   }
 
-  pollGamepads();
+  startGamepadPolling();
 })();
