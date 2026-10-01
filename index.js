@@ -98,6 +98,370 @@ var ui = {
   questsList:      el('quests-list')
 };
 
+var AUTH_USERS_KEY   = 'snake-pro-users';
+var AUTH_SESSION_KEY = 'snake-pro-session';
+var MIN_PASSWORD_LEN = 8;
+
+var rawStorage = {
+  get:    function (k)    { try { return localStorage.getItem(k); }    catch (e) { return null; } },
+  set:    function (k, v) { try { localStorage.setItem(k, v); }        catch (e) {} },
+  remove: function (k)    { try { localStorage.removeItem(k); }        catch (e) {} }
+};
+
+var STORAGE_PREFIX = '';
+var CURRENT_USER_EMAIL = '';
+
+function storeGet(key)    { return rawStorage.get(STORAGE_PREFIX + key); }
+function storeSet(key, v) { rawStorage.set(STORAGE_PREFIX + key, v); }
+function storeRemove(key) { rawStorage.remove(STORAGE_PREFIX + key); }
+
+function setStorageUser(email) {
+  CURRENT_USER_EMAIL = email ? String(email).toLowerCase() : '';
+  STORAGE_PREFIX = CURRENT_USER_EMAIL ? ('snake-pro:user:' + CURRENT_USER_EMAIL + ':') : '';
+}
+
+function isTypingTarget(target) {
+  if (!target) return false;
+  var tag = target.tagName ? target.tagName.toLowerCase() : '';
+  return tag === 'input' || tag === 'select' || tag === 'textarea' || target.isContentEditable;
+}
+
+function normalizeEmail(email) { return String(email || '').trim().toLowerCase(); }
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+}
+
+function makeSalt() {
+  var s = '';
+  var chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  for (var i = 0; i < 12; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
+
+function hashPassword(password, salt) {
+  var str = 'snake::' + salt + '::' + password;
+  var h1 = 0x811c9dc5;
+  var h2 = 0x1000193;
+  for (var i = 0; i < str.length; i++) {
+    var c = str.charCodeAt(i);
+    h1 = (h1 ^ c) >>> 0;
+    h1 = Math.imul(h1, 0x01000193) >>> 0;
+    h2 = (Math.imul(h2, 33) + c) >>> 0;
+  }
+  return h1.toString(16) + h2.toString(16);
+}
+
+function generateCode() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+function loadUsers() {
+  var raw = rawStorage.get(AUTH_USERS_KEY);
+  if (!raw) return {};
+  try {
+    var obj = JSON.parse(raw);
+    return (obj && typeof obj === 'object') ? obj : {};
+  } catch (e) { return {}; }
+}
+
+function saveUsers(users) { rawStorage.set(AUTH_USERS_KEY, JSON.stringify(users)); }
+
+function getSession() {
+  var raw = rawStorage.get(AUTH_SESSION_KEY);
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch (e) { return null; }
+}
+
+function setSession(email) { rawStorage.set(AUTH_SESSION_KEY, JSON.stringify({ email: email, at: Date.now() })); }
+function clearSession()    { rawStorage.remove(AUTH_SESSION_KEY); }
+
+var authUI = {
+  authScreen:         el('auth-screen'),
+  verifyScreen:       el('verify-screen'),
+  loginForm:          el('login-form'),
+  registerForm:       el('register-form'),
+  loginEmail:         el('login-email'),
+  loginPassword:      el('login-password'),
+  registerEmail:      el('register-email'),
+  registerPassword:   el('register-password'),
+  registerPassword2:  el('register-password2'),
+  loginError:         el('login-error'),
+  registerError:      el('register-error'),
+  verifyError:        el('verify-error'),
+  verifyForm:         el('verify-form'),
+  verifyCodeInput:    el('verify-code-input'),
+  verifyEmailDisplay: el('verify-email-display'),
+  verifyDevHint:      el('verify-dev-hint'),
+  verifyDevCode:      el('verify-dev-code'),
+  verifyResend:       el('btn-verify-resend'),
+  verifyBack:         el('btn-verify-back'),
+  authTabs:           document.querySelectorAll('.auth-tab'),
+  userBadge:          el('user-badge'),
+  userEmailDisplay:   el('user-email-display'),
+  logoutBtn:          el('btn-logout')
+};
+
+var pendingVerification = null;
+
+function setAuthError(node, message) { if (node) node.textContent = message || ''; }
+
+function clearAuthErrors() {
+  setAuthError(authUI.loginError, '');
+  setAuthError(authUI.registerError, '');
+  setAuthError(authUI.verifyError, '');
+}
+
+function showAuthScreen(tab) {
+  if (authUI.authScreen)   authUI.authScreen.classList.add('active');
+  if (authUI.verifyScreen) authUI.verifyScreen.classList.remove('active');
+  if (screens.mainMenu)    screens.mainMenu.classList.remove('active');
+  clearAuthErrors();
+  switchAuthTab(tab || 'login');
+}
+
+function showVerifyScreen(email, code) {
+  if (authUI.authScreen)   authUI.authScreen.classList.remove('active');
+  if (authUI.verifyScreen) authUI.verifyScreen.classList.add('active');
+  if (authUI.verifyEmailDisplay) authUI.verifyEmailDisplay.textContent = email;
+  if (authUI.verifyDevHint)      authUI.verifyDevHint.style.display = 'block';
+  if (authUI.verifyDevCode)      authUI.verifyDevCode.textContent = code;
+  if (authUI.verifyCodeInput)    authUI.verifyCodeInput.value = '';
+  setAuthError(authUI.verifyError, '');
+  pendingVerification = { email: email, code: code };
+  setTimeout(function () { if (authUI.verifyCodeInput) authUI.verifyCodeInput.focus(); }, 120);
+}
+
+function switchAuthTab(tab) {
+  var isLogin = (tab !== 'register');
+  if (authUI.authTabs) {
+    for (var i = 0; i < authUI.authTabs.length; i++) {
+      var t = authUI.authTabs[i];
+      t.classList.toggle('active', (t.getAttribute('data-tab') === 'login') === isLogin);
+    }
+  }
+  if (authUI.loginForm)    authUI.loginForm.classList.toggle('hidden', !isLogin);
+  if (authUI.registerForm) authUI.registerForm.classList.toggle('hidden', isLogin);
+  clearAuthErrors();
+}
+
+function handleLogin(e) {
+  if (e) e.preventDefault();
+  setAuthError(authUI.loginError, '');
+
+  var email    = normalizeEmail(authUI.loginEmail ? authUI.loginEmail.value : '');
+  var password = authUI.loginPassword ? authUI.loginPassword.value : '';
+
+  if (!email)                        { setAuthError(authUI.loginError, 'Введите email.'); return; }
+  if (!isValidEmail(email))          { setAuthError(authUI.loginError, 'Некорректный email.'); return; }
+  if (!password)                     { setAuthError(authUI.loginError, 'Введите пароль.'); return; }
+  if (password.length < MIN_PASSWORD_LEN) {
+    setAuthError(authUI.loginError, 'Пароль должен быть не короче ' + MIN_PASSWORD_LEN + ' символов.');
+    return;
+  }
+
+  var users = loadUsers();
+  var user  = users[email];
+
+  if (!user) {
+    setAuthError(authUI.loginError, 'Пользователь с таким email не найден.');
+    return;
+  }
+  if (hashPassword(password, user.salt) !== user.hash) {
+    setAuthError(authUI.loginError, 'Неверный пароль. Попробуйте ещё раз.');
+    return;
+  }
+  if (!user.verified) {
+    var code = generateCode();
+    user.code = code;
+    users[email] = user;
+    saveUsers(users);
+    showVerifyScreen(email, code);
+    return;
+  }
+
+  completeLogin(email);
+}
+
+function handleRegister(e) {
+  if (e) e.preventDefault();
+  setAuthError(authUI.registerError, '');
+
+  var email = normalizeEmail(authUI.registerEmail ? authUI.registerEmail.value : '');
+  var p1    = authUI.registerPassword  ? authUI.registerPassword.value  : '';
+  var p2    = authUI.registerPassword2 ? authUI.registerPassword2.value : '';
+
+  if (!email)                       { setAuthError(authUI.registerError, 'Введите email.'); return; }
+  if (!isValidEmail(email))         { setAuthError(authUI.registerError, 'Введите корректный email (например, name@mail.ru).'); return; }
+  if (!p1)                          { setAuthError(authUI.registerError, 'Придумайте пароль.'); return; }
+  if (p1.length < MIN_PASSWORD_LEN) { setAuthError(authUI.registerError, 'Пароль должен содержать минимум ' + MIN_PASSWORD_LEN + ' символов.'); return; }
+  if (p1 !== p2)                    { setAuthError(authUI.registerError, 'Пароли не совпадают.'); return; }
+
+  var users = loadUsers();
+  if (users[email] && users[email].verified) {
+    setAuthError(authUI.registerError, 'Пользователь с таким email уже зарегистрирован.');
+    return;
+  }
+
+  var salt = makeSalt();
+  var code = generateCode();
+
+  users[email] = {
+    email:     email,
+    salt:      salt,
+    hash:      hashPassword(p1, salt),
+    verified:  false,
+    code:      code,
+    createdAt: Date.now()
+  };
+  saveUsers(users);
+
+  showVerifyScreen(email, code);
+}
+
+function handleVerify(e) {
+  if (e) e.preventDefault();
+  setAuthError(authUI.verifyError, '');
+
+  var input = authUI.verifyCodeInput ? authUI.verifyCodeInput.value.trim() : '';
+
+  if (!pendingVerification) {
+    setAuthError(authUI.verifyError, 'Сессия подтверждения истекла. Зарегистрируйтесь заново.');
+    return;
+  }
+  if (!/^\d{6}$/.test(input)) {
+    setAuthError(authUI.verifyError, 'Введите 6-значный код из письма.');
+    return;
+  }
+
+  var users = loadUsers();
+  var user  = users[pendingVerification.email];
+
+  if (!user) {
+    setAuthError(authUI.verifyError, 'Аккаунт не найден. Зарегистрируйтесь заново.');
+    return;
+  }
+  if (user.code !== input) {
+    setAuthError(authUI.verifyError, 'Неверный код. Проверьте письмо и попробуйте снова.');
+    return;
+  }
+
+  user.verified = true;
+  user.code = '';
+  users[pendingVerification.email] = user;
+  saveUsers(users);
+
+  completeLogin(pendingVerification.email);
+}
+
+function handleResend() {
+  if (!pendingVerification) {
+    setAuthError(authUI.verifyError, 'Сначала зарегистрируйтесь.');
+    return;
+  }
+  var users = loadUsers();
+  var user  = users[pendingVerification.email];
+  if (!user) {
+    setAuthError(authUI.verifyError, 'Аккаунт не найден. Зарегистрируйтесь заново.');
+    return;
+  }
+  var code = generateCode();
+  user.code = code;
+  users[pendingVerification.email] = user;
+  saveUsers(users);
+
+  pendingVerification.code = code;
+  if (authUI.verifyDevCode)   authUI.verifyDevCode.textContent = code;
+  if (authUI.verifyCodeInput) authUI.verifyCodeInput.value = '';
+  setAuthError(authUI.verifyError, '');
+  showNotification('Код отправлен повторно', pendingVerification.email, '📧');
+}
+
+function completeLogin(email) {
+  setSession(email);
+  setStorageUser(email);
+  pendingVerification = null;
+  clearAuthErrors();
+
+  if (authUI.authScreen)   authUI.authScreen.classList.remove('active');
+  if (authUI.verifyScreen) authUI.verifyScreen.classList.remove('active');
+
+  initLoggedInUser(email);
+}
+
+function initLoggedInUser(email) {
+  loadSettings();
+  loadStats();
+  loadCoins();
+  loadOwnedSkins();
+  loadDailyQuests();
+  renderLeaderboard();
+  setupSkinPalette();
+  updateProgressBars();
+  updateCoinsUI();
+  renderQuests();
+  updateUserBadge(email);
+
+  if (S.gamesPlayed > 0) S.hasSavedGame = true;
+  showScreen('mainMenu');
+  if (window.snakeRefreshContinue) window.snakeRefreshContinue();
+}
+
+function handleLogout() {
+  clearSession();
+  setStorageUser('');
+  if (authUI.userBadge) authUI.userBadge.style.display = 'none';
+  try { stopGame(); } catch (err) {}
+  try { location.reload(); } catch (err) { showAuthScreen('login'); }
+}
+
+function updateUserBadge(email) {
+  if (!authUI.userBadge) return;
+  if (email) {
+    authUI.userBadge.style.display = 'flex';
+    if (authUI.userEmailDisplay) authUI.userEmailDisplay.textContent = email;
+  } else {
+    authUI.userBadge.style.display = 'none';
+  }
+}
+
+function bindAuthUI() {
+  if (authUI.authTabs) {
+    for (var i = 0; i < authUI.authTabs.length; i++) {
+      (function (tab) {
+        tab.addEventListener('click', function () { switchAuthTab(tab.getAttribute('data-tab')); });
+      })(authUI.authTabs[i]);
+    }
+  }
+
+  if (authUI.loginForm)    authUI.loginForm.addEventListener('submit', handleLogin);
+  if (authUI.registerForm) authUI.registerForm.addEventListener('submit', handleRegister);
+  if (authUI.verifyForm)   authUI.verifyForm.addEventListener('submit', handleVerify);
+
+  if (authUI.verifyResend) authUI.verifyResend.addEventListener('click', handleResend);
+  if (authUI.verifyBack)   authUI.verifyBack.addEventListener('click', function () {
+    pendingVerification = null;
+    showAuthScreen('register');
+  });
+
+  if (authUI.logoutBtn) authUI.logoutBtn.addEventListener('click', handleLogout);
+
+  [authUI.loginEmail, authUI.loginPassword].forEach(function (inp) {
+    if (inp) inp.addEventListener('input', function () { setAuthError(authUI.loginError, ''); });
+  });
+  [authUI.registerEmail, authUI.registerPassword, authUI.registerPassword2].forEach(function (inp) {
+    if (inp) inp.addEventListener('input', function () { setAuthError(authUI.registerError, ''); });
+  });
+  if (authUI.verifyCodeInput) {
+    authUI.verifyCodeInput.addEventListener('input', function () {
+      this.value = this.value.replace(/\D/g, '').slice(0, 6);
+      setAuthError(authUI.verifyError, '');
+    });
+  }
+}
+
+/* ======================= КОНЕЦ БЛОКА АВТОРИЗАЦИИ ======================= */
+
 var ACHIEVEMENTS = {
   firstGame:  { name: 'Новичок',    desc: 'Сыграйте первую игру',            icon: '🏆' },
   eaten10:    { name: 'Голодный',   desc: 'Съешьте 10 яблок за всё время',   icon: '🍎' },
@@ -110,7 +474,6 @@ var ACHIEVEMENTS = {
   fever3:     { name: 'Лихорадка',  desc: 'Активируйте лихорадку 3 раза',    icon: '😵' },
   coins100:   { name: 'Копилка',    desc: 'Соберите 100 монет за всё время', icon: '💰' }
 };
-
 
 var SKIN_CATALOG = [
   { id: 'classic',    color: '#2ecc71', name: 'Классика',     price: 0 },
@@ -210,7 +573,7 @@ function initAudio() {
   if (audioCtx) return;
   try { 
      audioCtx = new window.AudioContext();
-    
+
     if (audioCtx && audioCtx.state === 'suspended') {
       audioCtx.resume();
     }
@@ -221,7 +584,7 @@ function initAudio() {
 
 function beep(f, d, t, v) {
   if (!audioCtx || S.volume <= 0) return;
-  
+
   if (audioCtx.state === 'suspended') {
     audioCtx.resume();
   }
@@ -265,14 +628,12 @@ var sfx = {
 function randInt(a, b) { return Math.floor(Math.random() * (b - a)) + a; }
 function now() { return performance.now(); }
 
-
 function hexToRgb(h) {
   if (h === 'rainbow') return [255, 100, 200];
   if (h === 'flame')   return [255, 100, 0];
   var m = h.replace('#', '').match(/.{2}/g);
   return m ? m.map(function(x) { return parseInt(x, 16); }) : [46, 204, 113];
 }
-
 
 function getFlameColor(t, segmentIndex) {
   var flicker = Math.sin(t * 8 + segmentIndex * 0.5) * 0.5 + 0.5;
@@ -500,7 +861,7 @@ function showNotification(text, subtext, icon) {
 }
 
 function loadAchievements() {
-  var raw = localStorage.getItem('snake-pro-achievements');
+  var raw = storeGet('snake-pro-achievements');
   if (!raw) return {};
   try { return JSON.parse(raw); } catch (e) { return {}; }
 }
@@ -508,9 +869,8 @@ function loadAchievements() {
 function saveAchievement(key) {
   var ach = loadAchievements();
   ach[key] = true;
-
   try {
-    localStorage.setItem('snake-pro-achievements', JSON.stringify(ach));
+    storeSet('snake-pro-achievements', JSON.stringify(ach));
   } catch (e) {
     console.warn('Не удалось сохранить ачивку:', e);
   }
@@ -572,7 +932,7 @@ function checkAchievements() {
 }
 
 function loadCoins() {
-  var raw = localStorage.getItem('snake-pro-coins');
+  var raw = storeGet('snake-pro-coins');
   if (!raw) return;
   try {
     var d = JSON.parse(raw);
@@ -582,9 +942,8 @@ function loadCoins() {
 }
 
 function saveCoins() {
-
   try {
-    localStorage.setItem('snake-pro-coins', JSON.stringify({
+    storeSet('snake-pro-coins', JSON.stringify({
       coins: S.coins,
       total: S.totalCoins
     }));
@@ -612,7 +971,7 @@ function updateCoinsUI() {
 }
 
 function loadOwnedSkins() {
-  var raw = localStorage.getItem('snake-pro-owned-skins');
+  var raw = storeGet('snake-pro-owned-skins');
   if (!raw) return;
   try {
     var list = JSON.parse(raw);
@@ -621,14 +980,12 @@ function loadOwnedSkins() {
 }
 
 function saveOwnedSkins() {
-  
   try {
-    localStorage.setItem('snake-pro-owned-skins', JSON.stringify(S.ownedSkins));
+    storeSet('snake-pro-owned-skins', JSON.stringify(S.ownedSkins));
   } catch (e) {
     console.warn('Не удалось сохранить скины:', e);
   }
 }
-
 
 function renderShop() {
   if (!ui.shopItems) return;
@@ -693,10 +1050,10 @@ function renderShop() {
         }
         S.snakeSkinId = id;
         S.snakeColor = skin.color;
-        
+
         try {
-          localStorage.setItem('snakeSkinColor', S.snakeColor);
-          localStorage.setItem('snakeSkinId', S.snakeSkinId);
+          storeSet('snakeSkinColor', S.snakeColor);
+          storeSet('snakeSkinId', S.snakeSkinId);
         } catch (e) {
           console.warn('Не удалось сохранить скин:', e);
         }
@@ -709,10 +1066,10 @@ function renderShop() {
       if (owned) {
         S.snakeSkinId = id;
         S.snakeColor = skin.color;
-        
+
         try {
-          localStorage.setItem('snakeSkinColor', S.snakeColor);
-          localStorage.setItem('snakeSkinId', S.snakeSkinId);
+          storeSet('snakeSkinColor', S.snakeColor);
+          storeSet('snakeSkinId', S.snakeSkinId);
         } catch (e) {
           console.warn('Не удалось сохранить скин:', e);
         }
@@ -750,7 +1107,7 @@ var QUEST_TEMPLATES = [
 
 function loadDailyQuests() {
   var today = new Date().toISOString().slice(0, 10);
-  var raw = localStorage.getItem('snake-pro-daily-quests');
+  var raw = storeGet('snake-pro-daily-quests');
   if (raw) {
     try {
       var data = JSON.parse(raw);
@@ -774,9 +1131,8 @@ function generateDailyQuests(date) {
 }
 
 function saveDailyQuests() {
-  
   try {
-    localStorage.setItem('snake-pro-daily-quests', JSON.stringify({
+    storeSet('snake-pro-daily-quests', JSON.stringify({
       date: S.dailyQuestsDate,
       quests: S.dailyQuests
     }));
@@ -830,13 +1186,13 @@ function renderQuests() {
 
 function claimDailyReward() {
   var today = new Date().toISOString().slice(0, 10);
-  var lastClaim = localStorage.getItem('snake-pro-daily-reward');
+  var lastClaim = storeGet('snake-pro-daily-reward');
   if (lastClaim === today) return;
   S.shield = 3000;
   addCoins(5, 'Ежедневный бонус');
 
   try {
-    localStorage.setItem('snake-pro-daily-reward', today);
+    storeSet('snake-pro-daily-reward', today);
   } catch (e) {
     console.warn('Не удалось сохранить ежедневную награду:', e);
   }
@@ -869,43 +1225,44 @@ function updateContinueButton() {
   }
 }
 
+var skinPaletteBound = false;
 
 function setupSkinPalette() {
   if (!ui.skinOptions || ui.skinOptions.length === 0) return;
 
-  ui.skinOptions.forEach(function(option) {
-    var dot = option.querySelector('.dot');
-    var color = option.getAttribute('data-color');
-    var id = option.getAttribute('data-id');
-    if (dot && color && color !== 'rainbow' && color !== 'flame') {
-      dot.style.backgroundColor = color;
-    }
+  if (!skinPaletteBound) {
+    skinPaletteBound = true;
 
-    option.addEventListener('click', function() {
-      var owned = S.ownedSkins.indexOf(id) !== -1;
-      if (!owned) {
-        showNotification('Скин заблокирован', 'Купите его в магазине 🛒', '🔒');
-        return;
+    ui.skinOptions.forEach(function (option) {
+      var dot   = option.querySelector('.dot');
+      var color = option.getAttribute('data-color');
+      if (dot && color && color !== 'rainbow' && color !== 'flame') {
+        dot.style.backgroundColor = color;
       }
-      ui.skinOptions.forEach(function(o) { o.classList.remove('active'); });
-      option.classList.add('active');
-      S.snakeSkinId = id;
-      S.snakeColor = color;
-  
-      try {
-        localStorage.setItem('snakeSkinColor', color);
-        localStorage.setItem('snakeSkinId', id);
-      } catch (e) {
-        console.warn('Не удалось сохранить скин:', e);
-      }
+
+      option.addEventListener('click', function () {
+        var id    = option.getAttribute('data-id');
+        var color2 = option.getAttribute('data-color');
+        var owned = S.ownedSkins.indexOf(id) !== -1;
+        if (!owned) {
+          showNotification('Скин заблокирован', 'Купите его в магазине 🛒', '🔒');
+          return;
+        }
+        ui.skinOptions.forEach(function (o) { o.classList.remove('active'); });
+        option.classList.add('active');
+        S.snakeSkinId = id;
+        S.snakeColor  = color2;
+        storeSet('snakeSkinColor', color2);
+        storeSet('snakeSkinId', id);
+      });
     });
-  });
+  }
 
-  var savedId = localStorage.getItem('snakeSkinId');
-  var savedColor = localStorage.getItem('snakeSkinColor');
+  var savedId    = storeGet('snakeSkinId');
+  var savedColor = storeGet('snakeSkinColor');
   if (savedId && S.ownedSkins.indexOf(savedId) !== -1) {
     S.snakeSkinId = savedId;
-    S.snakeColor = savedColor || '#2ecc71';
+    S.snakeColor  = savedColor || '#2ecc71';
   } else if (savedColor) {
     S.snakeColor = savedColor;
   }
@@ -947,14 +1304,14 @@ function showScreen(name) {
 }
 
 function loadSettings() {
-  var raw = localStorage.getItem('snake-pro-settings');
+  var raw = storeGet('snake-pro-settings');
   if (!raw) return;
   try {
     var s = JSON.parse(raw);
     if (s.difficulty && ui.difficulty) { ui.difficulty.value = s.difficulty; S.difficulty = s.difficulty; }
     if (s.grid && ui.gridSize)         { 
       ui.gridSize.value = String(s.grid); 
-    
+
       if (s.grid >= 4 && s.grid <= 64 && isFinite(s.grid)) {
         S.grid = s.grid; 
       } else {
@@ -991,7 +1348,7 @@ function loadSettings() {
     console.warn('Не удалось загрузить настройки', e);
   }
 
-  var skinColor = localStorage.getItem('snakeSkinColor');
+  var skinColor = storeGet('snakeSkinColor');
   if (skinColor) S.snakeColor = skinColor;
 }
 
@@ -1016,7 +1373,7 @@ function saveSettings() {
   };
 
   try {
-    localStorage.setItem('snake-pro-settings', JSON.stringify(s));
+    storeSet('snake-pro-settings', JSON.stringify(s));
   } catch (e) {
     console.warn('Не удалось сохранить настройки:', e);
   }
@@ -1031,7 +1388,7 @@ function saveSettings() {
   applyPerformanceMode(s.performanceMode);
 
   try {
-    localStorage.setItem('snakeSkinColor', s.snakeColor);
+    storeSet('snakeSkinColor', s.snakeColor);
   } catch (e) {
     console.warn('Не удалось сохранить цвет змейки:', e);
   }
@@ -1067,10 +1424,10 @@ function resetSettings() {
     });
     if (classic) classic.classList.add('active');
   }
-  
+
   try {
-    localStorage.removeItem('snakeSkinColor');
-    localStorage.removeItem('snakeSkinId');
+    storeRemove('snakeSkinColor');
+    storeRemove('snakeSkinId');
   } catch (e) {
     console.warn('Не удалось очистить скины:', e);
   }
@@ -1082,7 +1439,7 @@ function resetSettings() {
 }
 
 function loadStats() {
-  var raw = localStorage.getItem('snake-pro-stats');
+  var raw = storeGet('snake-pro-stats');
   if (!raw) return;
   try {
     var s = JSON.parse(raw);
@@ -1100,9 +1457,8 @@ function loadStats() {
 }
 
 function saveStats() {
-
   try {
-    localStorage.setItem('snake-pro-stats', JSON.stringify({
+    storeSet('snake-pro-stats', JSON.stringify({
       highScore: S.highScore, games: S.gamesPlayed, eaten: S.totalEaten
     }));
   } catch (e) {
@@ -1119,7 +1475,7 @@ function saveStats() {
 }
 
 function loadLeaderboard() {
-  var raw = localStorage.getItem('snake-pro-leaderboard');
+  var raw = storeGet('snake-pro-leaderboard');
   if (!raw) return [];
   try {
     var list = JSON.parse(raw);
@@ -1137,7 +1493,7 @@ function saveLeaderboard(score) {
   if (list.length > 10) list.splice(10);
 
   try {
-    localStorage.setItem('snake-pro-leaderboard', JSON.stringify(list));
+    storeSet('snake-pro-leaderboard', JSON.stringify(list));
   } catch (e) {
     console.warn('Не удалось сохранить таблицу лидеров:', e);
   }
@@ -1253,7 +1609,6 @@ function drawParticles() {
   }
 }
 
-
 function updateTrail() {
   if (!S.showTrail || !S.isMoving) return;
   if (S.performanceMode === 'performance') return;
@@ -1283,7 +1638,6 @@ function updateTrail() {
   }
 }
 
-
 function drawTrail() {
   if (!S.showTrail || S.trail.length === 0) return;
   for (var i = 0; i < S.trail.length; i++) {
@@ -1296,7 +1650,6 @@ function drawTrail() {
     ctx.fill();
   }
 }
-
 
 function spawnDeathFragments() {
   if (S.performanceMode === 'performance') return;
@@ -1691,7 +2044,6 @@ function drawFoods() {
   }
 }
 
-
 function drawSnake() {
   var cells = S.snake.cells;
   var isRainbow = S.snakeColor === 'rainbow';
@@ -1943,6 +2295,8 @@ function handleSwipe(dx, dy) {
 }
 
 function handleKey(e) {
+  if (isTypingTarget(e.target)) return;
+
   if (e.which === 32) {
     e.preventDefault();
     togglePause();
@@ -2039,9 +2393,9 @@ function bindButtons() {
   if (ui.snakeColor) {
     ui.snakeColor.addEventListener('input', function() {
       S.snakeColor = ui.snakeColor.value;
-  
+
       try {
-        localStorage.setItem('snakeSkinColor', S.snakeColor);
+        storeSet('snakeSkinColor', S.snakeColor);
       } catch (e) {
         console.warn('Не удалось сохранить цвет змейки:', e);
       }
@@ -2083,26 +2437,27 @@ function handleVisibilityChange() {
 
 function init() {
   bindButtons();
+  bindAuthUI();
+
   window.addEventListener('keydown', handleKey);
-  window.addEventListener('resize', function() {
+  window.addEventListener('resize', function () {
     if (screens.game && !screens.game.classList.contains('hidden')) resizeCanvas();
   });
-  
   document.addEventListener('visibilitychange', handleVisibilityChange);
-  loadSettings();
-  loadStats();
-  loadCoins();
-  loadOwnedSkins();
-  loadDailyQuests();
-  renderLeaderboard();
-  setupSkinPalette();
-  updateProgressBars();
-  updateContinueButton();
-  updateCoinsUI();
-  renderQuests();
 
-  if (S.gamesPlayed > 0) S.hasSavedGame = true;
-  showScreen('mainMenu');
+  var session = getSession();
+  var users   = loadUsers();
+  var email   = session && session.email ? normalizeEmail(session.email) : '';
+  var user    = email ? users[email] : null;
+
+  if (user && user.verified) {
+    setStorageUser(email);
+    initLoggedInUser(email);
+  } else {
+    clearSession();
+    setStorageUser('');
+    showAuthScreen('login');
+  }
 }
 
 init();
@@ -2267,6 +2622,7 @@ function runCountdown() {
   }
 
   window.addEventListener('keydown', function(e) {
+    if (isTypingTarget(e.target)) return;
     if (e.key === 'Shift' || e.which === 16) {
       e.preventDefault();
       activateTurbo();
@@ -2356,6 +2712,7 @@ function runCountdown() {
   document.addEventListener('fullscreenchange', updateFullscreenButton);
   document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
   window.addEventListener('keydown', function(e) {
+    if (isTypingTarget(e.target)) return;
     if (e.key && e.key.toLowerCase() === 'f' && !e.ctrlKey && !e.altKey && !e.metaKey) {
       e.preventDefault();
       toggleFullscreen();
@@ -2368,12 +2725,6 @@ function runCountdown() {
 
 (function addQuickActions() {
   var shareButton = null;
-
-  function isTypingTarget(target) {
-    if (!target) return false;
-    var tag = target.tagName ? target.tagName.toLowerCase() : '';
-    return tag === 'input' || tag === 'select' || tag === 'textarea' || target.isContentEditable;
-  }
 
   function resultText() {
     return 'Змейка\n' +
@@ -2479,7 +2830,7 @@ function runCountdown() {
 
   function readCheckpoint() {
     try {
-      var raw = localStorage.getItem(STORAGE_KEY);
+      var raw = storeGet(STORAGE_KEY);
       return raw ? JSON.parse(raw) : null;
     } catch (e) {
       return null;
@@ -2510,7 +2861,7 @@ function runCountdown() {
     };
 
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(checkpoint));
+      storeSet(STORAGE_KEY, JSON.stringify(checkpoint));
       S.hasSavedGame = true;
       updateContinueButton();
     } catch (e) {
@@ -2519,7 +2870,7 @@ function runCountdown() {
   }
 
   function clearCheckpoint() {
-    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+    try { storeRemove(STORAGE_KEY); } catch (e) {}
     S.hasSavedGame = false;
     updateContinueButton();
   }
@@ -2603,6 +2954,7 @@ function runCountdown() {
     else updateResumeButton();
   });
   window.addEventListener('beforeunload', saveCheckpoint);
+  window.snakeRefreshContinue = updateResumeButton;
   updateResumeButton();
 })();
 
