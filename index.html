@@ -12,11 +12,82 @@
 
 <body>
 
-    <div id="main-menu" class="menu-screen active">
+    <div id="auth-screen" class="menu-screen active">
+        <div class="logo">
+            <h1>Змейка</h1>
+            <p class="tagline">Войдите или создайте аккаунт</p>
+        </div>
+
+        <div class="auth-tabs">
+            <button type="button" class="auth-tab active" data-tab="login">Вход</button>
+            <button type="button" class="auth-tab" data-tab="register">Регистрация</button>
+        </div>
+
+        <form id="login-form" class="auth-form" novalidate>
+            <label class="auth-field">
+                <span>Email</span>
+                <input type="email" id="login-email" autocomplete="email" inputmode="email" required />
+            </label>
+            <label class="auth-field">
+                <span>Пароль (мин. 8 символов)</span>
+                <input type="password" id="login-password" autocomplete="current-password" minlength="8" required />
+            </label>
+            <p class="auth-error" id="login-error"></p>
+            <button type="submit" class="btn btn-primary">Войти</button>
+        </form>
+
+        <form id="register-form" class="auth-form hidden" novalidate>
+            <label class="auth-field">
+                <span>Email</span>
+                <input type="email" id="register-email" autocomplete="email" inputmode="email" required />
+            </label>
+            <label class="auth-field">
+                <span>Пароль (мин. 8 символов)</span>
+                <input type="password" id="register-password" autocomplete="new-password" minlength="8" required />
+            </label>
+            <label class="auth-field">
+                <span>Повторите пароль</span>
+                <input type="password" id="register-password2" autocomplete="new-password" minlength="8" required />
+            </label>
+            <p class="auth-error" id="register-error"></p>
+            <button type="submit" class="btn btn-primary">Создать аккаунт</button>
+            <p class="auth-note">На указанный email придёт код подтверждения. Играть можно только после подтверждения.</p>
+        </form>
+    </div>
+
+    <div id="verify-screen" class="menu-screen">
+        <h2>📧 Подтверждение email</h2>
+        <p class="verify-info">Мы отправили 6-значный код на <b id="verify-email-display">—</b></p>
+        <p class="verify-hint" id="verify-dev-hint" style="display:none;">
+            SMTP не настроен. Код: <b id="verify-dev-code">------</b>
+        </p>
+
+        <form id="verify-form" class="auth-form" novalidate>
+            <label class="auth-field">
+                <span>Код из письма</span>
+                <input type="text" id="verify-code-input" maxlength="6" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" required />
+            </label>
+            <p class="auth-error" id="verify-error"></p>
+            <button type="submit" class="btn btn-primary">Подтвердить</button>
+        </form>
+
+        <div class="btn-group">
+            <button type="button" id="btn-verify-resend" class="btn btn-secondary">Отправить код заново</button>
+            <button type="button" id="btn-verify-back" class="btn btn-secondary">← Назад</button>
+        </div>
+    </div>
+
+    <div id="main-menu" class="menu-screen">
         <div class="logo">
             <h1>Змейка</h1>
             <p class="version"><span></span></p>
             <p class="tagline">Собирай бусты. Расти. Не врежься.</p>
+        </div>
+
+        <div id="user-badge" class="user-badge" style="display:none;">
+            <span class="user-avatar">👤</span>
+            <span id="user-email-display"></span>
+            <button type="button" class="logout-btn" id="btn-logout" title="Выйти из аккаунта">✕</button>
         </div>
 
         <div class="coins-display">
