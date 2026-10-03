@@ -110,6 +110,7 @@ var ui = {
   aboutCoins:      el('about-coins'),
   difficulty:      el('difficulty-select'),
   gridSize:        el('grid-size-select'),
+  controlScheme:   el('control-scheme-select'),
   theme:           el('theme-select'),
   gridToggle:      el('grid-toggle'),
   trailToggle:     el('trail-toggle'),
@@ -212,6 +213,7 @@ var S = {
   uiScale: 100,
   powerupFrequency: 'normal',
   keyBindings: { up: 'w', left: 'a', down: 's', right: 'd' },
+  controlScheme: 'wasd',
   showGrid: true,
   volume: 0.5,
   shakeAmount: 0,
@@ -568,6 +570,13 @@ function applyPowerupFrequency(frequency) {
   S.powerupFrequency = frequency;
 }
 
+function applyControlScheme(scheme) {
+  var allowed = { both: true, arrows: true, wasd: true };
+  if (!allowed[scheme]) scheme = 'wasd';
+  if (ui.controlScheme) ui.controlScheme.value = scheme;
+  S.controlScheme = scheme;
+}
+
 function normalizeKeyBindings(bindings) {
   var defaults = { up: 'w', left: 'a', down: 's', right: 'd' };
   var result = {};
@@ -604,6 +613,48 @@ function renderKeyBindings() {
     button.classList.toggle('is-listening', activeKeyBind === direction);
     button.setAttribute('aria-pressed', activeKeyBind === direction ? 'true' : 'false');
   });
+}
+
+function createControlSchemeSetting() {
+  var existing = document.getElementById('control-scheme-select');
+
+  if (existing) {
+    ui.controlScheme = existing;
+  } else {
+    var settingsScreen = screens.settings;
+    if (!settingsScreen) return;
+
+    var container = settingsScreen.querySelector('.settings-list') ||
+                    settingsScreen.querySelector('.settings-content') ||
+                    settingsScreen;
+
+    var setting = document.createElement('div');
+    setting.className = 'setting';
+    setting.innerHTML =
+      '<label for="control-scheme-select">Управление змейкой</label>' +
+      '<select id="control-scheme-select">' +
+        '<option value="wasd">Только WASD</option>' +
+        '<option value="arrows">Только стрелки</option>' +
+        '<option value="both">Стрелки и WASD</option>' +
+      '</select>' +
+      '<p class="setting-help">Кастомные клавиши из «Управление клавишами» работают всегда.</p>';
+
+    container.appendChild(setting);
+    ui.controlScheme = document.getElementById('control-scheme-select');
+  }
+
+  if (!ui.controlScheme) return;
+
+  // Всегда синхронизируем значение селекта с текущим состоянием
+  ui.controlScheme.value = S.controlScheme || 'wasd';
+
+  // Навешиваем обработчик только один раз
+  if (!ui.controlScheme.dataset.bound) {
+    ui.controlScheme.dataset.bound = 'true';
+    ui.controlScheme.addEventListener('change', function() {
+      applyControlScheme(ui.controlScheme.value);
+    });
+  }
 }
 
 function handleKeyBindingCapture(e) {
@@ -1210,6 +1261,8 @@ function loadSettings() {
       applyPowerupFrequency(s.powerupFrequency);
     }
     if (s.keyBindings) S.keyBindings = normalizeKeyBindings(s.keyBindings);
+    if (s.controlScheme) applyControlScheme(s.controlScheme);
+    else applyControlScheme('wasd');
     if (typeof s.volume !== 'undefined' && ui.volume)        { S.volume = s.volume; ui.volume.value = String(s.volume * 100); if (ui.volumeValue) ui.volumeValue.textContent = Math.round(s.volume * 100) + '%'; }
   } catch (e) {
     console.warn('Не удалось загрузить настройки', e);
@@ -1241,6 +1294,7 @@ function saveSettings() {
     colorblindMarkers: ui.colorblindMarkers ? ui.colorblindMarkers.checked : false,
     uiScale: ui.uiScale ? Number(ui.uiScale.value) : 100,
     powerupFrequency: ui.powerupFrequency ? ui.powerupFrequency.value : 'normal',
+    controlScheme: S.controlScheme || 'wasd',
     keyBindings: normalizeKeyBindings(S.keyBindings),
     volume: ui.volume ? Number(ui.volume.value) / 100 : 0.5
   };
@@ -1265,6 +1319,7 @@ function saveSettings() {
   applyColorblindMarkers(s.colorblindMarkers);
   applyUIScale(s.uiScale);
   applyPowerupFrequency(s.powerupFrequency);
+  applyControlScheme(s.controlScheme);
   renderKeyBindings();
 
   try {
@@ -1299,9 +1354,11 @@ function resetSettings() {
   if (ui.colorblindMarkers) ui.colorblindMarkers.checked = false;
   if (ui.uiScale) ui.uiScale.value = '100';
   if (ui.powerupFrequency) ui.powerupFrequency.value = 'normal';
+  if (ui.controlScheme) ui.controlScheme.value = 'wasd';
   if (ui.volume)      ui.volume.value = '50';
   if (ui.volumeValue) ui.volumeValue.textContent = '50%';
   S.keyBindings = normalizeKeyBindings(null);
+  S.controlScheme = 'wasd';
   activeKeyBind = null;
   renderKeyBindings();
 
@@ -2198,7 +2255,7 @@ function handleSwipe(dx, dy) {
 function handleKey(e) {
   if (isTypingTarget(e.target)) return;
 
-  if (e.which === 32 || e.key === ' ') {
+  if (e.which === 32) {
     if (S.isRunning) {
       e.preventDefault();
       togglePause();
@@ -2208,22 +2265,49 @@ function handleKey(e) {
 
   if (!S.isRunning || S.isPaused) return;
 
-  var key = String(e.key || '').toLowerCase();
-  if (!key) {
-    var legacyKeys = { 37: 'arrowleft', 38: 'arrowup', 39: 'arrowright', 40: 'arrowdown', 65: 'a', 68: 'd', 83: 's', 87: 'w' };
-    key = legacyKeys[e.which] || '';
+  var key   = String(e.key  || '').toLowerCase();
+  var code  = String(e.code || '');
+  var which = e.which || e.keyCode || 0;
+
+  var physKey = '';
+  if (code === 'KeyW')            physKey = 'w';
+  else if (code === 'KeyA')       physKey = 'a';
+  else if (code === 'KeyS')       physKey = 's';
+  else if (code === 'KeyD')       physKey = 'd';
+  else if (code === 'ArrowLeft')  physKey = 'arrowleft';
+  else if (code === 'ArrowUp')    physKey = 'arrowup';
+  else if (code === 'ArrowRight') physKey = 'arrowright';
+  else if (code === 'ArrowDown')  physKey = 'arrowdown';
+
+  if (!physKey) {
+    var whichMap = {
+      87: 'w', 65: 'a', 83: 's', 68: 'd',
+      37: 'arrowleft', 38: 'arrowup', 39: 'arrowright', 40: 'arrowdown'
+    };
+    physKey = whichMap[which] || '';
   }
-  
+
   var direction = null;
+  var scheme = S.controlScheme || 'wasd';
+  var allowArrows = scheme === 'both' || scheme === 'arrows';
+  var allowWasd   = scheme === 'both' || scheme === 'wasd';
 
-  if (key === 'arrowleft' || key === 'a' || key === S.keyBindings.left) direction = 'left';
-  else if (key === 'arrowup' || key === 'w' || key === S.keyBindings.up) direction = 'up';
-  else if (key === 'arrowright' || key === 'd' || key === S.keyBindings.right) direction = 'right';
-  else if (key === 'arrowdown' || key === 's' || key === S.keyBindings.down) direction = 'down';
+  if (key === S.keyBindings.left  || physKey === S.keyBindings.left)   direction = 'left';
+  else if (key === S.keyBindings.up    || physKey === S.keyBindings.up)     direction = 'up';
+  else if (key === S.keyBindings.right || physKey === S.keyBindings.right)  direction = 'right';
+  else if (key === S.keyBindings.down  || physKey === S.keyBindings.down)   direction = 'down';
+  
+  else if (allowArrows && (key === 'arrowleft'  || physKey === 'arrowleft'))  direction = 'left';
+  else if (allowArrows && (key === 'arrowup'    || physKey === 'arrowup'))    direction = 'up';
+  else if (allowArrows && (key === 'arrowright' || physKey === 'arrowright')) direction = 'right';
+  else if (allowArrows && (key === 'arrowdown'  || physKey === 'arrowdown'))  direction = 'down';
+  
+  else if (allowWasd && (key === 'a' || physKey === 'a')) direction = 'left';
+  else if (allowWasd && (key === 'w' || physKey === 'w')) direction = 'up';
+  else if (allowWasd && (key === 'd' || physKey === 'd')) direction = 'right';
+  else if (allowWasd && (key === 's' || physKey === 's')) direction = 'down';
 
-  if (direction && setDirection(direction)) {
-    e.preventDefault();
-  }
+  if (direction && setDirection(direction)) e.preventDefault();
 }
 
 function bindButtons() {
@@ -2241,7 +2325,7 @@ function bindButtons() {
     S.isRunning = false;
 
     window.close();
-    
+
     try {
       if (window.opener) {
         window.opener = null;
@@ -2386,6 +2470,7 @@ function handleVisibilityChange() {
 }
 
 function init() {
+  createControlSchemeSetting();
   bindButtons();
 
   window.addEventListener('keydown', handleKeyBindingCapture, true);
@@ -2418,6 +2503,7 @@ function init() {
   applyColorblindMarkers(S.colorblindMarkers);
   applyUIScale(S.uiScale);
   applyPowerupFrequency(S.powerupFrequency);
+  applyControlScheme(S.controlScheme || 'wasd');
   resizeCanvas();
 }
 
