@@ -2198,7 +2198,7 @@ function handleSwipe(dx, dy) {
 function handleKey(e) {
   if (isTypingTarget(e.target)) return;
 
-  if (e.which === 32) {
+  if (e.which === 32 || e.key === ' ') {
     if (S.isRunning) {
       e.preventDefault();
       togglePause();
@@ -2213,14 +2213,17 @@ function handleKey(e) {
     var legacyKeys = { 37: 'arrowleft', 38: 'arrowup', 39: 'arrowright', 40: 'arrowdown', 65: 'a', 68: 'd', 83: 's', 87: 'w' };
     key = legacyKeys[e.which] || '';
   }
+  
   var direction = null;
 
-  if (key === 'arrowleft' || key === S.keyBindings.left) direction = 'left';
-  else if (key === 'arrowup' || key === S.keyBindings.up) direction = 'up';
-  else if (key === 'arrowright' || key === S.keyBindings.right) direction = 'right';
-  else if (key === 'arrowdown' || key === S.keyBindings.down) direction = 'down';
+  if (key === 'arrowleft' || key === 'a' || key === S.keyBindings.left) direction = 'left';
+  else if (key === 'arrowup' || key === 'w' || key === S.keyBindings.up) direction = 'up';
+  else if (key === 'arrowright' || key === 'd' || key === S.keyBindings.right) direction = 'right';
+  else if (key === 'arrowdown' || key === 's' || key === S.keyBindings.down) direction = 'down';
 
-  if (direction && setDirection(direction)) e.preventDefault();
+  if (direction && setDirection(direction)) {
+    e.preventDefault();
+  }
 }
 
 function bindButtons() {
@@ -2237,10 +2240,8 @@ function bindButtons() {
   if (ui.exitYes) ui.exitYes.addEventListener('click', function() {
     S.isRunning = false;
 
-    // 1) Пробуем стандартный способ (сработает в PWA и в окнах, открытых window.open)
     window.close();
-
-    // 2) Пробуем через opener: обнуляем его и пытаемся закрыть снова
+    
     try {
       if (window.opener) {
         window.opener = null;
@@ -2248,13 +2249,11 @@ function bindButtons() {
       }
     } catch (e) {}
 
-    // 3) Пробуем через открытие себя как _self (иногда помогает в старых движках)
     try {
       window.open('', '_self', '');
       window.close();
     } catch (e) {}
 
-    // 4) Если через 250 мс вкладка всё ещё открыта — показываем экран «Пока!»
     setTimeout(function() {
       if (!window.closed) {
         showGoodbyeScreen();
