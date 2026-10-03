@@ -12,82 +12,11 @@
 
 <body>
 
-    <div id="auth-screen" class="menu-screen active">
-        <div class="logo">
-            <h1>Змейка</h1>
-            <p class="tagline">Войдите или создайте аккаунт</p>
-        </div>
-
-        <div class="auth-tabs">
-            <button type="button" class="auth-tab active" data-tab="login">Вход</button>
-            <button type="button" class="auth-tab" data-tab="register">Регистрация</button>
-        </div>
-
-        <form id="login-form" class="auth-form" novalidate>
-            <label class="auth-field">
-                <span>Email</span>
-                <input type="email" id="login-email" autocomplete="email" inputmode="email" required />
-            </label>
-            <label class="auth-field">
-                <span>Пароль (мин. 8 символов)</span>
-                <input type="password" id="login-password" autocomplete="current-password" minlength="8" required />
-            </label>
-            <p class="auth-error" id="login-error"></p>
-            <button type="submit" class="btn btn-primary">Войти</button>
-        </form>
-
-        <form id="register-form" class="auth-form hidden" novalidate>
-            <label class="auth-field">
-                <span>Email</span>
-                <input type="email" id="register-email" autocomplete="email" inputmode="email" required />
-            </label>
-            <label class="auth-field">
-                <span>Пароль (мин. 8 символов)</span>
-                <input type="password" id="register-password" autocomplete="new-password" minlength="8" required />
-            </label>
-            <label class="auth-field">
-                <span>Повторите пароль</span>
-                <input type="password" id="register-password2" autocomplete="new-password" minlength="8" required />
-            </label>
-            <p class="auth-error" id="register-error"></p>
-            <button type="submit" class="btn btn-primary">Создать аккаунт</button>
-            <p class="auth-note">На указанный email придёт код подтверждения. Играть можно только после подтверждения.</p>
-        </form>
-    </div>
-
-    <div id="verify-screen" class="menu-screen">
-        <h2>📧 Подтверждение email</h2>
-        <p class="verify-info">Мы отправили 6-значный код на <b id="verify-email-display">—</b></p>
-        <p class="verify-hint" id="verify-dev-hint" style="display:none;">
-            SMTP не настроен. Код: <b id="verify-dev-code">------</b>
-        </p>
-
-        <form id="verify-form" class="auth-form" novalidate>
-            <label class="auth-field">
-                <span>Код из письма</span>
-                <input type="text" id="verify-code-input" maxlength="6" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" required />
-            </label>
-            <p class="auth-error" id="verify-error"></p>
-            <button type="submit" class="btn btn-primary">Подтвердить</button>
-        </form>
-
-        <div class="btn-group">
-            <button type="button" id="btn-verify-resend" class="btn btn-secondary">Отправить код заново</button>
-            <button type="button" id="btn-verify-back" class="btn btn-secondary">← Назад</button>
-        </div>
-    </div>
-
-    <div id="main-menu" class="menu-screen">
+    <div id="main-menu" class="menu-screen active">
         <div class="logo">
             <h1>Змейка</h1>
             <p class="version"><span></span></p>
             <p class="tagline">Собирай бусты. Расти. Не врежься.</p>
-        </div>
-
-        <div id="user-badge" class="user-badge" style="display:none;">
-            <span class="user-avatar">👤</span>
-            <span id="user-email-display"></span>
-            <button type="button" class="logout-btn" id="btn-logout" title="Выйти из аккаунта">✕</button>
         </div>
 
         <div class="coins-display">
@@ -117,7 +46,16 @@
             <button id="btn-settings" class="btn btn-secondary">⚙ Настройки</button>
             <button id="btn-instructions" class="btn btn-secondary">ⓘ Как играть</button>
             <button id="btn-about" class="btn btn-secondary">ⓘ О игре</button>
-            <button id="btn-exit" class="btn btn-danger">← Выход</button>
+            <button id="btn-exit" class="btn btn-danger">🚪 Выйти</button>
+        </div>
+    </div>
+
+    <div id="exit-confirm" class="menu-screen">
+        <h2>Выход</h2>
+        <p class="confirm-text">Вы уверены, что хотите выйти из игры?</p>
+        <div class="btn-group">
+            <button id="btn-exit-yes" class="btn btn-danger">Да, выйти</button>
+            <button id="btn-exit-no" class="btn btn-secondary">Отмена</button>
         </div>
     </div>
 
@@ -133,7 +71,7 @@
     <div id="instructions-screen" class="menu-screen">
         <h2>ⓘ Как играть</h2>
         <ul class="info-list">
-            <li><b>Стрелки</b> или <b>WASD</b> — управление на компьютере</li>
+            <li><b>Стрелки</b> или назначенные клавиши (по умолчанию <b>WASD</b>) — управление на компьютере</li>
             <li><b>Свайп</b> по игровому полю или кнопки ниже — управление на телефоне</li>
             <li><b>Пробел</b> — пауза</li>
             <li>Змейка стоит на месте, пока не сделаете первый ход</li>
@@ -154,7 +92,7 @@
         <div class="about-content">
             <p><b>Змейка</b></p>
             <p class="about-text">Классическая змейка с современными фишками: бусты, комбо, уровни, препятствия, частицы, тряска экрана, магазин скинов и ежедневные задания.</p>
-            <p class="about-text"><b>Управление:</b> стрелки или WASD, пробел — пауза</p>
+            <p class="about-text"><b>Управление:</b> стрелки или назначенные клавиши, пробел — пауза</p>
             <p class="about-text"><b>Сохранение:</b> настройки, рекорды, монеты и купленные скины хранятся локально</p>
             <p class="about-text"><b>Всего игр сыграно:</b> <span id="about-games">0</span></p>
             <p class="about-text"><b>Всего съедено:</b> <span id="about-eaten">0</span></p>
@@ -364,6 +302,7 @@
         <label class="setting-row"><span>Автопауза при сворачивании:</span>
             <input type="checkbox" id="auto-pause-toggle" checked />
         </label>
+        <h3 class="settings-section-title">Управление</h3>
         <label class="setting-row"><span>Размер кнопок на телефоне:</span>
             <select id="mobile-size-select">
                 <option value="compact">Компактный</option>
@@ -371,9 +310,28 @@
                 <option value="large">Крупный</option>
             </select>
         </label>
+        <label class="setting-row setting-row-mobile-wrap"><span>Управление на телефоне:</span>
+            <select id="mobile-control-mode-select">
+                <option value="both" selected>Кнопки и свайпы</option>
+                <option value="buttons">Только кнопки</option>
+                <option value="swipe">Только свайпы</option>
+            </select>
+        </label>
         <label class="setting-row"><span>Режим для левши:</span>
             <input type="checkbox" id="left-handed-toggle" />
         </label>
+        <div class="keybindings-setting">
+            <span>Дополнительные клавиши управления (WASD):</span>
+            <div class="key-bindings-grid">
+                <button class="key-bind-button" type="button" data-key-bind="up" aria-label="Назначить клавишу вверх">Вверх: W</button>
+                <button class="key-bind-button" type="button" data-key-bind="left" aria-label="Назначить клавишу влево">Влево: A</button>
+                <button class="key-bind-button" type="button" data-key-bind="down" aria-label="Назначить клавишу вниз">Вниз: S</button>
+                <button class="key-bind-button" type="button" data-key-bind="right" aria-label="Назначить клавишу вправо">Вправо: D</button>
+            </div>
+            <p class="setting-help">Нажмите направление, затем букву или цифру. Стрелки всегда остаются доступными.</p>
+            <button id="btn-reset-key-bindings" class="btn btn-secondary key-bind-reset" type="button">Сбросить клавиши</button>
+        </div>
+        <h3 class="settings-section-title">Доступность</h3>
         <label class="setting-row"><span>Высокий контраст:</span>
             <input type="checkbox" id="contrast-toggle" />
         </label>
@@ -384,10 +342,34 @@
                 <option value="performance">Производительность</option>
             </select>
         </label>
+        <label class="setting-row"><span>Уменьшить анимацию:</span>
+            <input type="checkbox" id="reduced-motion-toggle" />
+        </label>
+        <label class="setting-row"><span>Маркеры типов еды:</span>
+            <input type="checkbox" id="colorblind-markers-toggle" />
+        </label>
+        <p class="setting-help">Буквы на еде: N — обычная, G — золотая, S — замедление, D — щит, M — магнит, F — лихорадка.</p>
+        <label class="setting-row"><span>Масштаб интерфейса:</span>
+            <select id="ui-scale-select">
+                <option value="85">Маленький · 85%</option>
+                <option value="100" selected>Обычный · 100%</option>
+                <option value="115">Крупный · 115%</option>
+                <option value="130">Очень крупный · 130%</option>
+            </select>
+        </label>
+
+        <h3 class="settings-section-title">Правила игры</h3>
+        <label class="setting-row"><span>Частота усилений:</span>
+            <select id="powerup-frequency-select">
+                <option value="rare">Редко</option>
+                <option value="normal" selected>Обычно</option>
+                <option value="frequent">Часто</option>
+            </select>
+        </label>
         <div class="btn-group">
             <button id="btn-reset-settings" class="btn btn-danger">Сбросить</button>
             <button id="btn-save-settings" class="btn btn-primary">Сохранить</button>
-            <button id="btn-back-from-settings" class="btn btn-secondary">← Назад</button>
+            <button id="btn-back-from-settings" class="btn btn-secondary">Назад</button>
         </div>
     </div>
 
@@ -445,15 +427,6 @@
             </div>
             <button class="direction-btn direction-down" data-direction="down" type="button" aria-label="Вниз">▼</button>
             <p class="mobile-hint">Свайп по полю или нажми кнопку</p>
-        </div>
-    </div>
-
-    <div id="exit-confirm" class="menu-screen">
-        <h2>← Выход из игры</h2>
-        <p class="confirm-text">Вы действительно хотите выйти?</p>
-        <div class="btn-group">
-            <button id="btn-exit-yes" class="btn btn-danger">Да</button>
-            <button id="btn-exit-no" class="btn btn-secondary">Нет</button>
         </div>
     </div>
 
