@@ -46,7 +46,7 @@
             <button id="btn-settings" class="btn btn-secondary">⚙ Настройки</button>
             <button id="btn-instructions" class="btn btn-secondary">ⓘ Как играть</button>
             <button id="btn-about" class="btn btn-secondary">ⓘ О игре</button>
-            <button id="btn-exit" class="btn btn-danger">← Выйти</button>
+            <button id="btn-exit" class="btn btn-danger">🚪 Выйти</button>
         </div>
     </div>
 
@@ -303,6 +303,14 @@
             <input type="checkbox" id="auto-pause-toggle" checked />
         </label>
         <h3 class="settings-section-title">Управление</h3>
+        <label class="setting-row"><span>Управление змейкой:</span>
+            <select id="control-scheme-select">
+                <option value="wasd" selected>Только WASD</option>
+                <option value="arrows">Только стрелки</option>
+                <option value="both">Стрелки и WASD</option>
+            </select>
+        </label>
+        <p class="setting-help">Кастомные клавиши из «Дополнительные клавиши» работают всегда</p>
         <label class="setting-row"><span>Размер кнопок на телефоне:</span>
             <select id="mobile-size-select">
                 <option value="compact">Компактный</option>
@@ -321,7 +329,7 @@
             <input type="checkbox" id="left-handed-toggle" />
         </label>
         <div class="keybindings-setting">
-            <span>Дополнительные клавиши управления (WASD):</span>
+            <span>Дополнительные клавиши управления:</span>
             <div class="key-bindings-grid">
                 <button class="key-bind-button" type="button" data-key-bind="up" aria-label="Назначить клавишу вверх">Вверх: W</button>
                 <button class="key-bind-button" type="button" data-key-bind="left" aria-label="Назначить клавишу влево">Влево: A</button>
@@ -348,7 +356,7 @@
         <label class="setting-row"><span>Маркеры типов еды:</span>
             <input type="checkbox" id="colorblind-markers-toggle" />
         </label>
-        <p class="setting-help">Буквы на еде: N — обычная, G — золотая, S — замедление, D — щит, M — магнит, F — лихорадка.</p>
+        <p class="setting-help">Буквы на еде: N — обычная, G — золотая, S — замедление, D — щит, M — магнит, F — лихорадка</p>
         <label class="setting-row"><span>Масштаб интерфейса:</span>
             <select id="ui-scale-select">
                 <option value="85">Маленький · 85%</option>
