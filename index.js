@@ -645,10 +645,8 @@ function createControlSchemeSetting() {
 
   if (!ui.controlScheme) return;
 
-  // Всегда синхронизируем значение селекта с текущим состоянием
   ui.controlScheme.value = S.controlScheme || 'wasd';
 
-  // Навешиваем обработчик только один раз
   if (!ui.controlScheme.dataset.bound) {
     ui.controlScheme.dataset.bound = 'true';
     ui.controlScheme.addEventListener('change', function() {
@@ -1831,25 +1829,64 @@ function loop(ts) {
   }
 
   if (S.magnet > 0 && S.isMoving) {
-    var closest = null, minDist = Infinity;
+    var hcx = S.snake.x + S.grid / 2;
+    var hcy = S.snake.y + S.grid / 2;
+
     for (var mi = 0; mi < S.foods.length; mi++) {
-      var d = Math.abs(S.foods[mi].x - S.snake.x) + Math.abs(S.foods[mi].y - S.snake.y);
-      if (d < minDist) { minDist = d; closest = S.foods[mi]; }
-    }
-    if (closest && minDist > 0 && minDist < S.grid * 6) {
-      var step = Math.max(1, Math.floor(S.grid / 4));
-      if (closest.x < S.snake.x) closest.x += step;
-      else if (closest.x > S.snake.x) closest.x -= step;
-      if (closest.y < S.snake.y) closest.y += step;
-      else if (closest.y > S.snake.y) closest.y -= step;
-      closest.x = Math.round(closest.x / S.grid) * S.grid;
-      closest.y = Math.round(closest.y / S.grid) * S.grid;
+      var mf  = S.foods[mi];
+      var fcx = mf.x + S.grid / 2;
+      var fcy = mf.y + S.grid / 2;
+      var mdx = hcx - fcx;
+      var mdy = hcy - fcy;
+      var mdist = Math.sqrt(mdx * mdx + mdy * mdy);
+
+      if (mdist < 0.0001) continue;
+
+      var pullSpeed = Math.max(
+        S.grid * 0.15,
+        S.grid * 0.6 / (1 + mdist / (S.grid * 3))
+      );
+      var mstep = Math.min(pullSpeed, mdist);
+      var mnx = mdx / mdist;
+      var mny = mdy / mdist;
+
+      mf.x += mnx * mstep;
+      mf.y += mny * mstep;
+
+      for (var oi = 0; oi < S.obstacles.length; oi++) {
+        var ob  = S.obstacles[oi];
+        var ocx = ob.x + S.grid / 2;
+        var ocy = ob.y + S.grid / 2;
+        var odx = (mf.x + S.grid / 2) - ocx;
+        var ody = (mf.y + S.grid / 2) - ocy;
+        var odist = Math.sqrt(odx * odx + ody * ody) || 1;
+        var minSafe = S.grid * 1.05;
+        if (odist < minSafe) {
+          var push = (minSafe - odist) * 0.7;
+          mf.x += (odx / odist) * push;
+          mf.y += (ody / odist) * push;
+        }
+      }
+
+      if (mf.x < 0) mf.x = 0;
+      if (mf.y < 0) mf.y = 0;
+      if (mf.x > canvas.width  - S.grid) mf.x = canvas.width  - S.grid;
+      if (mf.y > canvas.height - S.grid) mf.y = canvas.height - S.grid;
     }
   }
 
   for (var fi = S.foods.length - 1; fi >= 0; fi--) {
     var f = S.foods[fi];
-    if (f.x === S.snake.x && f.y === S.snake.y && S.isMoving) {
+    var eatFcx = f.x + S.grid / 2;
+    var eatFcy = f.y + S.grid / 2;
+    var eatHcx = S.snake.x + S.grid / 2;
+    var eatHcy = S.snake.y + S.grid / 2;
+    var eatDx = eatFcx - eatHcx;
+    var eatDy = eatFcy - eatHcy;
+    var eatDist = Math.sqrt(eatDx * eatDx + eatDy * eatDy);
+    var eatRadius = S.grid * 0.7;
+
+    if (eatDist <= eatRadius && S.isMoving) {
       var ft = FOOD_TYPES[f.type];
       var multiplier = S.fever > 0 ? 3 : 1;
       var comboMult = S.combo;
@@ -2296,12 +2333,10 @@ function handleKey(e) {
   else if (key === S.keyBindings.up    || physKey === S.keyBindings.up)     direction = 'up';
   else if (key === S.keyBindings.right || physKey === S.keyBindings.right)  direction = 'right';
   else if (key === S.keyBindings.down  || physKey === S.keyBindings.down)   direction = 'down';
-  
   else if (allowArrows && (key === 'arrowleft'  || physKey === 'arrowleft'))  direction = 'left';
   else if (allowArrows && (key === 'arrowup'    || physKey === 'arrowup'))    direction = 'up';
   else if (allowArrows && (key === 'arrowright' || physKey === 'arrowright')) direction = 'right';
   else if (allowArrows && (key === 'arrowdown'  || physKey === 'arrowdown'))  direction = 'down';
-  
   else if (allowWasd && (key === 'a' || physKey === 'a')) direction = 'left';
   else if (allowWasd && (key === 'w' || physKey === 'w')) direction = 'up';
   else if (allowWasd && (key === 'd' || physKey === 'd')) direction = 'right';
@@ -2441,8 +2476,10 @@ function bindButtons() {
 }
 
 function handleVisibilityChange() {
+  var hidden = document.hidden || document.visibilityState === 'hidden';
+
   if (countdown.active) {
-    if (document.hidden) {
+    if (hidden) {
       clearCountdownTimers();
     } else if (S.isRunning && countdown.active) {
       var resume = function() {
@@ -2464,8 +2501,9 @@ function handleVisibilityChange() {
     }
   }
 
-  if (S.autoPause && document.hidden && S.isRunning && !S.isPaused) {
-    togglePause();
+  if (hidden && S.autoPause && S.isRunning && !S.isPaused) {
+    S.isPaused = true;
+    if (screens.pause) screens.pause.classList.remove('hidden');
   }
 }
 
