@@ -9,6 +9,42 @@ function el(id) {
   return e;
 }
 
+function storeGet(key) {
+  try {
+    return window.localStorage.getItem(key);
+  } catch (error) {
+    console.warn('Не удалось прочитать сохранение "' + key + '":', error);
+    return null;
+  }
+}
+
+function storeSet(key, value) {
+  try {
+    window.localStorage.setItem(key, String(value));
+    return true;
+  } catch (error) {
+    console.warn('Не удалось сохранить "' + key + '":', error);
+    return false;
+  }
+}
+
+function storeRemove(key) {
+  try {
+    window.localStorage.removeItem(key);
+    return true;
+  } catch (error) {
+    console.warn('Не удалось удалить сохранение "' + key + '":', error);
+    return false;
+  }
+}
+
+function isTypingTarget(target) {
+  if (!target) return false;
+  var tagName = target.tagName ? target.tagName.toLowerCase() : '';
+  return tagName === 'input' || tagName === 'textarea' ||
+    tagName === 'select' || Boolean(target.isContentEditable);
+}
+
 var screens = {
   mainMenu:     el('main-menu'),
   instructions: el('instructions-screen'),
@@ -90,6 +126,13 @@ var ui = {
   leftHanded:      el('left-handed-toggle'),
   highContrast:    el('contrast-toggle'),
   performanceMode: el('performance-mode-select'),
+  mobileControlMode: el('mobile-control-mode-select'),
+  reducedMotion:   el('reduced-motion-toggle'),
+  colorblindMarkers: el('colorblind-markers-toggle'),
+  uiScale:         el('ui-scale-select'),
+  powerupFrequency: el('powerup-frequency-select'),
+  keyBindButtons:  document.querySelectorAll('[data-key-bind]'),
+  resetKeyBindings: el('btn-reset-key-bindings'),
   skinOptions:     document.querySelectorAll('.skin-option'),
   btnContinue:     el('btn-continue'),
   mobilePause:     el('btn-mobile-pause'),
@@ -98,369 +141,6 @@ var ui = {
   questsList:      el('quests-list')
 };
 
-var AUTH_USERS_KEY   = 'snake-pro-users';
-var AUTH_SESSION_KEY = 'snake-pro-session';
-var MIN_PASSWORD_LEN = 8;
-
-var rawStorage = {
-  get:    function (k)    { try { return localStorage.getItem(k); }    catch (e) { return null; } },
-  set:    function (k, v) { try { localStorage.setItem(k, v); }        catch (e) {} },
-  remove: function (k)    { try { localStorage.removeItem(k); }        catch (e) {} }
-};
-
-var STORAGE_PREFIX = '';
-var CURRENT_USER_EMAIL = '';
-
-function storeGet(key)    { return rawStorage.get(STORAGE_PREFIX + key); }
-function storeSet(key, v) { rawStorage.set(STORAGE_PREFIX + key, v); }
-function storeRemove(key) { rawStorage.remove(STORAGE_PREFIX + key); }
-
-function setStorageUser(email) {
-  CURRENT_USER_EMAIL = email ? String(email).toLowerCase() : '';
-  STORAGE_PREFIX = CURRENT_USER_EMAIL ? ('snake-pro:user:' + CURRENT_USER_EMAIL + ':') : '';
-}
-
-function isTypingTarget(target) {
-  if (!target) return false;
-  var tag = target.tagName ? target.tagName.toLowerCase() : '';
-  return tag === 'input' || tag === 'select' || tag === 'textarea' || target.isContentEditable;
-}
-
-function normalizeEmail(email) { return String(email || '').trim().toLowerCase(); }
-
-function isValidEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
-}
-
-function makeSalt() {
-  var s = '';
-  var chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  for (var i = 0; i < 12; i++) s += chars[Math.floor(Math.random() * chars.length)];
-  return s;
-}
-
-function hashPassword(password, salt) {
-  var str = 'snake::' + salt + '::' + password;
-  var h1 = 0x811c9dc5;
-  var h2 = 0x1000193;
-  for (var i = 0; i < str.length; i++) {
-    var c = str.charCodeAt(i);
-    h1 = (h1 ^ c) >>> 0;
-    h1 = Math.imul(h1, 0x01000193) >>> 0;
-    h2 = (Math.imul(h2, 33) + c) >>> 0;
-  }
-  return h1.toString(16) + h2.toString(16);
-}
-
-function generateCode() {
-  return String(Math.floor(100000 + Math.random() * 900000));
-}
-
-function loadUsers() {
-  var raw = rawStorage.get(AUTH_USERS_KEY);
-  if (!raw) return {};
-  try {
-    var obj = JSON.parse(raw);
-    return (obj && typeof obj === 'object') ? obj : {};
-  } catch (e) { return {}; }
-}
-
-function saveUsers(users) { rawStorage.set(AUTH_USERS_KEY, JSON.stringify(users)); }
-
-function getSession() {
-  var raw = rawStorage.get(AUTH_SESSION_KEY);
-  if (!raw) return null;
-  try { return JSON.parse(raw); } catch (e) { return null; }
-}
-
-function setSession(email) { rawStorage.set(AUTH_SESSION_KEY, JSON.stringify({ email: email, at: Date.now() })); }
-function clearSession()    { rawStorage.remove(AUTH_SESSION_KEY); }
-
-var authUI = {
-  authScreen:         el('auth-screen'),
-  verifyScreen:       el('verify-screen'),
-  loginForm:          el('login-form'),
-  registerForm:       el('register-form'),
-  loginEmail:         el('login-email'),
-  loginPassword:      el('login-password'),
-  registerEmail:      el('register-email'),
-  registerPassword:   el('register-password'),
-  registerPassword2:  el('register-password2'),
-  loginError:         el('login-error'),
-  registerError:      el('register-error'),
-  verifyError:        el('verify-error'),
-  verifyForm:         el('verify-form'),
-  verifyCodeInput:    el('verify-code-input'),
-  verifyEmailDisplay: el('verify-email-display'),
-  verifyDevHint:      el('verify-dev-hint'),
-  verifyDevCode:      el('verify-dev-code'),
-  verifyResend:       el('btn-verify-resend'),
-  verifyBack:         el('btn-verify-back'),
-  authTabs:           document.querySelectorAll('.auth-tab'),
-  userBadge:          el('user-badge'),
-  userEmailDisplay:   el('user-email-display'),
-  logoutBtn:          el('btn-logout')
-};
-
-var pendingVerification = null;
-
-function setAuthError(node, message) { if (node) node.textContent = message || ''; }
-
-function clearAuthErrors() {
-  setAuthError(authUI.loginError, '');
-  setAuthError(authUI.registerError, '');
-  setAuthError(authUI.verifyError, '');
-}
-
-function showAuthScreen(tab) {
-  if (authUI.authScreen)   authUI.authScreen.classList.add('active');
-  if (authUI.verifyScreen) authUI.verifyScreen.classList.remove('active');
-  if (screens.mainMenu)    screens.mainMenu.classList.remove('active');
-  clearAuthErrors();
-  switchAuthTab(tab || 'login');
-}
-
-function showVerifyScreen(email, code) {
-  if (authUI.authScreen)   authUI.authScreen.classList.remove('active');
-  if (authUI.verifyScreen) authUI.verifyScreen.classList.add('active');
-  if (authUI.verifyEmailDisplay) authUI.verifyEmailDisplay.textContent = email;
-  if (authUI.verifyDevHint)      authUI.verifyDevHint.style.display = 'block';
-  if (authUI.verifyDevCode)      authUI.verifyDevCode.textContent = code;
-  if (authUI.verifyCodeInput)    authUI.verifyCodeInput.value = '';
-  setAuthError(authUI.verifyError, '');
-  pendingVerification = { email: email, code: code };
-  setTimeout(function () { if (authUI.verifyCodeInput) authUI.verifyCodeInput.focus(); }, 120);
-}
-
-function switchAuthTab(tab) {
-  var isLogin = (tab !== 'register');
-  if (authUI.authTabs) {
-    for (var i = 0; i < authUI.authTabs.length; i++) {
-      var t = authUI.authTabs[i];
-      t.classList.toggle('active', (t.getAttribute('data-tab') === 'login') === isLogin);
-    }
-  }
-  if (authUI.loginForm)    authUI.loginForm.classList.toggle('hidden', !isLogin);
-  if (authUI.registerForm) authUI.registerForm.classList.toggle('hidden', isLogin);
-  clearAuthErrors();
-}
-
-function handleLogin(e) {
-  if (e) e.preventDefault();
-  setAuthError(authUI.loginError, '');
-
-  var email    = normalizeEmail(authUI.loginEmail ? authUI.loginEmail.value : '');
-  var password = authUI.loginPassword ? authUI.loginPassword.value : '';
-
-  if (!email)                        { setAuthError(authUI.loginError, 'Введите email.'); return; }
-  if (!isValidEmail(email))          { setAuthError(authUI.loginError, 'Некорректный email.'); return; }
-  if (!password)                     { setAuthError(authUI.loginError, 'Введите пароль.'); return; }
-  if (password.length < MIN_PASSWORD_LEN) {
-    setAuthError(authUI.loginError, 'Пароль должен быть не короче ' + MIN_PASSWORD_LEN + ' символов.');
-    return;
-  }
-
-  var users = loadUsers();
-  var user  = users[email];
-
-  if (!user) {
-    setAuthError(authUI.loginError, 'Пользователь с таким email не найден.');
-    return;
-  }
-  if (hashPassword(password, user.salt) !== user.hash) {
-    setAuthError(authUI.loginError, 'Неверный пароль. Попробуйте ещё раз.');
-    return;
-  }
-  if (!user.verified) {
-    var code = generateCode();
-    user.code = code;
-    users[email] = user;
-    saveUsers(users);
-    showVerifyScreen(email, code);
-    return;
-  }
-
-  completeLogin(email);
-}
-
-function handleRegister(e) {
-  if (e) e.preventDefault();
-  setAuthError(authUI.registerError, '');
-
-  var email = normalizeEmail(authUI.registerEmail ? authUI.registerEmail.value : '');
-  var p1    = authUI.registerPassword  ? authUI.registerPassword.value  : '';
-  var p2    = authUI.registerPassword2 ? authUI.registerPassword2.value : '';
-
-  if (!email)                       { setAuthError(authUI.registerError, 'Введите email.'); return; }
-  if (!isValidEmail(email))         { setAuthError(authUI.registerError, 'Введите корректный email (например, name@mail.ru).'); return; }
-  if (!p1)                          { setAuthError(authUI.registerError, 'Придумайте пароль.'); return; }
-  if (p1.length < MIN_PASSWORD_LEN) { setAuthError(authUI.registerError, 'Пароль должен содержать минимум ' + MIN_PASSWORD_LEN + ' символов.'); return; }
-  if (p1 !== p2)                    { setAuthError(authUI.registerError, 'Пароли не совпадают.'); return; }
-
-  var users = loadUsers();
-  if (users[email] && users[email].verified) {
-    setAuthError(authUI.registerError, 'Пользователь с таким email уже зарегистрирован.');
-    return;
-  }
-
-  var salt = makeSalt();
-  var code = generateCode();
-
-  users[email] = {
-    email:     email,
-    salt:      salt,
-    hash:      hashPassword(p1, salt),
-    verified:  false,
-    code:      code,
-    createdAt: Date.now()
-  };
-  saveUsers(users);
-
-  showVerifyScreen(email, code);
-}
-
-function handleVerify(e) {
-  if (e) e.preventDefault();
-  setAuthError(authUI.verifyError, '');
-
-  var input = authUI.verifyCodeInput ? authUI.verifyCodeInput.value.trim() : '';
-
-  if (!pendingVerification) {
-    setAuthError(authUI.verifyError, 'Сессия подтверждения истекла. Зарегистрируйтесь заново.');
-    return;
-  }
-  if (!/^\d{6}$/.test(input)) {
-    setAuthError(authUI.verifyError, 'Введите 6-значный код из письма.');
-    return;
-  }
-
-  var users = loadUsers();
-  var user  = users[pendingVerification.email];
-
-  if (!user) {
-    setAuthError(authUI.verifyError, 'Аккаунт не найден. Зарегистрируйтесь заново.');
-    return;
-  }
-  if (user.code !== input) {
-    setAuthError(authUI.verifyError, 'Неверный код. Проверьте письмо и попробуйте снова.');
-    return;
-  }
-
-  user.verified = true;
-  user.code = '';
-  users[pendingVerification.email] = user;
-  saveUsers(users);
-
-  completeLogin(pendingVerification.email);
-}
-
-function handleResend() {
-  if (!pendingVerification) {
-    setAuthError(authUI.verifyError, 'Сначала зарегистрируйтесь.');
-    return;
-  }
-  var users = loadUsers();
-  var user  = users[pendingVerification.email];
-  if (!user) {
-    setAuthError(authUI.verifyError, 'Аккаунт не найден. Зарегистрируйтесь заново.');
-    return;
-  }
-  var code = generateCode();
-  user.code = code;
-  users[pendingVerification.email] = user;
-  saveUsers(users);
-
-  pendingVerification.code = code;
-  if (authUI.verifyDevCode)   authUI.verifyDevCode.textContent = code;
-  if (authUI.verifyCodeInput) authUI.verifyCodeInput.value = '';
-  setAuthError(authUI.verifyError, '');
-  showNotification('Код отправлен повторно', pendingVerification.email, '📧');
-}
-
-function completeLogin(email) {
-  setSession(email);
-  setStorageUser(email);
-  pendingVerification = null;
-  clearAuthErrors();
-
-  if (authUI.authScreen)   authUI.authScreen.classList.remove('active');
-  if (authUI.verifyScreen) authUI.verifyScreen.classList.remove('active');
-
-  initLoggedInUser(email);
-}
-
-function initLoggedInUser(email) {
-  loadSettings();
-  loadStats();
-  loadCoins();
-  loadOwnedSkins();
-  loadDailyQuests();
-  renderLeaderboard();
-  setupSkinPalette();
-  updateProgressBars();
-  updateCoinsUI();
-  renderQuests();
-  updateUserBadge(email);
-
-  if (S.gamesPlayed > 0) S.hasSavedGame = true;
-  showScreen('mainMenu');
-  if (window.snakeRefreshContinue) window.snakeRefreshContinue();
-}
-
-function handleLogout() {
-  clearSession();
-  setStorageUser('');
-  if (authUI.userBadge) authUI.userBadge.style.display = 'none';
-  try { stopGame(); } catch (err) {}
-  try { location.reload(); } catch (err) { showAuthScreen('login'); }
-}
-
-function updateUserBadge(email) {
-  if (!authUI.userBadge) return;
-  if (email) {
-    authUI.userBadge.style.display = 'flex';
-    if (authUI.userEmailDisplay) authUI.userEmailDisplay.textContent = email;
-  } else {
-    authUI.userBadge.style.display = 'none';
-  }
-}
-
-function bindAuthUI() {
-  if (authUI.authTabs) {
-    for (var i = 0; i < authUI.authTabs.length; i++) {
-      (function (tab) {
-        tab.addEventListener('click', function () { switchAuthTab(tab.getAttribute('data-tab')); });
-      })(authUI.authTabs[i]);
-    }
-  }
-
-  if (authUI.loginForm)    authUI.loginForm.addEventListener('submit', handleLogin);
-  if (authUI.registerForm) authUI.registerForm.addEventListener('submit', handleRegister);
-  if (authUI.verifyForm)   authUI.verifyForm.addEventListener('submit', handleVerify);
-
-  if (authUI.verifyResend) authUI.verifyResend.addEventListener('click', handleResend);
-  if (authUI.verifyBack)   authUI.verifyBack.addEventListener('click', function () {
-    pendingVerification = null;
-    showAuthScreen('register');
-  });
-
-  if (authUI.logoutBtn) authUI.logoutBtn.addEventListener('click', handleLogout);
-
-  [authUI.loginEmail, authUI.loginPassword].forEach(function (inp) {
-    if (inp) inp.addEventListener('input', function () { setAuthError(authUI.loginError, ''); });
-  });
-  [authUI.registerEmail, authUI.registerPassword, authUI.registerPassword2].forEach(function (inp) {
-    if (inp) inp.addEventListener('input', function () { setAuthError(authUI.registerError, ''); });
-  });
-  if (authUI.verifyCodeInput) {
-    authUI.verifyCodeInput.addEventListener('input', function () {
-      this.value = this.value.replace(/\D/g, '').slice(0, 6);
-      setAuthError(authUI.verifyError, '');
-    });
-  }
-}
-
-/* ======================= КОНЕЦ БЛОКА АВТОРИЗАЦИИ ======================= */
 
 var ACHIEVEMENTS = {
   firstGame:  { name: 'Новичок',    desc: 'Сыграйте первую игру',            icon: '🏆' },
@@ -526,6 +206,12 @@ var S = {
   leftHanded: false,
   highContrast: false,
   performanceMode: 'balanced',
+  mobileControlMode: 'both',
+  reducedMotion: false,
+  colorblindMarkers: false,
+  uiScale: 100,
+  powerupFrequency: 'normal',
+  keyBindings: { up: 'w', left: 'a', down: 's', right: 'd' },
   showGrid: true,
   volume: 0.5,
   shakeAmount: 0,
@@ -560,6 +246,7 @@ var audioCtx = null;
 var touchStartX = 0;
 var touchStartY = 0;
 var touchActive = false;
+var activeKeyBind = null;
 var powerupTimers = {};
 
 var countdown = {
@@ -571,7 +258,7 @@ var countdown = {
 
 function initAudio() {
   if (audioCtx) return;
-  try { 
+  try {
      audioCtx = new window.AudioContext();
 
     if (audioCtx && audioCtx.state === 'suspended') {
@@ -836,6 +523,121 @@ function applyPerformanceMode(mode) {
   document.body.classList.add('performance-' + mode);
 }
 
+function applyMobileControlMode(mode) {
+  var allowed = { both: true, buttons: true, swipe: true };
+  if (!allowed[mode]) mode = 'both';
+  if (ui.mobileControlMode) ui.mobileControlMode.value = mode;
+  document.body.classList.remove('mobile-control-both', 'mobile-control-buttons', 'mobile-control-swipe');
+  document.body.classList.add('mobile-control-' + mode);
+  S.mobileControlMode = mode;
+  var mobileHint = document.querySelector('.mobile-hint');
+  if (mobileHint) {
+    mobileHint.textContent = mode === 'buttons' ? 'Управление кнопками' :
+      (mode === 'swipe' ? 'Свайп по игровому полю' : 'Свайп по полю или нажми кнопку');
+  }
+}
+
+function applyReducedMotion(enabled) {
+  S.reducedMotion = Boolean(enabled);
+  document.body.classList.toggle('reduced-motion', S.reducedMotion);
+  if (S.reducedMotion) {
+    S.particles = [];
+    S.trail = [];
+    S.shakeAmount = 0;
+    if (ui.canvasContainer) ui.canvasContainer.style.transform = '';
+  }
+}
+
+function applyColorblindMarkers(enabled) {
+  S.colorblindMarkers = Boolean(enabled);
+}
+
+function applyUIScale(scale) {
+  var allowed = { 85: true, 100: true, 115: true, 130: true };
+  scale = Number(scale);
+  if (!allowed[scale]) scale = 100;
+  if (ui.uiScale) ui.uiScale.value = String(scale);
+  S.uiScale = scale;
+  document.documentElement.style.fontSize = (16 * scale / 100) + 'px';
+}
+
+function applyPowerupFrequency(frequency) {
+  var allowed = { rare: true, normal: true, frequent: true };
+  if (!allowed[frequency]) frequency = 'normal';
+  if (ui.powerupFrequency) ui.powerupFrequency.value = frequency;
+  S.powerupFrequency = frequency;
+}
+
+function normalizeKeyBindings(bindings) {
+  var defaults = { up: 'w', left: 'a', down: 's', right: 'd' };
+  var result = {};
+  var used = {};
+  ['up', 'left', 'down', 'right'].forEach(function(direction) {
+    var key = bindings && typeof bindings[direction] === 'string'
+      ? bindings[direction].toLowerCase()
+      : defaults[direction];
+    if (!/^[a-z0-9]$/.test(key) || used[key]) {
+      key = defaults[direction];
+      if (used[key]) {
+        ['w', 'a', 's', 'd'].some(function(fallback) {
+          if (used[fallback]) return false;
+          key = fallback;
+          return true;
+        });
+      }
+    }
+    result[direction] = key;
+    used[key] = true;
+  });
+  return result;
+}
+
+function renderKeyBindings() {
+  if (!ui.keyBindButtons) return;
+  var labels = { up: 'Вверх', left: 'Влево', down: 'Вниз', right: 'Вправо' };
+  ui.keyBindButtons.forEach(function(button) {
+    var direction = button.getAttribute('data-key-bind');
+    if (!labels[direction]) return;
+    button.textContent = activeKeyBind === direction
+      ? labels[direction] + ': нажмите клавишу…'
+      : labels[direction] + ': ' + String(S.keyBindings[direction] || '').toUpperCase();
+    button.classList.toggle('is-listening', activeKeyBind === direction);
+    button.setAttribute('aria-pressed', activeKeyBind === direction ? 'true' : 'false');
+  });
+}
+
+function handleKeyBindingCapture(e) {
+  if (!activeKeyBind) return;
+  if (e.key === 'Tab') {
+    activeKeyBind = null;
+    renderKeyBindings();
+    return;
+  }
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  if (e.key === 'Escape') {
+    activeKeyBind = null;
+    renderKeyBindings();
+    return;
+  }
+  if (!/^[a-z0-9]$/i.test(e.key)) {
+    showNotification('Нужна буква или цифра', 'Стрелки остаются доступными', '⌨️');
+    return;
+  }
+
+  var key = e.key.toLowerCase();
+  var conflict = ['up', 'left', 'down', 'right'].some(function(direction) {
+    return direction !== activeKeyBind && S.keyBindings[direction] === key;
+  });
+  if (conflict) {
+    showNotification('Клавиша уже назначена', 'Выберите другую клавишу', '⌨️');
+    return;
+  }
+  S.keyBindings[activeKeyBind] = key;
+  activeKeyBind = null;
+  renderKeyBindings();
+}
+
 function resizeCanvas() {
   var isMobile = window.innerWidth <= 600;
   var reservedHeight = isMobile ? 255 : 150;
@@ -858,6 +660,46 @@ function showNotification(text, subtext, icon) {
     n.classList.remove('show');
     setTimeout(function() { if (n.parentNode) n.remove(); }, 400);
   }, 3500);
+}
+
+function showGoodbyeScreen() {
+  ['mainMenu', 'instructions', 'about', 'settings', 'shop', 'exitConfirm'].forEach(function(k) {
+    if (screens[k]) screens[k].classList.remove('active');
+  });
+  if (screens.game)     screens.game.classList.add('hidden');
+  if (screens.gameOver) screens.gameOver.classList.add('hidden');
+  if (screens.pause)    screens.pause.classList.add('hidden');
+
+  var overlay = document.getElementById('goodbye-screen');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'goodbye-screen';
+    overlay.className = 'menu-screen';
+    overlay.innerHTML =
+      '<div class="logo"><h1>Пока! 👋</h1></div>' +
+      '<p class="confirm-text">Спасибо за игру в «Змейку»!</p>' +
+      '<p class="setting-help" style="text-align:center;">' +
+        'Браузер не даёт закрыть вкладку автоматически. ' +
+        'Нажмите <b>Ctrl&nbsp;+&nbsp;W</b> (Windows / Linux) ' +
+        'или <b>Cmd&nbsp;+&nbsp;W</b> (Mac), чтобы закрыть вкладку вручную.' +
+      '</p>' +
+      '<div class="btn-group">' +
+        '<button id="btn-goodbye-back" class="btn btn-secondary">← Вернуться в меню</button>' +
+      '</div>';
+    document.body.appendChild(overlay);
+
+    document.getElementById('btn-goodbye-back').addEventListener('click', function() {
+      overlay.classList.remove('active');
+      setTimeout(function() {
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+      }, 350);
+      showScreen('mainMenu');
+    });
+  }
+
+  requestAnimationFrame(function() {
+    overlay.classList.add('active');
+  });
 }
 
 function loadAchievements() {
@@ -1271,6 +1113,10 @@ function setupSkinPalette() {
 }
 
 function showScreen(name) {
+  if (name !== 'settings' && activeKeyBind) {
+    activeKeyBind = null;
+    renderKeyBindings();
+  }
   ['mainMenu', 'instructions', 'about', 'settings', 'shop', 'exitConfirm'].forEach(function(k) {
     if (screens[k]) screens[k].classList.remove('active');
   });
@@ -1309,11 +1155,11 @@ function loadSettings() {
   try {
     var s = JSON.parse(raw);
     if (s.difficulty && ui.difficulty) { ui.difficulty.value = s.difficulty; S.difficulty = s.difficulty; }
-    if (s.grid && ui.gridSize)         { 
-      ui.gridSize.value = String(s.grid); 
+    if (s.grid && ui.gridSize)         {
+      ui.gridSize.value = String(s.grid);
 
       if (s.grid >= 4 && s.grid <= 64 && isFinite(s.grid)) {
-        S.grid = s.grid; 
+        S.grid = s.grid;
       } else {
         S.grid = 16;
       }
@@ -1343,6 +1189,27 @@ function loadSettings() {
       ui.performanceMode.value = s.performanceMode;
       applyPerformanceMode(s.performanceMode);
     }
+    if (s.mobileControlMode && ui.mobileControlMode) {
+      ui.mobileControlMode.value = s.mobileControlMode;
+      applyMobileControlMode(s.mobileControlMode);
+    }
+    if (typeof s.reducedMotion !== 'undefined' && ui.reducedMotion) {
+      ui.reducedMotion.checked = Boolean(s.reducedMotion);
+      applyReducedMotion(s.reducedMotion);
+    }
+    if (typeof s.colorblindMarkers !== 'undefined' && ui.colorblindMarkers) {
+      ui.colorblindMarkers.checked = Boolean(s.colorblindMarkers);
+      applyColorblindMarkers(s.colorblindMarkers);
+    }
+    if (typeof s.uiScale !== 'undefined' && ui.uiScale) {
+      ui.uiScale.value = String(s.uiScale);
+      applyUIScale(s.uiScale);
+    }
+    if (s.powerupFrequency && ui.powerupFrequency) {
+      ui.powerupFrequency.value = s.powerupFrequency;
+      applyPowerupFrequency(s.powerupFrequency);
+    }
+    if (s.keyBindings) S.keyBindings = normalizeKeyBindings(s.keyBindings);
     if (typeof s.volume !== 'undefined' && ui.volume)        { S.volume = s.volume; ui.volume.value = String(s.volume * 100); if (ui.volumeValue) ui.volumeValue.textContent = Math.round(s.volume * 100) + '%'; }
   } catch (e) {
     console.warn('Не удалось загрузить настройки', e);
@@ -1369,6 +1236,12 @@ function saveSettings() {
     leftHanded: ui.leftHanded ? ui.leftHanded.checked : false,
     highContrast: ui.highContrast ? ui.highContrast.checked : false,
     performanceMode: ui.performanceMode ? ui.performanceMode.value : 'balanced',
+    mobileControlMode: ui.mobileControlMode ? ui.mobileControlMode.value : 'both',
+    reducedMotion: ui.reducedMotion ? ui.reducedMotion.checked : false,
+    colorblindMarkers: ui.colorblindMarkers ? ui.colorblindMarkers.checked : false,
+    uiScale: ui.uiScale ? Number(ui.uiScale.value) : 100,
+    powerupFrequency: ui.powerupFrequency ? ui.powerupFrequency.value : 'normal',
+    keyBindings: normalizeKeyBindings(S.keyBindings),
     volume: ui.volume ? Number(ui.volume.value) / 100 : 0.5
   };
 
@@ -1382,10 +1255,17 @@ function saveSettings() {
   S.baseSpeed = s.baseSpeed; S.snakeColor = s.snakeColor;
   S.showParticles = s.particles; S.showShake = s.shake; S.vibration = s.vibration;
   S.autoPause = s.autoPause; S.volume = s.volume;
+  S.keyBindings = s.keyBindings;
   applyMobileSize(s.mobileSize);
   applyMobileLayout(s.leftHanded);
   applyHighContrast(s.highContrast);
   applyPerformanceMode(s.performanceMode);
+  applyMobileControlMode(s.mobileControlMode);
+  applyReducedMotion(s.reducedMotion);
+  applyColorblindMarkers(s.colorblindMarkers);
+  applyUIScale(s.uiScale);
+  applyPowerupFrequency(s.powerupFrequency);
+  renderKeyBindings();
 
   try {
     storeSet('snakeSkinColor', s.snakeColor);
@@ -1414,8 +1294,16 @@ function resetSettings() {
   if (ui.leftHanded)  ui.leftHanded.checked = false;
   if (ui.highContrast) ui.highContrast.checked = false;
   if (ui.performanceMode) ui.performanceMode.value = 'balanced';
+  if (ui.mobileControlMode) ui.mobileControlMode.value = 'both';
+  if (ui.reducedMotion) ui.reducedMotion.checked = false;
+  if (ui.colorblindMarkers) ui.colorblindMarkers.checked = false;
+  if (ui.uiScale) ui.uiScale.value = '100';
+  if (ui.powerupFrequency) ui.powerupFrequency.value = 'normal';
   if (ui.volume)      ui.volume.value = '50';
   if (ui.volumeValue) ui.volumeValue.textContent = '50%';
+  S.keyBindings = normalizeKeyBindings(null);
+  activeKeyBind = null;
+  renderKeyBindings();
 
   if (ui.skinOptions) {
     ui.skinOptions.forEach(function(o) { o.classList.remove('active'); });
@@ -1528,11 +1416,15 @@ var FOOD_TYPES = {
 };
 
 function pickFoodType() {
+  var boostMultiplier = S.powerupFrequency === 'rare' ? 0.45 :
+    (S.powerupFrequency === 'frequent' ? 1.8 : 1);
   var total = 0;
-  for (var k in FOOD_TYPES) total += FOOD_TYPES[k].weight;
+  for (var k in FOOD_TYPES) {
+    total += FOOD_TYPES[k].weight * (FOOD_TYPES[k].powerup ? boostMultiplier : 1);
+  }
   var r = Math.random() * total;
   for (var k2 in FOOD_TYPES) {
-    r -= FOOD_TYPES[k2].weight;
+    r -= FOOD_TYPES[k2].weight * (FOOD_TYPES[k2].powerup ? boostMultiplier : 1);
     if (r <= 0) return k2;
   }
   return 'normal';
@@ -1577,7 +1469,7 @@ function generateObstacles() {
 }
 
 function spawnParticles(x, y, n, c) {
-  if (!S.showParticles) return;
+  if (!S.showParticles || S.reducedMotion) return;
   if (S.performanceMode === 'performance') return;
   if (S.performanceMode === 'balanced') n = Math.max(1, Math.floor(n * 0.65));
   for (var i = 0; i < n; i++) {
@@ -1610,7 +1502,7 @@ function drawParticles() {
 }
 
 function updateTrail() {
-  if (!S.showTrail || !S.isMoving) return;
+  if (!S.showTrail || S.reducedMotion || !S.isMoving) return;
   if (S.performanceMode === 'performance') return;
   var head = S.snake.cells[0];
   if (!head) return;
@@ -1639,7 +1531,7 @@ function updateTrail() {
 }
 
 function drawTrail() {
-  if (!S.showTrail || S.trail.length === 0) return;
+  if (!S.showTrail || S.reducedMotion || S.trail.length === 0) return;
   for (var i = 0; i < S.trail.length; i++) {
     var t = S.trail[i];
     var c = t.color;
@@ -1652,7 +1544,7 @@ function drawTrail() {
 }
 
 function spawnDeathFragments() {
-  if (S.performanceMode === 'performance') return;
+  if (S.performanceMode === 'performance' || S.reducedMotion) return;
 
   var rgb;
   if (S.snakeColor === 'rainbow') {
@@ -1734,13 +1626,18 @@ function drawPopups() {
 }
 
 function shake(a) {
-  if (!S.showShake) return;
+  if (!S.showShake || S.reducedMotion) return;
   if (S.performanceMode === 'performance') return;
   if (S.performanceMode === 'balanced') a *= 0.65;
   S.shakeAmount = Math.max(S.shakeAmount, a);
 }
 
 function applyShake() {
+  if (S.reducedMotion) {
+    if (ui.canvasContainer) ui.canvasContainer.style.transform = '';
+    S.shakeAmount = 0;
+    return;
+  }
   if (S.shakeAmount > 0.1) {
     var dx = (Math.random() - 0.5) * S.shakeAmount;
     var dy = (Math.random() - 0.5) * S.shakeAmount;
@@ -2014,7 +1911,7 @@ function drawFoods() {
     var f = S.foods[i];
     var ft = FOOD_TYPES[f.type];
     var age = (t - f.spawnTime) / 1000;
-    var pulse = Math.sin(age * 4) * 0.15 + 0.85;
+    var pulse = S.reducedMotion ? 1 : Math.sin(age * 4) * 0.15 + 0.85;
 
     ctx.shadowColor = ft.glow;
     ctx.shadowBlur = f.type === 'gold' ? 16 : (f.type === 'fever' ? 20 : 8);
@@ -2022,7 +1919,7 @@ function drawFoods() {
     var off = (S.grid - size) / 2;
 
     if (f.type === 'fever') {
-      var flicker = Math.sin(age * 12) * 0.3 + 0.7;
+      var flicker = S.reducedMotion ? 1 : Math.sin(age * 12) * 0.3 + 0.7;
       ctx.fillStyle = 'rgba(255, 235, 59, ' + flicker + ')';
     } else {
       ctx.fillStyle = ft.color;
@@ -2031,15 +1928,18 @@ function drawFoods() {
     ctx.shadowBlur = 0;
     ctx.shadowColor = 'transparent';
 
-    if (f.type !== 'normal' && f.type !== 'gold') {
+    if (S.colorblindMarkers || (f.type !== 'normal' && f.type !== 'gold')) {
+      ctx.save();
       ctx.fillStyle = 'rgba(255,255,255,0.85)';
       ctx.font = 'bold ' + Math.max(8, S.grid * 0.55) + 'px system-ui';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      var labels = { slow: 'S', shield: 'D', magnet: 'M', fever: 'F' };
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(0,0,0,0.8)';
+      var labels = { normal: 'N', gold: 'G', slow: 'S', shield: 'D', magnet: 'M', fever: 'F' };
+      ctx.strokeText(labels[f.type] || '', f.x + S.grid / 2, f.y + S.grid / 2);
       ctx.fillText(labels[f.type] || '', f.x + S.grid / 2, f.y + S.grid / 2);
-      ctx.textAlign = 'start';
-      ctx.textBaseline = 'alphabetic';
+      ctx.restore();
     }
   }
 }
@@ -2287,6 +2187,7 @@ function flashDirectionButton(direction) {
 }
 
 function handleSwipe(dx, dy) {
+  if (S.mobileControlMode === 'buttons') return;
   if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;
   var direction;
   if (Math.abs(dx) > Math.abs(dy)) direction = dx > 0 ? 'right' : 'left';
@@ -2298,20 +2199,26 @@ function handleKey(e) {
   if (isTypingTarget(e.target)) return;
 
   if (e.which === 32) {
-    e.preventDefault();
-    togglePause();
+    if (S.isRunning) {
+      e.preventDefault();
+      togglePause();
+    }
     return;
   }
 
   if (!S.isRunning || S.isPaused) return;
 
-  var key = e.which;
+  var key = String(e.key || '').toLowerCase();
+  if (!key) {
+    var legacyKeys = { 37: 'arrowleft', 38: 'arrowup', 39: 'arrowright', 40: 'arrowdown', 65: 'a', 68: 'd', 83: 's', 87: 'w' };
+    key = legacyKeys[e.which] || '';
+  }
   var direction = null;
 
-  if (key === 37 || key === 65) direction = 'left';
-  else if (key === 38 || key === 87) direction = 'up';
-  else if (key === 39 || key === 68) direction = 'right';
-  else if (key === 40 || key === 83) direction = 'down';
+  if (key === 'arrowleft' || key === S.keyBindings.left) direction = 'left';
+  else if (key === 'arrowup' || key === S.keyBindings.up) direction = 'up';
+  else if (key === 'arrowright' || key === S.keyBindings.right) direction = 'right';
+  else if (key === 'arrowdown' || key === S.keyBindings.down) direction = 'down';
 
   if (direction && setDirection(direction)) e.preventDefault();
 }
@@ -2323,14 +2230,36 @@ function bindButtons() {
   if (ui.settings)     ui.settings.addEventListener('click', function() { showScreen('settings'); });
   if (ui.instructions) ui.instructions.addEventListener('click', function() { showScreen('instructions'); });
   if (ui.about)        ui.about.addEventListener('click', function() { showScreen('about'); });
-  if (ui.exit)          ui.exit.addEventListener('click', function() { showScreen('exitConfirm'); });
+  if (ui.exit)         ui.exit.addEventListener('click', function() { showScreen('exitConfirm'); });
 
   if (ui.btnContinue)  ui.btnContinue.addEventListener('click', function() { initAudio(); sessionEaten = 0; showScreen('game'); });
 
   if (ui.exitYes) ui.exitYes.addEventListener('click', function() {
     S.isRunning = false;
+
+    // 1) Пробуем стандартный способ (сработает в PWA и в окнах, открытых window.open)
     window.close();
-    showScreen('mainMenu');
+
+    // 2) Пробуем через opener: обнуляем его и пытаемся закрыть снова
+    try {
+      if (window.opener) {
+        window.opener = null;
+        window.close();
+      }
+    } catch (e) {}
+
+    // 3) Пробуем через открытие себя как _self (иногда помогает в старых движках)
+    try {
+      window.open('', '_self', '');
+      window.close();
+    } catch (e) {}
+
+    // 4) Если через 250 мс вкладка всё ещё открыта — показываем экран «Пока!»
+    setTimeout(function() {
+      if (!window.closed) {
+        showGoodbyeScreen();
+      }
+    }, 250);
   });
   if (ui.exitNo) ui.exitNo.addEventListener('click', function() { showScreen('mainMenu'); });
 
@@ -2339,6 +2268,27 @@ function bindButtons() {
   if (ui.backSettings)  ui.backSettings.addEventListener('click', function() { showScreen('mainMenu'); });
   if (ui.saveSettings)  ui.saveSettings.addEventListener('click', saveSettings);
   if (ui.resetSettings) ui.resetSettings.addEventListener('click', resetSettings);
+  document.addEventListener('pointerdown', function(e) {
+    if (activeKeyBind && !e.target.closest('.keybindings-setting')) {
+      activeKeyBind = null;
+      renderKeyBindings();
+    }
+  }, true);
+  if (ui.keyBindButtons) {
+    ui.keyBindButtons.forEach(function(button) {
+      button.addEventListener('click', function() {
+        activeKeyBind = button.getAttribute('data-key-bind');
+        renderKeyBindings();
+      });
+    });
+  }
+  if (ui.resetKeyBindings) {
+    ui.resetKeyBindings.addEventListener('click', function() {
+      activeKeyBind = null;
+      S.keyBindings = normalizeKeyBindings(null);
+      renderKeyBindings();
+    });
+  }
   if (ui.volume)        ui.volume.addEventListener('input', function() { if (ui.volumeValue) ui.volumeValue.textContent = ui.volume.value + '%'; });
   if (ui.speedSlider)   ui.speedSlider.addEventListener('input', function() { if (ui.speedValue) ui.speedValue.textContent = ui.speedSlider.value + '/10'; });
 
@@ -2363,6 +2313,7 @@ function bindButtons() {
 
   if (ui.canvasContainer) {
     ui.canvasContainer.addEventListener('touchstart', function(e) {
+      if (S.mobileControlMode === 'buttons') return;
       if (!e.touches || !e.touches[0]) return;
       touchActive = true;
       touchStartX = e.touches[0].clientX;
@@ -2437,27 +2388,38 @@ function handleVisibilityChange() {
 
 function init() {
   bindButtons();
-  bindAuthUI();
 
+  window.addEventListener('keydown', handleKeyBindingCapture, true);
   window.addEventListener('keydown', handleKey);
   window.addEventListener('resize', function () {
     if (screens.game && !screens.game.classList.contains('hidden')) resizeCanvas();
   });
   document.addEventListener('visibilitychange', handleVisibilityChange);
 
-  var session = getSession();
-  var users   = loadUsers();
-  var email   = session && session.email ? normalizeEmail(session.email) : '';
-  var user    = email ? users[email] : null;
-
-  if (user && user.verified) {
-    setStorageUser(email);
-    initLoggedInUser(email);
-  } else {
-    clearSession();
-    setStorageUser('');
-    showAuthScreen('login');
-  }
+  loadSettings();
+  renderKeyBindings();
+  loadStats();
+  loadCoins();
+  loadOwnedSkins();
+  loadDailyQuests();
+  setupSkinPalette();
+  updateSkinOptionsActive();
+  updateCoinsUI();
+  renderLeaderboard();
+  renderQuests();
+  updateProgressBars();
+  updateContinueButton();
+  applyTheme(S.theme);
+  applyMobileSize(S.mobileSize);
+  applyMobileLayout(S.leftHanded);
+  applyHighContrast(S.highContrast);
+  applyPerformanceMode(S.performanceMode);
+  applyMobileControlMode(S.mobileControlMode);
+  applyReducedMotion(S.reducedMotion);
+  applyColorblindMarkers(S.colorblindMarkers);
+  applyUIScale(S.uiScale);
+  applyPowerupFrequency(S.powerupFrequency);
+  resizeCanvas();
 }
 
 init();
