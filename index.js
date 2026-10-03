@@ -145,13 +145,13 @@ var ui = {
 
 var ACHIEVEMENTS = {
   firstGame:  { name: 'Новичок',    desc: 'Сыграйте первую игру',            icon: '🏆' },
-  eaten10:    { name: 'Голодный',   desc: 'Съешьте 10 яблок за всё время',   icon: '🍎' },
+  eaten10:    { name: 'Голодный',   desc: 'Съешьте 10 яблок за всё время',   icon: '' },
   eaten50:    { name: 'Обжора',     desc: 'Съешьте 50 яблок за всё время',   icon: '🍔' },
   played10:   { name: 'Ветеран',    desc: 'Сыграйте 10 игр',                 icon: '🎮' },
   score100:   { name: 'Сотка',      desc: 'Наберите 100 очков за игру',       icon: '💯' },
   score500:   { name: 'Мастер',     desc: 'Наберите 500 очков за игру',      icon: '⭐' },
-  level5:     { name: 'Альпинист',  desc: 'Достигните 5 уровня',             icon: '🧗' },
-  combo8:     { name: 'Комбо-мастер', desc: 'Соберите комбо x8',            icon: '🔥' },
+  level5:     { name: 'Альпинист',  desc: 'Достигните 5 уровня',             icon: '' },
+  combo8:     { name: 'Комбо-мастер', desc: 'Соберите комбо x8',            icon: '' },
   fever3:     { name: 'Лихорадка',  desc: 'Активируйте лихорадку 3 раза',    icon: '😵' },
   coins100:   { name: 'Копилка',    desc: 'Соберите 100 монет за всё время', icon: '💰' }
 };
@@ -670,7 +670,7 @@ function handleKeyBindingCapture(e) {
     return;
   }
   if (!/^[a-z0-9]$/i.test(e.key)) {
-    showNotification('Нужна буква или цифра', 'Стрелки остаются доступными', '⌨️');
+    showNotification('Нужна буква или цифра', 'Стрелки остаются доступными', '️');
     return;
   }
 
@@ -783,17 +783,17 @@ function checkAchievements() {
   if (!ach.eaten50 && S.totalEaten >= 50) {
     saveAchievement('eaten50');
     sfx.achievement();
-    showNotification(ACHIEVEMENTS.eaten50.name, ACHIEVEMENTS.eaten50.desc, '🍔');
+    showNotification(ACHIEVEMENTS.eaten50.name, ACHIEVEMENTS.eaten50.desc, '');
   }
   if (!ach.played10 && S.gamesPlayed >= 10) {
     saveAchievement('played10');
     sfx.achievement();
-    showNotification(ACHIEVEMENTS.played10.name, ACHIEVEMENTS.played10.desc, '🎮');
+    showNotification(ACHIEVEMENTS.played10.name, ACHIEVEMENTS.played10.desc, '');
   }
   if (!ach.score100 && S.score >= 100) {
     saveAchievement('score100');
     sfx.achievement();
-    showNotification(ACHIEVEMENTS.score100.name, ACHIEVEMENTS.score100.desc, '💯');
+    showNotification(ACHIEVEMENTS.score100.name, ACHIEVEMENTS.score100.desc, '');
   }
   if (!ach.score500 && S.score >= 500) {
     saveAchievement('score500');
@@ -808,7 +808,7 @@ function checkAchievements() {
   if (!ach.combo8 && S.maxComboThisGame >= 8) {
     saveAchievement('combo8');
     sfx.achievement();
-    showNotification(ACHIEVEMENTS.combo8.name, ACHIEVEMENTS.combo8.desc, '🔥');
+    showNotification(ACHIEVEMENTS.combo8.name, ACHIEVEMENTS.combo8.desc, '');
   }
   if (!ach.fever3 && S.feverCount >= 3) {
     saveAchievement('fever3');
@@ -851,7 +851,7 @@ function addCoins(amount, reason) {
   S.sessionCoins += amount;
   sfx.coin();
   saveCoins();
-  if (reason) showNotification('+' + amount + '💰', reason, '💰');
+  if (reason) showNotification('+' + amount + '', reason, '💰');
 }
 
 function updateCoinsUI() {
@@ -1069,7 +1069,7 @@ function renderQuests() {
       '<div class="quest-text">' + (done ? '✅ ' : '') + q.text + '</div>' +
       '<div class="quest-progress">' +
         '<div class="quest-bar"><div class="quest-fill" style="width:' + pct + '%"></div></div>' +
-        '<span class="quest-reward">' + (done ? '✓' : q.progress + '/' + q.target) + ' · ' + q.reward + ' 🪙</span>' +
+        '<span class="quest-reward">' + (done ? '✓' : q.progress + '/' + q.target) + ' · ' + q.reward + ' </span>' +
       '</div>';
     ui.questsList.appendChild(item);
   });
@@ -2410,6 +2410,55 @@ function bindButtons() {
   if (ui.volume)        ui.volume.addEventListener('input', function() { if (ui.volumeValue) ui.volumeValue.textContent = ui.volume.value + '%'; });
   if (ui.speedSlider)   ui.speedSlider.addEventListener('input', function() { if (ui.speedValue) ui.speedValue.textContent = ui.speedSlider.value + '/10'; });
 
+  if (ui.shake) ui.shake.addEventListener('change', function() {
+    S.showShake = ui.shake.checked;
+  });
+  if (ui.particles) ui.particles.addEventListener('change', function() {
+    S.showParticles = ui.particles.checked;
+  });
+  if (ui.vibration) ui.vibration.addEventListener('change', function() {
+    S.vibration = ui.vibration.checked;
+  });
+  if (ui.autoPause) ui.autoPause.addEventListener('change', function() {
+    S.autoPause = ui.autoPause.checked;
+  });
+  if (ui.gridToggle) ui.gridToggle.addEventListener('change', function() {
+    S.showGrid = ui.gridToggle.checked;
+  });
+  if (ui.trailToggle) ui.trailToggle.addEventListener('change', function() {
+    S.showTrail = ui.trailToggle.checked;
+  });
+  if (ui.reducedMotion) ui.reducedMotion.addEventListener('change', function() {
+    applyReducedMotion(ui.reducedMotion.checked);
+  });
+  if (ui.highContrast) ui.highContrast.addEventListener('change', function() {
+    applyHighContrast(ui.highContrast.checked);
+  });
+  if (ui.colorblindMarkers) ui.colorblindMarkers.addEventListener('change', function() {
+    applyColorblindMarkers(ui.colorblindMarkers.checked);
+  });
+  if (ui.leftHanded) ui.leftHanded.addEventListener('change', function() {
+    applyMobileLayout(ui.leftHanded.checked);
+  });
+  if (ui.mobileSize) ui.mobileSize.addEventListener('change', function() {
+    applyMobileSize(ui.mobileSize.value);
+  });
+  if (ui.mobileControlMode) ui.mobileControlMode.addEventListener('change', function() {
+    applyMobileControlMode(ui.mobileControlMode.value);
+  });
+  if (ui.performanceMode) ui.performanceMode.addEventListener('change', function() {
+    applyPerformanceMode(ui.performanceMode.value);
+  });
+  if (ui.uiScale) ui.uiScale.addEventListener('change', function() {
+    applyUIScale(ui.uiScale.value);
+  });
+  if (ui.powerupFrequency) ui.powerupFrequency.addEventListener('change', function() {
+    applyPowerupFrequency(ui.powerupFrequency.value);
+  });
+  if (ui.controlScheme) ui.controlScheme.addEventListener('change', function() {
+    applyControlScheme(ui.controlScheme.value);
+  });
+
   if (ui.pauseBtn) ui.pauseBtn.addEventListener('click', togglePause);
   if (ui.mobilePause) ui.mobilePause.addEventListener('click', togglePause);
   if (ui.restart)  ui.restart.addEventListener('click', function() { initAudio(); sessionEaten = 0; startGame(); });
@@ -2671,7 +2720,7 @@ function runCountdown() {
     if (active) {
       turboButton.textContent = '⚡ ' + (Math.max(0, S.turboUntil - current) / 1000).toFixed(1) + 'с';
     } else if (cooldown > 0) {
-      turboButton.textContent = '⏳ ' + Math.ceil(cooldown / 1000) + 'с';
+      turboButton.textContent = ' ' + Math.ceil(cooldown / 1000) + 'с';
     } else {
       turboButton.textContent = '⚡ Турбо';
     }
