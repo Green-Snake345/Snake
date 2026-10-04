@@ -101,7 +101,7 @@ var ui = {
   feverOverlay:    el('fever-overlay'),
   msHighscore:     el('ms-highscore'),
   msGames:         el('ms-games-val'),
-  msEaten:         el('ms-eaten'),
+  msEaten:         el('ms-eaten-val'),
   coinsValue:      el('coins-value'),
   hudCoins:        el('hud-coins'),
   aboutGames:      el('about-games'),
