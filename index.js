@@ -101,7 +101,7 @@ var ui = {
   feverOverlay:    el('fever-overlay'),
   msHighscore:     el('ms-highscore'),
   msGames:         el('ms-games-val'),
-  msEaten:         el('ms-eaten-val'),
+  msEaten:         el('ms-eaten'),
   coinsValue:      el('coins-value'),
   hudCoins:        el('hud-coins'),
   aboutGames:      el('about-games'),
@@ -147,7 +147,7 @@ var ACHIEVEMENTS = {
   firstGame:  { name: 'Новичок',    desc: 'Сыграйте первую игру',            icon: '🏆' },
   eaten10:    { name: 'Голодный',   desc: 'Съешьте 10 яблок за всё время',   icon: '' },
   eaten50:    { name: 'Обжора',     desc: 'Съешьте 50 яблок за всё время',   icon: '🍔' },
-  played10:   { name: 'Ветеран',    desc: 'Сыграйте 10 игр',                 icon: '🎮' },
+  played10:   { name: 'Ветеран',    desc: 'Сыграйте 10 игр',                 icon: '' },
   score100:   { name: 'Сотка',      desc: 'Наберите 100 очков за игру',       icon: '💯' },
   score500:   { name: 'Мастер',     desc: 'Наберите 500 очков за игру',      icon: '⭐' },
   level5:     { name: 'Альпинист',  desc: 'Достигните 5 уровня',             icon: '' },
@@ -803,7 +803,7 @@ function checkAchievements() {
   if (!ach.level5 && S.level >= 5) {
     saveAchievement('level5');
     sfx.achievement();
-    showNotification(ACHIEVEMENTS.level5.name, ACHIEVEMENTS.level5.desc, '🧗');
+    showNotification(ACHIEVEMENTS.level5.name, ACHIEVEMENTS.level5.desc, '');
   }
   if (!ach.combo8 && S.maxComboThisGame >= 8) {
     saveAchievement('combo8');
@@ -921,7 +921,7 @@ function renderShop() {
 
       if (e.target.classList.contains('buy-btn')) {
         if (S.coins < skin.price) {
-          showNotification('Недостаточно монет', 'Нужно ещё ' + (skin.price - S.coins) + '💰', '💸');
+          showNotification('Недостаточно монет', 'Нужно ещё ' + (skin.price - S.coins) + '', '💸');
           return;
         }
         S.coins -= skin.price;
@@ -1136,7 +1136,7 @@ function setupSkinPalette() {
         var color2 = option.getAttribute('data-color');
         var owned = S.ownedSkins.indexOf(id) !== -1;
         if (!owned) {
-          showNotification('Скин заблокирован', 'Купите его в магазине 🛒', '🔒');
+          showNotification('Скин заблокирован', 'Купите его в магазине ', '🔒');
           return;
         }
         ui.skinOptions.forEach(function (o) { o.classList.remove('active'); });
@@ -2751,7 +2751,7 @@ function runCountdown() {
     if (!list || list.querySelector('.turbo-help')) return;
     var item = document.createElement('li');
     item.className = 'turbo-help';
-    item.innerHTML = '<b>Турбо</b> — клавиша Shift, двойной тап или кнопка ⚡; действует 2,4 сек.';
+    item.innerHTML = '<b>Турбо</b> — клавиша Shift, двойной тап или кнопка ; действует 2,4 сек.';
     list.appendChild(item);
   }
 
@@ -2925,7 +2925,7 @@ function runCountdown() {
     shareButton.id = 'btn-share-score';
     shareButton.type = 'button';
     shareButton.className = 'btn btn-small share-score-control';
-    shareButton.textContent = '↗ Поделиться результатом';
+    shareButton.textContent = ' Поделиться результатом';
     shareButton.addEventListener('click', shareResult);
     screens.gameOver.insertBefore(shareButton, ui.restartOverlay);
   }
