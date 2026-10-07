@@ -12,6 +12,7 @@
   --purple: #9b59b6;
   --orange: #e67e22;
   --fever: #ff9800;
+  --ghost: #00d4ff;
   --canvas-bg: #050508;
 }
 
@@ -534,6 +535,18 @@ transform: translateY(-8px);
   to   { box-shadow: 0 0 20px rgba(255, 152, 0, 0.8); }
 }
 
+.powerup-chip.ghost {
+  background: rgba(0, 212, 255, .2);
+  color: #7fe9ff;
+  border: 1px solid #00d4ff;
+  animation: ghostGlow 1s ease-in-out infinite alternate;
+}
+
+@keyframes ghostGlow {
+  from { box-shadow: 0 0 8px rgba(0, 212, 255, 0.4); }
+  to   { box-shadow: 0 0 20px rgba(0, 212, 255, 0.85); }
+}
+
 .powerup-chip .timer-bar {
   width: 32px;
   height: 4px;
@@ -553,6 +566,7 @@ background: #fff;
 .powerup-chip.slow .timer-fill   { background: #74b9ff; }
 .powerup-chip.magnet .timer-fill { background: #fab36c; }
 .powerup-chip.fever .timer-fill  { background: #ffd54f; }
+.powerup-chip.ghost .timer-fill  { background: #7fe9ff; }
 
 .canvas-container {
   position: relative;
@@ -829,6 +843,17 @@ input[type="color"] {
 @keyframes feverDotPulse {
   from { box-shadow: 0 0 4px rgba(255, 152, 0, 0.4); }
   to   { box-shadow: 0 0 10px rgba(255, 152, 0, 0.9); }
+}
+
+.dot.ghost {
+  background: var(--ghost);
+  box-shadow: 0 0 6px rgba(0, 212, 255, 0.6);
+  animation: ghostDotPulse 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes ghostDotPulse {
+  from { opacity: 0.6; box-shadow: 0 0 4px rgba(0, 212, 255, 0.4); }
+  to   { opacity: 1;   box-shadow: 0 0 12px rgba(0, 212, 255, 0.9); }
 }
 
 .hidden {
