@@ -228,6 +228,7 @@ var S = {
   slow: 0,
   magnet: 0,
   fever: 0,
+  ghost: 0,
   popups: [],
   deathFragments: [],
   maxComboThisGame: 1,
@@ -305,6 +306,8 @@ var sfx = {
     setTimeout(function() { beep(659, 0.08, 'triangle'); }, 60);
     setTimeout(function() { beep(784, 0.08, 'triangle'); }, 120);
     setTimeout(function() { beep(1047, 0.15, 'triangle'); }, 180);
+  },
+  ghost:   function() { beep(1200, 0.08, 'sine'); setTimeout(function() { beep(900, 0.12, 'sine'); }, 70); setTimeout(function() { beep(1400, 0.14, 'sine'); }, 150);
   },
   coin:    function() { beep(1200, 0.06, 'sine', 0.6); setTimeout(function() { beep(1600, 0.08, 'sine', 0.6); }, 50); },
   levelUp: function() { beep(523, 0.1, 'triangle'); setTimeout(function() { beep(659, 0.1, 'triangle'); }, 100); setTimeout(function() { beep(784, 0.15, 'triangle'); }, 200); },
@@ -1467,7 +1470,8 @@ var FOOD_TYPES = {
   slow:   { color: '#3498db', glow: '#3498db', points: 2, grow: 1, weight: 6, label: 'SLOW', powerup: 'slow', coins: 1 },
   shield: { color: '#9b59b6', glow: '#9b59b6', points: 2, grow: 1, weight: 6, label: 'SHIELD', powerup: 'shield', coins: 1 },
   magnet: { color: '#e67e22', glow: '#e67e22', points: 2, grow: 1, weight: 5, label: 'MAGNET', powerup: 'magnet', coins: 1 },
-  fever:  { color: '#ffeb3b', glow: '#ff9800', points: 3, grow: 1, weight: 4, label: 'FEVER', powerup: 'fever', coins: 2 }
+  fever:  { color: '#ffeb3b', glow: '#ff9800', points: 3, grow: 1, weight: 4, label: 'FEVER', powerup: 'fever', coins: 2 },
+  ghost:  { color: '#00d4ff', glow: '#00ffff', points: 3, grow: 1, weight: 4, label: 'GHOST', powerup: 'ghost', coins: 2 }
 };
 
 function pickFoodType() {
@@ -1711,7 +1715,8 @@ function updatePowerupBar() {
     { key: 'shield', label: 'Щит',       val: S.shield, max: 5000, cls: 'shield' },
     { key: 'slow',   label: 'Замедление', val: S.slow,   max: 5000, cls: 'slow' },
     { key: 'magnet', label: 'Магнит',    val: S.magnet, max: 8000, cls: 'magnet' },
-    { key: 'fever',  label: 'Лихорадка', val: S.fever,  max: 6000, cls: 'fever' }
+    { key: 'fever',  label: 'Лихорадка', val: S.fever,  max: 6000, cls: 'fever' },
+    { key: 'ghost',  label: 'Призрак',   val: S.ghost,  max: 6000, cls: 'ghost' }
   ];
 
   for (var i = 0; i < ups.length; i++) {
@@ -1809,6 +1814,7 @@ function loop(ts) {
 
     for (var i = 0; i < S.obstacles.length; i++) {
       if (S.obstacles[i].x === S.snake.x && S.obstacles[i].y === S.snake.y) {
+        if (S.ghost > 0) continue;
         if (S.shield > 0) {
           S.shield = 0; shake(8);
           spawnParticles(S.snake.x, S.snake.y, 12, '155,89,182');
@@ -1819,6 +1825,7 @@ function loop(ts) {
 
     for (var j = 1; j < S.snake.cells.length; j++) {
       if (S.snake.cells[j].x === S.snake.x && S.snake.cells[j].y === S.snake.y) {
+        if (S.ghost > 0) continue;
         if (S.shield > 0) {
           S.shield = 0; shake(8);
           spawnParticles(S.snake.x, S.snake.y, 12, '155,89,182');
@@ -1920,6 +1927,12 @@ function loop(ts) {
         shake(6);
         showNotification('😵 ЛИХОРАДКА!', 'x3 очки на 6 секунд!', '😵');
       }
+      if (ft.powerup === 'ghost') { 
+        S.ghost = 6000; 
+        sfx.ghost(); 
+        shake(4);
+        showNotification('👻 ПРИЗРАК!', 'Проходите сквозь себя и препятствия 6 секунд!', '👻');
+      }
 
       if (f.type === 'gold') sfx.gold();
       else if (!ft.powerup) sfx.eat();
@@ -1955,6 +1968,7 @@ function loop(ts) {
   if (S.slow > 0)   S.slow   = Math.max(0, S.slow - dt);
   if (S.magnet > 0) S.magnet = Math.max(0, S.magnet - dt);
   if (S.fever > 0)  S.fever  = Math.max(0, S.fever - dt);
+  if (S.ghost > 0)  S.ghost  = Math.max(0, S.ghost - dt);
   updatePowerupBar();
 
   updateTrail();
@@ -2030,7 +2044,7 @@ function drawFoods() {
       ctx.textBaseline = 'middle';
       ctx.lineWidth = 2;
       ctx.strokeStyle = 'rgba(0,0,0,0.8)';
-      var labels = { normal: 'N', gold: 'G', slow: 'S', shield: 'D', magnet: 'M', fever: 'F' };
+      var labels = { normal: 'N', gold: 'G', slow: 'S', shield: 'D', magnet: 'M', fever: 'F', ghost: 'P' };
       ctx.strokeText(labels[f.type] || '', f.x + S.grid / 2, f.y + S.grid / 2);
       ctx.fillText(labels[f.type] || '', f.x + S.grid / 2, f.y + S.grid / 2);
       ctx.restore();
@@ -2044,6 +2058,11 @@ function drawSnake() {
   var isFlame = S.snakeColor === 'flame';
   var baseRgb = (isRainbow || isFlame) ? null : hexToRgb(S.snakeColor);
   var tNow = now() / 300;
+  var ghostActive = S.ghost > 0;
+
+  if (ghostActive) {
+    ctx.globalAlpha = 0.55 + Math.sin(now() / 120) * 0.15;
+  }
 
   for (var i = 0; i < cells.length; i++) {
     var c = cells[i];
@@ -2063,7 +2082,9 @@ function drawSnake() {
 
     if (isHead) {
       var headGlow;
-      if (isFlame) {
+      if (ghostActive) {
+        headGlow = '#00ffff';
+      } else if (isFlame) {
         headGlow = '#ff4500';
       } else if (S.fever > 0) {
         headGlow = '#ffd700';
@@ -2074,7 +2095,7 @@ function drawSnake() {
       }
       ctx.shadowColor = headGlow;
 
-      ctx.shadowBlur = isFlame ? 18 : (S.fever > 0 ? 20 : 10);
+      ctx.shadowBlur = ghostActive ? 24 : (isFlame ? 18 : (S.fever > 0 ? 20 : 10));
     }
 
     if (S.shield > 0) {
@@ -2117,6 +2138,7 @@ function drawSnake() {
     ctx.shadowBlur = 0;
     ctx.shadowColor = 'transparent';
   }
+  ctx.globalAlpha = 1;
 }
 
 function levelUp() {
@@ -2168,7 +2190,7 @@ function resetGame() {
   S.score = 0; S.level = 1; S.eatenThisLevel = 0; S.foodPerLevel = 5;
   S.foods = []; S.obstacles = []; S.particles = []; S.popups = []; S.trail = []; S.deathFragments = [];
   S.combo = 1; S.comboTimer = 0;
-  S.shield = 0; S.slow = 0; S.magnet = 0; S.fever = 0;
+  S.shield = 0; S.slow = 0; S.magnet = 0; S.fever = 0; S.ghost = 0;
   S.shakeAmount = 0;
   S.isMoving = false; S.isPaused = false; S.count = 0;
   S.maxComboThisGame = 1;
@@ -2987,6 +3009,7 @@ function runCountdown() {
       slow: S.slow,
       magnet: S.magnet,
       fever: S.fever,
+      ghost: S.ghost,
       sessionEaten: sessionEaten,
       sessionCoins: S.sessionCoins,
       feverCount: S.feverCount,
@@ -3039,6 +3062,7 @@ function runCountdown() {
     S.slow = checkpoint.slow || 0;
     S.magnet = checkpoint.magnet || 0;
     S.fever = checkpoint.fever || 0;
+    S.ghost = checkpoint.ghost || 0;
     S.sessionCoins = checkpoint.sessionCoins || 0;
     S.feverCount = checkpoint.feverCount || 0;
     S.maxComboThisGame = checkpoint.maxComboThisGame || 1;
