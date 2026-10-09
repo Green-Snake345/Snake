@@ -145,15 +145,18 @@ var ui = {
 
 var ACHIEVEMENTS = {
   firstGame:  { name: 'Новичок',    desc: 'Сыграйте первую игру',            icon: '🏆' },
-  eaten10:    { name: 'Голодный',   desc: 'Съешьте 10 яблок за всё время',   icon: '' },
+  eaten10:    { name: 'Голодный',   desc: 'Съешьте 10 яблок за всё время',   icon: '🍎' },
   eaten50:    { name: 'Обжора',     desc: 'Съешьте 50 яблок за всё время',   icon: '🍔' },
-  played10:   { name: 'Ветеран',    desc: 'Сыграйте 10 игр',                 icon: '' },
+  played10:   { name: 'Ветеран',    desc: 'Сыграйте 10 игр',                 icon: '🎖️' },
   score100:   { name: 'Сотка',      desc: 'Наберите 100 очков за игру',       icon: '💯' },
   score500:   { name: 'Мастер',     desc: 'Наберите 500 очков за игру',      icon: '⭐' },
-  level5:     { name: 'Альпинист',  desc: 'Достигните 5 уровня',             icon: '' },
-  combo8:     { name: 'Комбо-мастер', desc: 'Соберите комбо x8',            icon: '' },
+  level5:     { name: 'Альпинист',  desc: 'Достигните 5 уровня',             icon: '⛰️' },
+  combo8:     { name: 'Комбо-мастер', desc: 'Соберите комбо x8',            icon: '🔥' },
   fever3:     { name: 'Лихорадка',  desc: 'Активируйте лихорадку 3 раза',    icon: '😵' },
-  coins100:   { name: 'Копилка',    desc: 'Соберите 100 монет за всё время', icon: '💰' }
+  coins100:   { name: 'Копилка',    desc: 'Соберите 100 монет за всё время', icon: '💰' },
+  diamondBuy: { name: 'Ювелир',     desc: 'Купите «Алмазный скин»',           icon: '💎' },
+  flameBuy:   { name: 'Пиромант',   desc: 'Купите «Огненный скин»',           icon: '🔥' },
+  collector:  { name: '🎨 Коллекционер', desc: 'Купите 5 разных скинов в магазине', icon: '🎨' }
 };
 
 var SKIN_CATALOG = [
@@ -175,8 +178,9 @@ var SKIN_CATALOG = [
   { id: 'sapphire',   color: '#0f52ba', name: 'Сапфировый',   price: 150 },
   { id: 'fuchsia',    color: '#ff00ff', name: 'Фуксия',       price: 200 },
   { id: 'lavender',   color: '#e6e6fa', name: 'Лавандовый',   price: 200 },
-  { id: 'flame',      color: 'flame',   name: 'Огненный',  price: 9000 },
-  { id: 'rainbow',    color: 'rainbow', name: 'Радужный',     price: 400 }
+  { id: 'flame',      color: 'flame',   name: 'Огненный',     price: 9000 },
+  { id: 'rainbow',    color: 'rainbow', name: 'Радужный',     price: 400 },
+  { id: 'diamond',    color: 'diamond', name: '💎 Алмазный',  price: 99000 }
 ];
 
 var S = {
@@ -238,7 +242,8 @@ var S = {
   totalCoins: 0,
   sessionCoins: 0,
   feverCount: 0,
-  ownedSkins: ['classic', 'neon', 'violet', 'golden', 'scarlet', 'shadow', 'flame'],
+  ownedSkins: ['classic', 'neon', 'violet', 'golden', 'scarlet', 'shadow'],
+  purchasedSkins: [],
   dailyQuests: [],
   dailyQuestsDate: ''
 };
@@ -301,8 +306,8 @@ var sfx = {
   shield:  function() { beep(440, 0.2, 'sine'); },
   slow:    function() { beep(300, 0.25, 'sine'); },
   magnet:  function() { beep(550, 0.08, 'sawtooth'); setTimeout(function() { beep(700, 0.1, 'sawtooth'); }, 60); },
-  fever:   function() { 
-    beep(523, 0.08, 'triangle'); 
+  fever:   function() {
+    beep(523, 0.08, 'triangle');
     setTimeout(function() { beep(659, 0.08, 'triangle'); }, 60);
     setTimeout(function() { beep(784, 0.08, 'triangle'); }, 120);
     setTimeout(function() { beep(1047, 0.15, 'triangle'); }, 180);
@@ -314,7 +319,9 @@ var sfx = {
   death:   function() { beep(220, 0.3, 'sawtooth'); setTimeout(function() { beep(165, 0.4, 'sawtooth'); }, 150); },
   turn:    function() { beep(440, 0.04, 'sine', 0.5); },
   purchase:function() { beep(800, 0.1, 'triangle'); setTimeout(function() { beep(1000, 0.15, 'triangle'); }, 80); },
-  achievement: function() { beep(659, 0.1, 'triangle'); setTimeout(function() { beep(784, 0.1, 'triangle'); }, 100); setTimeout(function() { beep(988, 0.15, 'triangle'); }, 200); }
+  achievement: function() { beep(659, 0.1, 'triangle'); setTimeout(function() { beep(784, 0.1, 'triangle'); }, 100); setTimeout(function() { beep(988, 0.15, 'triangle'); }, 200); },
+  denied:  function() { beep(659, 0.16, 'sine', 0.5);  setTimeout(function() { beep(523, 0.32, 'sine', 0.5); }, 140); },
+  reset:   function() { beep(784, 0.14, 'sine', 0.55); setTimeout(function() { beep(523, 0.30, 'sine', 0.55); }, 120); setTimeout(function() { beep(392, 0.42, 'sine', 0.4); }, 260); }
 };
 
 function randInt(a, b) { return Math.floor(Math.random() * (b - a)) + a; }
@@ -323,6 +330,7 @@ function now() { return performance.now(); }
 function hexToRgb(h) {
   if (h === 'rainbow') return [255, 100, 200];
   if (h === 'flame')   return [255, 100, 0];
+  if (h === 'diamond') return [79, 195, 247];
   var m = h.replace('#', '').match(/.{2}/g);
   return m ? m.map(function(x) { return parseInt(x, 16); }) : [46, 204, 113];
 }
@@ -339,6 +347,19 @@ function getRainbowColor(t) {
   var r = Math.floor(Math.sin(t * 2) * 127 + 128);
   var g = Math.floor(Math.sin(t * 2 + 2) * 127 + 128);
   var b = Math.floor(Math.sin(t * 2 + 4) * 127 + 128);
+  return [r, g, b];
+}
+
+function getDiamondColor(t, segmentIndex) {
+  var shimmer1 = Math.sin(t * 5.0 + segmentIndex * 0.6) * 0.5 + 0.5;
+  var shimmer2 = Math.sin(t * 11.0 + segmentIndex * 1.3) * 0.5 + 0.5;
+  var shimmer3 = Math.sin(t * 2.5  + segmentIndex * 0.3) * 0.5 + 0.5;
+
+  var mix = shimmer1 * 0.5 + shimmer2 * 0.3 + shimmer3 * 0.2;
+
+  var r = Math.floor(70 + mix * 60);
+  var g = Math.floor(190 + mix * 55);
+  var b = 255;
   return [r, g, b];
 }
 
@@ -673,7 +694,7 @@ function handleKeyBindingCapture(e) {
     return;
   }
   if (!/^[a-z0-9]$/i.test(e.key)) {
-    showNotification('Нужна буква или цифра', 'Стрелки остаются доступными', '️');
+    showNotification('Нужна буква или цифра', 'Стрелки остаются доступными', '⌨️');
     return;
   }
 
@@ -786,17 +807,17 @@ function checkAchievements() {
   if (!ach.eaten50 && S.totalEaten >= 50) {
     saveAchievement('eaten50');
     sfx.achievement();
-    showNotification(ACHIEVEMENTS.eaten50.name, ACHIEVEMENTS.eaten50.desc, '');
+    showNotification(ACHIEVEMENTS.eaten50.name, ACHIEVEMENTS.eaten50.desc, '🍔');
   }
   if (!ach.played10 && S.gamesPlayed >= 10) {
     saveAchievement('played10');
     sfx.achievement();
-    showNotification(ACHIEVEMENTS.played10.name, ACHIEVEMENTS.played10.desc, '');
+    showNotification(ACHIEVEMENTS.played10.name, ACHIEVEMENTS.played10.desc, '🎖️');
   }
   if (!ach.score100 && S.score >= 100) {
     saveAchievement('score100');
     sfx.achievement();
-    showNotification(ACHIEVEMENTS.score100.name, ACHIEVEMENTS.score100.desc, '');
+    showNotification(ACHIEVEMENTS.score100.name, ACHIEVEMENTS.score100.desc, '💯');
   }
   if (!ach.score500 && S.score >= 500) {
     saveAchievement('score500');
@@ -806,22 +827,37 @@ function checkAchievements() {
   if (!ach.level5 && S.level >= 5) {
     saveAchievement('level5');
     sfx.achievement();
-    showNotification(ACHIEVEMENTS.level5.name, ACHIEVEMENTS.level5.desc, '');
+    showNotification(ACHIEVEMENTS.level5.name, ACHIEVEMENTS.level5.desc, '⛰️');
   }
   if (!ach.combo8 && S.maxComboThisGame >= 8) {
     saveAchievement('combo8');
     sfx.achievement();
-    showNotification(ACHIEVEMENTS.combo8.name, ACHIEVEMENTS.combo8.desc, '');
+    showNotification(ACHIEVEMENTS.combo8.name, ACHIEVEMENTS.combo8.desc, '🔥');
   }
   if (!ach.fever3 && S.feverCount >= 3) {
     saveAchievement('fever3');
     sfx.achievement();
-    showNotification(ACHIEVEMENTS.fever3.name, ACHIEVEMENTS.fever3.desc, '🔥');
+    showNotification(ACHIEVEMENTS.fever3.name, ACHIEVEMENTS.fever3.desc, '😵');
   }
   if (!ach.coins100 && S.totalCoins >= 100) {
     saveAchievement('coins100');
     sfx.achievement();
     showNotification(ACHIEVEMENTS.coins100.name, ACHIEVEMENTS.coins100.desc, '💰');
+  }
+  if (!ach.diamondBuy && S.purchasedSkins.indexOf('diamond') !== -1) {
+    saveAchievement('diamondBuy');
+    sfx.achievement();
+    showNotification(ACHIEVEMENTS.diamondBuy.name, ACHIEVEMENTS.diamondBuy.desc, '💎');
+  }
+  if (!ach.flameBuy && S.purchasedSkins.indexOf('flame') !== -1) {
+    saveAchievement('flameBuy');
+    sfx.achievement();
+    showNotification(ACHIEVEMENTS.flameBuy.name, ACHIEVEMENTS.flameBuy.desc, '🔥');
+  }
+  if (!ach.collector && S.purchasedSkins.length >= 5) {
+    saveAchievement('collector');
+    sfx.achievement();
+    showNotification(ACHIEVEMENTS.collector.name, ACHIEVEMENTS.collector.desc, '🎨');
   }
 }
 
@@ -854,7 +890,7 @@ function addCoins(amount, reason) {
   S.sessionCoins += amount;
   sfx.coin();
   saveCoins();
-  if (reason) showNotification('+' + amount + '', reason, '💰');
+  if (reason) showNotification('+' + amount + ' 🪙', reason, '💰');
 }
 
 function updateCoinsUI() {
@@ -881,6 +917,23 @@ function saveOwnedSkins() {
   }
 }
 
+function loadPurchasedSkins() {
+  var raw = storeGet('snake-pro-purchased-skins');
+  if (!raw) return;
+  try {
+    var list = JSON.parse(raw);
+    if (Array.isArray(list)) S.purchasedSkins = list;
+  } catch (e) {}
+}
+
+function savePurchasedSkins() {
+  try {
+    storeSet('snake-pro-purchased-skins', JSON.stringify(S.purchasedSkins));
+  } catch (e) {
+    console.warn('Не удалось сохранить покупки скинов:', e);
+  }
+}
+
 function renderShop() {
   if (!ui.shopItems) return;
   ui.shopItems.innerHTML = '';
@@ -896,6 +949,8 @@ function renderShop() {
       dotHtml = '<span class="shop-dot rainbow-dot"></span>';
     } else if (skin.color === 'flame') {
       dotHtml = '<span class="shop-dot flame-dot"></span>';
+    } else if (skin.color === 'diamond') {
+      dotHtml = '<span class="shop-dot" style="background:#4fc3f7; box-shadow: 0 0 8px #4fc3f7, inset 0 0 6px #fff"></span>';
     } else {
       dotHtml = '<span class="shop-dot" style="background:' + skin.color + '"></span>';
     }
@@ -924,15 +979,24 @@ function renderShop() {
 
       if (e.target.classList.contains('buy-btn')) {
         if (S.coins < skin.price) {
-          showNotification('Недостаточно монет', 'Нужно ещё ' + (skin.price - S.coins) + '', '💸');
+          sfx.denied();
+          showNotification('Недостаточно монет', 'Нужно ещё ' + (skin.price - S.coins) + ' 🪙', '💸');
           return;
         }
         S.coins -= skin.price;
         S.ownedSkins.push(id);
+
+        // Фиксируем покупку отдельно от владения — для ачивок
+        if (S.purchasedSkins.indexOf(id) === -1) {
+          S.purchasedSkins.push(id);
+        }
+
         saveCoins();
         saveOwnedSkins();
+        savePurchasedSkins();
         sfx.purchase();
         showNotification('Куплено!', skin.name, '🛍️');
+        checkAchievements();
         renderShop();
         return;
       }
@@ -988,15 +1052,33 @@ function updateSkinOptionsActive() {
 }
 
 var QUEST_TEMPLATES = [
-  { id: 'eat10',    text: 'Съешь 10 яблок',       target: 10, type: 'eat',    reward: 15 },
-  { id: 'eat25',    text: 'Съешь 25 яблок',       target: 25, type: 'eat',    reward: 30 },
-  { id: 'score50',  text: 'Набери 50 очков',      target: 50, type: 'score',  reward: 20 },
-  { id: 'score150', text: 'Набери 150 очков',     target: 150, type: 'score', reward: 40 },
-  { id: 'level3',   text: 'Достигни 3 уровня',    target: 3,  type: 'level',  reward: 25 },
-  { id: 'level5',   text: 'Достигни 5 уровня',    target: 5,  type: 'level',  reward: 50 },
-  { id: 'combo5',   text: 'Собери комбо x5',      target: 5,  type: 'combo',  reward: 35 },
-  { id: 'games2',   text: 'Сыграй 2 игры',        target: 2,  type: 'games',  reward: 20 },
-  { id: 'fever1',   text: 'Активируй лихорадку',  target: 1,  type: 'fever',  reward: 30 }
+  { id: 'eat5',     text: 'Съешь 5 яблок',         target: 5,   type: 'eat',    reward: 10 },
+  { id: 'eat10',    text: 'Съешь 10 яблок',        target: 10,  type: 'eat',    reward: 15 },
+  { id: 'eat25',    text: 'Съешь 25 яблок',        target: 25,  type: 'eat',    reward: 30 },
+  { id: 'eat50',    text: 'Съешь 50 яблок',        target: 50,  type: 'eat',    reward: 60 },
+  { id: 'eat100',   text: 'Съешь 100 яблок',       target: 100, type: 'eat',    reward: 120 },
+  { id: 'score30',  text: 'Набери 30 очков',       target: 30,   type: 'score',  reward: 15 },
+  { id: 'score50',  text: 'Набери 50 очков',       target: 50,   type: 'score',  reward: 20 },
+  { id: 'score150', text: 'Набери 150 очков',      target: 150,  type: 'score',  reward: 40 },
+  { id: 'score300', text: 'Набери 300 очков',      target: 300,  type: 'score',  reward: 70 },
+  { id: 'score500', text: 'Набери 500 очков',      target: 500,  type: 'score',  reward: 110 },
+  { id: 'score1000',text: 'Набери 1000 очков',     target: 1000, type: 'score',  reward: 200 },
+  { id: 'level2',   text: 'Достигни 2 уровня',     target: 2,  type: 'level',  reward: 15 },
+  { id: 'level3',   text: 'Достигни 3 уровня',     target: 3,  type: 'level',  reward: 25 },
+  { id: 'level5',   text: 'Достигни 5 уровня',     target: 5,  type: 'level',  reward: 50 },
+  { id: 'level7',   text: 'Достигни 7 уровня',     target: 7,  type: 'level',  reward: 80 },
+  { id: 'level10',  text: 'Достигни 10 уровня',    target: 10, type: 'level',  reward: 130 },
+  { id: 'combo3',   text: 'Собери комбо x3',       target: 3,  type: 'combo',  reward: 20 },
+  { id: 'combo5',   text: 'Собери комбо x5',       target: 5,  type: 'combo',  reward: 35 },
+  { id: 'combo6',   text: 'Собери комбо x6',       target: 6,  type: 'combo',  reward: 50 },
+  { id: 'combo8',   text: 'Собери комбо x8',       target: 8,  type: 'combo',  reward: 80 },
+  { id: 'games1',   text: 'Сыграй 1 игру',         target: 1,  type: 'games',  reward: 10 },
+  { id: 'games2',   text: 'Сыграй 2 игры',         target: 2,  type: 'games',  reward: 20 },
+  { id: 'games3',   text: 'Сыграй 3 игры',         target: 3,  type: 'games',  reward: 35 },
+  { id: 'games5',   text: 'Сыграй 5 игр',          target: 5,  type: 'games',  reward: 55 },
+  { id: 'fever1',   text: 'Активируй лихорадку',   target: 1,  type: 'fever',  reward: 30 },
+  { id: 'fever2',   text: 'Активируй лихорадку 2 раза', target: 2, type: 'fever', reward: 60 },
+  { id: 'fever3',   text: 'Активируй лихорадку 3 раза', target: 3, type: 'fever', reward: 90 }
 ];
 
 function loadDailyQuests() {
@@ -1068,11 +1150,11 @@ function renderQuests() {
     var done = q.progress >= q.target;
     var item = document.createElement('div');
     item.className = 'quest-item' + (done ? ' done' : '');
-    item.innerHTML = 
+    item.innerHTML =
       '<div class="quest-text">' + (done ? '✅ ' : '') + q.text + '</div>' +
       '<div class="quest-progress">' +
         '<div class="quest-bar"><div class="quest-fill" style="width:' + pct + '%"></div></div>' +
-        '<span class="quest-reward">' + (done ? '✓' : q.progress + '/' + q.target) + ' · ' + q.reward + ' </span>' +
+        '<span class="quest-reward">' + (done ? '✓' : q.progress + '/' + q.target) + ' · ' + q.reward + ' 🪙</span>' +
       '</div>';
     ui.questsList.appendChild(item);
   });
@@ -1130,18 +1212,21 @@ function setupSkinPalette() {
     ui.skinOptions.forEach(function (option) {
       var dot   = option.querySelector('.dot');
       var color = option.getAttribute('data-color');
-      if (dot && color && color !== 'rainbow' && color !== 'flame') {
+      if (dot && color && color !== 'rainbow' && color !== 'flame' && color !== 'diamond') {
         dot.style.backgroundColor = color;
       }
 
       option.addEventListener('click', function () {
         var id    = option.getAttribute('data-id');
-        var color2 = option.getAttribute('data-color');
         var owned = S.ownedSkins.indexOf(id) !== -1;
         if (!owned) {
-          showNotification('Скин заблокирован', 'Купите его в магазине ', '🔒');
+          showNotification('Скин заблокирован', 'Купите его в магазине 🔒', '🔒');
           return;
         }
+
+        var skinDef = SKIN_CATALOG.find(function(s) { return s.id === id; });
+        var color2 = skinDef ? skinDef.color : option.getAttribute('data-color');
+
         ui.skinOptions.forEach(function (o) { o.classList.remove('active'); });
         option.classList.add('active');
         S.snakeSkinId = id;
@@ -1156,7 +1241,8 @@ function setupSkinPalette() {
   var savedColor = storeGet('snakeSkinColor');
   if (savedId && S.ownedSkins.indexOf(savedId) !== -1) {
     S.snakeSkinId = savedId;
-    S.snakeColor  = savedColor || '#2ecc71';
+    var savedDef = SKIN_CATALOG.find(function(s) { return s.id === savedId; });
+    S.snakeColor  = savedDef ? savedDef.color : (savedColor || '#2ecc71');
   } else if (savedColor) {
     S.snakeColor = savedColor;
   }
@@ -1571,6 +1657,8 @@ function updateTrail() {
     trailColor = getRainbowColor(now() / 300);
   } else if (S.snakeColor === 'flame') {
     trailColor = getFlameColor(now() / 300, 0);
+  } else if (S.snakeColor === 'diamond') {
+    trailColor = getDiamondColor(now() / 300, 0);
   } else {
     trailColor = hexToRgb(S.snakeColor);
   }
@@ -1610,6 +1698,8 @@ function spawnDeathFragments() {
     rgb = [255, 100, 200];
   } else if (S.snakeColor === 'flame') {
     rgb = [255, 80, 0];
+  } else if (S.snakeColor === 'diamond') {
+    rgb = [120, 220, 255];
   } else {
     rgb = hexToRgb(S.snakeColor);
   }
@@ -1920,16 +2010,16 @@ function loop(ts) {
       if (ft.powerup === 'shield') { S.shield = 5000; sfx.shield(); }
       if (ft.powerup === 'slow')    { S.slow = 5000; sfx.slow(); }
       if (ft.powerup === 'magnet')  { S.magnet = 8000; sfx.magnet(); }
-      if (ft.powerup === 'fever') { 
-        S.fever = 6000; 
+      if (ft.powerup === 'fever') {
+        S.fever = 6000;
         S.feverCount++;
-        sfx.fever(); 
+        sfx.fever();
         shake(6);
         showNotification('😵 ЛИХОРАДКА!', 'x3 очки на 6 секунд!', '😵');
       }
-      if (ft.powerup === 'ghost') { 
-        S.ghost = 6000; 
-        sfx.ghost(); 
+      if (ft.powerup === 'ghost') {
+        S.ghost = 6000;
+        sfx.ghost();
         shake(4);
         showNotification('👻 ПРИЗРАК!', 'Проходите сквозь себя и препятствия 6 секунд!', '👻');
       }
@@ -2056,7 +2146,8 @@ function drawSnake() {
   var cells = S.snake.cells;
   var isRainbow = S.snakeColor === 'rainbow';
   var isFlame = S.snakeColor === 'flame';
-  var baseRgb = (isRainbow || isFlame) ? null : hexToRgb(S.snakeColor);
+  var isDiamond = S.snakeColor === 'diamond';
+  var baseRgb = (isRainbow || isFlame || isDiamond) ? null : hexToRgb(S.snakeColor);
   var tNow = now() / 300;
   var ghostActive = S.ghost > 0;
 
@@ -2074,6 +2165,8 @@ function drawSnake() {
       rgb = getRainbowColor(tNow + i * 0.3);
     } else if (isFlame) {
       rgb = getFlameColor(tNow, i);
+    } else if (isDiamond) {
+      rgb = getDiamondColor(tNow, i);
     } else {
       rgb = baseRgb;
     }
@@ -2086,6 +2179,8 @@ function drawSnake() {
         headGlow = '#00ffff';
       } else if (isFlame) {
         headGlow = '#ff4500';
+      } else if (isDiamond) {
+        headGlow = '#4fc3f7';
       } else if (S.fever > 0) {
         headGlow = '#ffd700';
       } else if (S.shield > 0) {
@@ -2095,7 +2190,7 @@ function drawSnake() {
       }
       ctx.shadowColor = headGlow;
 
-      ctx.shadowBlur = ghostActive ? 24 : (isFlame ? 18 : (S.fever > 0 ? 20 : 10));
+      ctx.shadowBlur = ghostActive ? 24 : (isDiamond ? 22 : (isFlame ? 18 : (S.fever > 0 ? 20 : 10)));
     }
 
     if (S.shield > 0) {
@@ -2104,7 +2199,7 @@ function drawSnake() {
       ctx.strokeRect(c.x - 1, c.y - 1, S.grid + 1, S.grid + 1);
     }
 
-    if (S.fever > 0 && !isFlame) {
+    if (S.fever > 0 && !isFlame && !isDiamond) {
       ctx.shadowColor = '#ffd700';
       ctx.shadowBlur = 15;
     }
@@ -2231,7 +2326,7 @@ function gameOver() {
   spawnParticles(S.snake.x, S.snake.y, 24, '255,100,100');
 
   var isRecord = S.score > S.highScore;
-  if (isRecord) { 
+  if (isRecord) {
     S.highScore = S.score;
     var recordBonus = 20;
     addCoins(recordBonus, 'Бонус за новый рекорд!');
@@ -2593,6 +2688,7 @@ function init() {
   renderKeyBindings();
   loadStats();
   loadCoins();
+  loadPurchasedSkins();
   loadOwnedSkins();
   loadDailyQuests();
   setupSkinPalette();
@@ -2742,7 +2838,7 @@ function runCountdown() {
     if (active) {
       turboButton.textContent = '⚡ ' + (Math.max(0, S.turboUntil - current) / 1000).toFixed(1) + 'с';
     } else if (cooldown > 0) {
-      turboButton.textContent = ' ' + Math.ceil(cooldown / 1000) + 'с';
+      turboButton.textContent = '⏳ ' + Math.ceil(cooldown / 1000) + 'с';
     } else {
       turboButton.textContent = '⚡ Турбо';
     }
@@ -2773,7 +2869,7 @@ function runCountdown() {
     if (!list || list.querySelector('.turbo-help')) return;
     var item = document.createElement('li');
     item.className = 'turbo-help';
-    item.innerHTML = '<b>Турбо</b> — клавиша Shift, двойной тап или кнопка ; действует 2,4 сек.';
+    item.innerHTML = '<b>Турбо</b> — клавиша Shift, двойной тап или кнопка ⚡; действует 2,4 сек.';
     list.appendChild(item);
   }
 
@@ -2947,7 +3043,7 @@ function runCountdown() {
     shareButton.id = 'btn-share-score';
     shareButton.type = 'button';
     shareButton.className = 'btn btn-small share-score-control';
-    shareButton.textContent = ' Поделиться результатом';
+    shareButton.textContent = '📤 Поделиться результатом';
     shareButton.addEventListener('click', shareResult);
     screens.gameOver.insertBefore(shareButton, ui.restartOverlay);
   }
@@ -3083,7 +3179,7 @@ function runCountdown() {
     updatePowerupBar();
     if (screens.gameOver) screens.gameOver.classList.add('hidden');
     if (screens.pause) screens.pause.classList.add('hidden');
-    showNotification('Игра восстановлена', 'Продолжаем с сохранённого места');
+    showNotification('Игра восстановлена', 'Продолжаем с сохранённого места', '▶️');
   }
 
   function createContinueButton() {
@@ -3186,12 +3282,12 @@ function runCountdown() {
   window.addEventListener('gamepadconnected', function(e) {
     var controllerName = (e.gamepad && e.gamepad.id) ? e.gamepad.id : 'Геймпад';
 
-    showNotification('Контроллер подключён', controllerName + '\nКрестовина: движение, Start: пауза, A: турбо');
+    showNotification('Контроллер подключён', controllerName + '\nКрестовина: движение, Start: пауза, A: турбо', '🎮');
     startGamepadPolling();
   });
 
   window.addEventListener('gamepaddisconnected', function() {
-    showNotification('Контроллер отключён', 'Можно продолжить с клавиатуры или сенсорных кнопок');
+    showNotification('Контроллер отключён', 'Можно продолжить с клавиатуры или сенсорных кнопок', '🎮');
     stopGamepadPolling();
   });
 
