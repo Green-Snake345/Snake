@@ -2,10 +2,11 @@ from flask import Flask, send_from_directory, abort
 import logging
 from logging.handlers import RotatingFileHandler
 import os
+from waitress import serve
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_PATH = os.path.join(BASE_DIR, 'snake.log')
-ALLOWED_FILES = {'index.html', 'index.js', 'style.css', 'favicon.io'}
+ALLOWED_FILES = {'index.html', 'index.js', 'style.css', 'favicon.ico'}
 
 handler = RotatingFileHandler(LOG_PATH, maxBytes=1000000, backupCount=3)
 handler.setLevel(logging.INFO)
@@ -18,7 +19,7 @@ app.logger.setLevel(logging.INFO)
 
 @app.route('/')
 def index():
-    return send_from_directory('.', 'index.html')
+    return send_from_directory(BASE_DIR, 'index.html')
 
 @app.route('/<path:filename>')
 def static_files(filename):
@@ -34,6 +35,10 @@ def static_files(filename):
 def forbidden(error):
     return "Доступ запрещён", 403
 
+@app.errorhandler(404)
+def not_found(error):
+    return "Файл не найден", 404
+
 @app.errorhandler(500)
 def internal_error(error):
     app.logger.exception("Внутренняя ошибка сервера")
@@ -41,4 +46,4 @@ def internal_error(error):
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', '5000'))
-    app.run(host='0.0.0.0', port=port, debug=False, threaded=False)
+    serve(app, host='0.0.0.0', port=port)
