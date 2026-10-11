@@ -29,7 +29,7 @@ def static_files(filename):
     if filename not in ALLOWED_FILES:
         app.logger.warning(f"Попытка доступа к неразрешённому файлу: {filename}")
         abort(404)
-    return send_from_directory('.', filename)
+    return send_from_directory(BASE_DIR, filename)
 
 @app.errorhandler(403)
 def forbidden(error):
