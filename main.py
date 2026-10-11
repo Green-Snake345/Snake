@@ -5,7 +5,7 @@ import os
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_PATH = os.path.join(BASE_DIR, 'snake.log')
-ALLOWED_FILES = {'index.html', 'index.js', 'style.css'}
+ALLOWED_FILES = {'index.html', 'index.js', 'style.css', 'favicon.io'}
 
 handler = RotatingFileHandler(LOG_PATH, maxBytes=1000000, backupCount=3)
 handler.setLevel(logging.INFO)
