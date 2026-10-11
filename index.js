@@ -180,7 +180,7 @@ var SKIN_CATALOG = [
   { id: 'lavender',   color: '#e6e6fa', name: 'Лавандовый',   price: 200 },
   { id: 'flame',      color: 'flame',   name: 'Огненный',     price: 9000 },
   { id: 'rainbow',    color: 'rainbow', name: 'Радужный',     price: 400 },
-  { id: 'diamond',    color: 'diamond', name: '💎 Алмазный',  price: 99 }
+  { id: 'diamond',    color: 'diamond', name: 'Алмазный',  price: 99 }
 ];
 
 var S = {
@@ -661,7 +661,7 @@ function createControlSchemeSetting() {
         '<option value="arrows">Только стрелки</option>' +
         '<option value="both">Стрелки и WASD</option>' +
       '</select>' +
-      '<p class="setting-help">Кастомные клавиши из «Управление клавишами» работают всегда.</p>';
+      '<p class="setting-help">Кастомные клавиши из «Управление клавишами» работают всегда</p>';
 
     container.appendChild(setting);
     ui.controlScheme = document.getElementById('control-scheme-select');
@@ -750,11 +750,11 @@ function showGoodbyeScreen() {
     overlay.className = 'menu-screen';
     overlay.innerHTML =
       '<div class="logo"><h1>Пока! 👋</h1></div>' +
-      '<p class="confirm-text">Спасибо за игру в «Змейку»!</p>' +
+      '<p class="confirm-text">Спасибо за игру в «Змейка»!</p>' +
       '<p class="setting-help" style="text-align:center;">' +
-        'Браузер не даёт закрыть вкладку автоматически. ' +
-        'Нажмите <b>Ctrl&nbsp;+&nbsp;W</b> (Windows / Linux) ' +
-        'или <b>Cmd&nbsp;+&nbsp;W</b> (Mac), чтобы закрыть вкладку вручную.' +
+        'Браузер не даёт закрыть вкладку автоматически' +
+        'Нажмите <b>Ctrl&nbsp;+&nbsp;W</b> (Windows / Linux)' +
+        'или <b>Cmd&nbsp;+&nbsp;W</b> (Mac), чтобы закрыть вкладку вручную' +
       '</p>' +
       '<div class="btn-group">' +
         '<button id="btn-goodbye-back" class="btn btn-secondary">← Вернуться в меню</button>' +
@@ -890,7 +890,7 @@ function addCoins(amount, reason) {
   S.sessionCoins += amount;
   sfx.coin();
   saveCoins();
-  if (reason) showNotification('+' + amount + ' 🪙', reason, '💰');
+  if (reason) showNotification('+' + amount + '💰', reason, '💰');
 }
 
 function updateCoinsUI() {
@@ -963,7 +963,7 @@ function renderShop() {
     } else if (skin.price === 0) {
       actionHtml = '<button class="shop-btn free-btn">Бесплатно</button>';
     } else {
-      actionHtml = '<button class="shop-btn buy-btn">Купить за ' + skin.price + ' 🪙</button>';
+      actionHtml = '<button class="shop-btn buy-btn">Купить за ' + skin.price + '💰</button>';
     }
 
     item.innerHTML = dotHtml + '<div class="shop-name">' + skin.name + '</div>' + actionHtml;
