@@ -495,6 +495,12 @@ var THEME_PALETTES = {
         accent: '#9ca3af', accent2: '#6b7280', text: '#f9fafb',
         dim: '#9ca3af', canvas: '#111827',
         background: 'linear-gradient(-45deg, #1f2937, #374151, #4b5563, #2d3748)'
+    },
+    sakura: {
+        bgDark: '#1a0d14', panel: '#2b1420', card: '#3d1c2e',
+        accent: '#ffb7c5', accent2: '#ff8fab', text: '#fff0f5',
+        dim: '#c9a0b0', canvas: '#120810',
+        background: 'linear-gradient(-45deg, #1a0d14, #2b1420, #3d1c2e, #201018)'
     }
 };
 
