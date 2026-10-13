@@ -45,13 +45,24 @@ def add_security_headers(response):
         "font-src 'self';")
     return response
 
+def _apply_cache_headers(response, filename):
+    cache_time = CACHE_TIME.get(filename, 0)
+    if cache_time > 0:
+        response.headers['Cache-Control'] = f'public, max-age={cache_time}'
+    else:
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return response
+
 @app.route('/')
 def index():
-    return send_from_directory(BASE_DIR, 'index.html')
+    response = make_response(send_from_directory(BASE_DIR, 'index.html'))
+    return _apply_cache_headers(response, 'index.html')
 
 @app.route('/health')
 def health():
-    return {'status': 'Окей', 'service': 'Змейка'}, 200
+    response = make_response({'status': 'Окей', 'service': 'Змейка'}, 200)
+    response.headers['Cache-Control'] = 'no-store'
+    return response
 
 @app.route('/<path:filename>')
 def static_files(filename):
@@ -62,8 +73,7 @@ def static_files(filename):
         app.logger.warning(f"Попытка доступа к неразрешённому файлу: {filename}")
         abort(404)
     response = make_response(send_from_directory(BASE_DIR, filename))
-    cache_time = CACHE_TIME.get(filename, 0)
-    return send_from_directory(BASE_DIR, filename)
+    return _apply_cache_headers(response, filename)
 
 @app.errorhandler(403)
 def forbidden(error):
