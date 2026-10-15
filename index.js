@@ -508,7 +508,7 @@ var THEME_PALETTES = {
         dim: '#64748b', canvas: '#f8fafc',
         background: 'linear-gradient(-45deg, #f2f5f9, #ffffff, #e0f7fa, #fce4ec)'
     },
-    'bubbletea': {
+    bubbletea: {
         bgDark: '#f5e6d3', panel: '#fff5eb', card: '#f0d9c4',
         accent: '#c9a27a', accent2: '#ff9ec7', text: '#3d2817',
         dim: '#8b6f47', canvas: '#faebd7',
