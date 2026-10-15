@@ -507,6 +507,12 @@ var THEME_PALETTES = {
         accent: '#ff00e4', accent2: '#00f0ff', text: '#0b132b',
         dim: '#64748b', canvas: '#f8fafc',
         background: 'linear-gradient(-45deg, #f2f5f9, #ffffff, #e0f7fa, #fce4ec)'
+    },
+    'bubbletea': {
+        bgDark: '#f5e6d3', panel: '#fff5eb', card: '#f0d9c4',
+        accent: '#c9a27a', accent2: '#ff9ec7', text: '#3d2817',
+        dim: '#8b6f47', canvas: '#faebd7',
+        background: 'linear-gradient(-45deg, #f5e6d3, #fff5eb, #f0d9c4, #ffe4e1)'
     }
 };
 
