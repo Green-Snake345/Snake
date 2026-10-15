@@ -908,6 +908,7 @@ function addCoins(amount, reason) {
   S.sessionCoins += amount;
   sfx.coin();
   saveCoins();
+  updateQuestProgress('coins', amount);
   if (reason) showNotification('+' + amount + '💰', reason, '💰');
 }
 
@@ -1004,7 +1005,6 @@ function renderShop() {
         S.coins -= skin.price;
         S.ownedSkins.push(id);
 
-        // Фиксируем покупку отдельно от владения — для ачивок
         if (S.purchasedSkins.indexOf(id) === -1) {
           S.purchasedSkins.push(id);
         }
@@ -1096,7 +1096,8 @@ var QUEST_TEMPLATES = [
   { id: 'games5',   text: 'Сыграй 5 игр',          target: 5,  type: 'games',  reward: 55 },
   { id: 'fever1',   text: 'Активируй лихорадку',   target: 1,  type: 'fever',  reward: 30 },
   { id: 'fever2',   text: 'Активируй лихорадку 2 раза', target: 2, type: 'fever', reward: 60 },
-  { id: 'fever3',   text: 'Активируй лихорадку 3 раза', target: 3, type: 'fever', reward: 90 }
+  { id: 'fever3',   text: 'Активируй лихорадку 3 раза', target: 3, type: 'fever', reward: 90 },
+  { id: 'coins50',  text: 'Заработай 50 монет за день', target: 50, type: 'coins', reward: 40 }
 ];
 
 function loadDailyQuests() {
