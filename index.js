@@ -501,6 +501,12 @@ var THEME_PALETTES = {
         accent: '#ffb7c5', accent2: '#ff8fab', text: '#fff0f5',
         dim: '#c9a0b0', canvas: '#120810',
         background: 'linear-gradient(-45deg, #1a0d14, #2b1420, #3d1c2e, #201018)'
+    },
+    'neon-light': {
+        bgDark: '#f2f5f9', panel: '#ffffff', card: '#e8eef5',
+        accent: '#ff00e4', accent2: '#00f0ff', text: '#0b132b',
+        dim: '#64748b', canvas: '#f8fafc',
+        background: 'linear-gradient(-45deg, #f2f5f9, #ffffff, #e0f7fa, #fce4ec)'
     }
 };
 
