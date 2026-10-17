@@ -22,8 +22,8 @@ function storeSet(key, value) {
   try {
     window.localStorage.setItem(key, String(value));
     return true;
-  } catch (error) {
-    console.warn('Не удалось сохранить "' + key + '":', error);
+  } catch (e) {
+    console.warn('Не удалось сохранить "' + key + '":', e);
     return false;
   }
 }
@@ -297,7 +297,10 @@ function beep(f, d, t, v) {
 
 function haptic(pattern) {
   if (!S.vibration || !navigator.vibrate) return;
-  try { navigator.vibrate(pattern); } catch (e) {}
+  try { navigator.vibrate(pattern); }
+  catch (e) {
+    console.warn('Вибрация недоступна:', e);
+  }
 }
 
 var sfx = {
@@ -796,8 +799,13 @@ function showGoodbyeScreen() {
 function loadAchievements() {
   var raw = storeGet('snake-pro-achievements');
   if (!raw) return {};
-  try { return JSON.parse(raw); } catch (e) { return {}; }
+  try { return JSON.parse(raw); }
+  catch (e) {
+    console.warn('Не удалось прочитать достижения:', e);
+    return {};
+  }
 }
+  
 
 function saveAchievement(key) {
   var ach = loadAchievements();
@@ -886,7 +894,9 @@ function loadCoins() {
     var d = JSON.parse(raw);
     S.coins = d.coins || 0;
     S.totalCoins = d.total || 0;
-  } catch (e) {}
+  } catch (e) {
+    console.warn('Не удалось прочитать монеты:', e);
+  }
 }
 
 function saveCoins() {
@@ -925,7 +935,9 @@ function loadOwnedSkins() {
   try {
     var list = JSON.parse(raw);
     if (Array.isArray(list) && list.length) S.ownedSkins = list;
-  } catch (e) {}
+  } catch (e) {
+    console.warn('Не удалось прочитать список купленных скинов:', e)
+  }
 }
 
 function saveOwnedSkins() {
@@ -942,7 +954,9 @@ function loadPurchasedSkins() {
   try {
     var list = JSON.parse(raw);
     if (Array.isArray(list)) S.purchasedSkins = list;
-  } catch (e) {}
+  } catch (e) {
+    console.warn('Не удалось прочитать историю покупок скинов:', e);
+  }
 }
 
 function savePurchasedSkins() {
@@ -999,7 +1013,7 @@ function renderShop() {
       if (e.target.classList.contains('buy-btn')) {
         if (S.coins < skin.price) {
           sfx.denied();
-          showNotification('Недостаточно монет', 'Нужно ещё ' + (skin.price - S.coins) + ' 🪙', '💸');
+          showNotification('Недостаточно монет', 'Нужно ещё ' + (skin.price - S.coins) + '💰', '💸');
           return;
         }
         S.coins -= skin.price;
@@ -1111,7 +1125,9 @@ function loadDailyQuests() {
         S.dailyQuestsDate = today;
         return;
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Не удалось прочитать ежедневные задания:', e);
+    }
   }
   generateDailyQuests(today);
 }
@@ -1141,7 +1157,7 @@ function updateQuestProgress(type, value) {
   S.dailyQuests.forEach(function(q) {
     if (q.claimed) return;
     if (q.type === type) {
-      if (type === 'eat' || type === 'score' || type === 'combo' || type === 'fever' || type === 'games') {
+      if (type === 'eat' || type === 'score' || type === 'combo' || type === 'fever' || type === 'games' || type === 'coins') {
         q.progress += value;
       } else if (type === 'level') {
         q.progress = Math.max(q.progress, value);
@@ -1504,7 +1520,9 @@ function loadStats() {
     if (ui.aboutGames)   ui.aboutGames.textContent = S.gamesPlayed;
     if (ui.aboutEaten)   ui.aboutEaten.textContent = S.totalEaten;
     if (ui.aboutBest)    ui.aboutBest.textContent = S.highScore;
-  } catch (e) {}
+  } catch (e) {
+    console.warn('Не удалось прочитать статистику:', e);
+  }
 }
 
 function saveStats() {
@@ -1533,6 +1551,7 @@ function loadLeaderboard() {
     list.sort(function(a, b) { return b.score - a.score; });
     return list;
   } catch (e) {
+    console.warn('Не удалось прочитать таблицу лидеров:', e);
     return [];
   }
 }
@@ -2502,12 +2521,16 @@ function bindButtons() {
         window.opener = null;
         window.close();
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Не удалось закрыть окно через opener:', e);
+    }
 
     try {
       window.open('', '_self', '');
       window.close();
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Не удалось закрыть окно через _self:', e);
+    }
 
     setTimeout(function() {
       if (!window.closed) {
@@ -2938,7 +2961,11 @@ function runCountdown() {
       var exit = document.exitFullscreen || document.webkitExitFullscreen;
       if (exit) {
         var exitResult = exit.call(document);
-        if (exitResult && exitResult.catch) exitResult.catch(function() {});
+        if (exitResult && exitResult.catch) {
+          exitResult.catch(function(e) {
+            console.warn('Не удалось выйти из полноэкранного режима:', e);
+          });
+        }
       }
       return;
     }
@@ -2951,7 +2978,8 @@ function runCountdown() {
     }
     var requestResult = request.call(root);
     if (requestResult && requestResult.catch) {
-      requestResult.catch(function() {
+      requestResult.catch(function(e) {
+        console.warn('Не удалось включить полноэкранный режим:', e)
         showNotification('Не удалось включить полный экран', 'Попробуйте нажать кнопку ещё раз');
       });
     }
@@ -3021,8 +3049,9 @@ function runCountdown() {
       try {
         if (!document.execCommand('copy')) throw new Error('copy failed');
         resolve();
-      } catch (error) {
-        reject(error);
+      } catch (e) {
+        console.warn('Копирование через execCommand не сработало:', e);
+        reject(e);
       } finally {
         area.remove();
       }
@@ -3104,6 +3133,7 @@ function runCountdown() {
       var raw = storeGet(STORAGE_KEY);
       return raw ? JSON.parse(raw) : null;
     } catch (e) {
+      console.warn('Не удалось прочитать чекпоинт:', e);
       return null;
     }
   }
@@ -3142,7 +3172,10 @@ function runCountdown() {
   }
 
   function clearCheckpoint() {
-    try { storeRemove(STORAGE_KEY); } catch (e) {}
+    try { storeRemove(STORAGE_KEY); }
+    catch (e) {
+      console.warn('Не удалось удалить чекпоинт:', e);
+    }
     S.hasSavedGame = false;
     updateContinueButton();
   }
