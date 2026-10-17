@@ -267,10 +267,15 @@ var countdown = {
 function initAudio() {
   if (audioCtx) return;
   try {
-     audioCtx = new window.AudioContext();
+    audioCtx = new window.AudioContext();
 
     if (audioCtx && audioCtx.state === 'suspended') {
-      audioCtx.resume();
+      var resumeResult = audioCtx.resume();
+      if (resumeResult && resumeResult.catch) {
+        resumeResult.catch(function (e) {
+          console.warn('Не удалось возобновить AudioContext:', e);
+        });
+      }
     }
   } catch (e) {
     console.warn('AudioContext не поддерживается:', e);
@@ -282,7 +287,12 @@ function beep(f, d, t, v) {
 
   try {
     if (audioCtx.state === 'suspended') {
-      audioCtx.resume();
+      var resumeResult = audioCtx.resume();
+      if (resumeResult && resumeResult.catch) {
+        resumeResult.catch(function (e) {
+          console.warn('Не удалось возобновить AudioContext в beep:', e);
+        });
+      }
     }
     var o = audioCtx.createOscillator();
     var g = audioCtx.createGain();
@@ -740,15 +750,19 @@ function handleKeyBindingCapture(e) {
 }
 
 function resizeCanvas() {
-  var isMobile = window.innerWidth <= 600;
-  var reservedHeight = isMobile ? 255 : 150;
-  var availableWidth = Math.max(S.grid * 10, window.innerWidth - (isMobile ? 24 : 40));
-  var availableHeight = Math.max(S.grid * 10, window.innerHeight - reservedHeight);
-  var s = Math.min(availableWidth, availableHeight, 520);
+  try {
+    var isMobile = window.innerWidth <= 600;
+    var reservedHeight = isMobile ? 255 : 150;
+    var availableWidth = Math.max(S.grid * 10, window.innerWidth - (isMobile ? 24 : 40));
+    var availableHeight = Math.max(S.grid * 10, window.innerHeight - reservedHeight);
+    var s = Math.min(availableWidth, availableHeight, 520);
 
-  if (S.grid < 4 || S.grid > 64 || !isFinite(S.grid)) S.grid = 16;
-  canvas.width  = Math.floor(s / S.grid) * S.grid;
-  canvas.height = Math.floor(s / S.grid) * S.grid;
+    if (S.grid < 4 || S.grid > 64 || !isFinite(S.grid)) S.grid = 16;
+    canvas.width  = Math.floor(s / S.grid) * S.grid;
+    canvas.height = Math.floor(s / S.grid) * S.grid;
+  } catch (e) {
+    console.warn('Не удалось изменить размер канваса:', e);
+  }
 }
 
 function showNotification(text, subtext, icon) {
@@ -1293,39 +1307,43 @@ function setupSkinPalette() {
 }
 
 function showScreen(name) {
-  if (name !== 'settings' && activeKeyBind) {
-    activeKeyBind = null;
-    renderKeyBindings();
-  }
-  ['mainMenu', 'instructions', 'about', 'settings', 'shop', 'exitConfirm'].forEach(function(k) {
-    if (screens[k]) screens[k].classList.remove('active');
-  });
-  if (screens.game)     screens.game.classList.add('hidden');
-  if (screens.gameOver) screens.gameOver.classList.add('hidden');
-  if (screens.pause)    screens.pause.classList.add('hidden');
-
-  if (name === 'game') {
-    if (screens.game) {
-      screens.game.classList.remove('hidden');
-      resizeCanvas();
-      startGame();
+  try {
+    if (name !== 'settings' && activeKeyBind) {
+      activeKeyBind = null;
+      renderKeyBindings();
     }
-  } else if (name === 'shop') {
-    if (screens.shop) {
-      screens.shop.classList.remove('hidden');
-      screens.shop.classList.add('active');
-      renderShop();
-    }
-  } else if (screens[name]) {
-    screens[name].classList.remove('hidden');
-    screens[name].classList.add('active');
-  }
+    ['mainMenu', 'instructions', 'about', 'settings', 'shop', 'exitConfirm'].forEach(function(k) {
+      if (screens[k]) screens[k].classList.remove('active');
+    });
+    if (screens.game)     screens.game.classList.add('hidden');
+    if (screens.gameOver) screens.gameOver.classList.add('hidden');
+    if (screens.pause)    screens.pause.classList.add('hidden');
 
-  if (name === 'mainMenu') {
-    updateProgressBars();
-    updateContinueButton();
-    updateCoinsUI();
-    renderQuests();
+    if (name === 'game') {
+      if (screens.game) {
+        screens.game.classList.remove('hidden');
+        resizeCanvas();
+        startGame();
+      }
+    } else if (name === 'shop') {
+      if (screens.shop) {
+        screens.shop.classList.remove('hidden');
+        screens.shop.classList.add('active');
+        renderShop();
+      }
+    } else if (screens[name]) {
+      screens[name].classList.remove('hidden');
+      screens[name].classList.add('active');
+    }
+
+    if (name === 'mainMenu') {
+      updateProgressBars();
+      updateContinueButton();
+      updateCoinsUI();
+      renderQuests();
+    }
+  } catch (e) {
+    console.warn('Ошибка переключения экрана "' + name + '":', e);
   }
 }
 
@@ -1433,32 +1451,42 @@ function saveSettings() {
   } catch (e) {
     console.warn('Не удалось сохранить настройки:', e);
   }
-  S.difficulty = s.difficulty; S.grid = s.grid; S.theme = s.theme;
-  S.showGrid = s.showGrid; S.showTrail = s.showTrail;
-  S.baseSpeed = s.baseSpeed; S.snakeColor = s.snakeColor;
-  S.showParticles = s.particles; S.showShake = s.shake; S.vibration = s.vibration;
-  S.autoPause = s.autoPause; S.volume = s.volume;
-  S.keyBindings = s.keyBindings;
-  applyMobileSize(s.mobileSize);
-  applyMobileLayout(s.leftHanded);
-  applyHighContrast(s.highContrast);
-  applyPerformanceMode(s.performanceMode);
-  applyMobileControlMode(s.mobileControlMode);
-  applyReducedMotion(s.reducedMotion);
-  applyColorblindMarkers(s.colorblindMarkers);
-  applyUIScale(s.uiScale);
-  applyPowerupFrequency(s.powerupFrequency);
-  applyControlScheme(s.controlScheme);
-  renderKeyBindings();
+
+  try {
+    S.difficulty = s.difficulty; S.grid = s.grid; S.theme = s.theme;
+    S.showGrid = s.showGrid; S.showTrail = s.showTrail;
+    S.baseSpeed = s.baseSpeed; S.snakeColor = s.snakeColor;
+    S.showParticles = s.particles; S.showShake = s.shake; S.vibration = s.vibration;
+    S.autoPause = s.autoPause; S.volume = s.volume;
+    S.keyBindings = s.keyBindings;
+    applyMobileSize(s.mobileSize);
+    applyMobileLayout(s.leftHanded);
+    applyHighContrast(s.highContrast);
+    applyPerformanceMode(s.performanceMode);
+    applyMobileControlMode(s.mobileControlMode);
+    applyReducedMotion(s.reducedMotion);
+    applyColorblindMarkers(s.colorblindMarkers);
+    applyUIScale(s.uiScale);
+    applyPowerupFrequency(s.powerupFrequency);
+    applyControlScheme(s.controlScheme);
+    renderKeyBindings();
+  } catch (e) {
+    console.warn('Не удалось применить настройки:', e);
+  }
 
   try {
     storeSet('snakeSkinColor', s.snakeColor);
   } catch (e) {
     console.warn('Не удалось сохранить цвет змейки:', e);
   }
-  applyTheme(S.theme);
-  resizeCanvas();
-  showScreen('mainMenu');
+
+  try {
+    applyTheme(S.theme);
+    resizeCanvas();
+    showScreen('mainMenu');
+  } catch (e) {
+    console.warn('Не удалось вернуться в меню после сохранения:', e);
+  }
 }
 
 function resetSettings() {
@@ -2315,17 +2343,21 @@ function levelUp() {
 }
 
 function startGame() {
-  resetGame();
-  S.isRunning = true;
-  S.sessionStartTime = now();
-  S.sessionCoins = 0;
+  try {
+    resetGame();
+    S.isRunning = true;
+    S.sessionStartTime = now();
+    S.sessionCoins = 0;
 
-  claimDailyReward();
-  lastTime = performance.now();
-  requestAnimationFrame(loop);
-  updateQuestProgress('games', 1);
+    claimDailyReward();
+    lastTime = performance.now();
+    requestAnimationFrame(loop);
+    updateQuestProgress('games', 1);
 
-  runCountdown();
+    runCountdown();
+  } catch (e) {
+    console.warn('Не удалось запустить игру:', e);
+  }
 }
 
 function stopGame() {
@@ -2419,25 +2451,30 @@ function togglePause() {
 }
 
 function setDirection(direction) {
-  if (countdown.active) return false;
-  if (!S.isRunning || S.isPaused) return false;
+  try {
+    if (countdown.active) return false;
+    if (!S.isRunning || S.isPaused) return false;
 
-  var g = S.grid;
-  var dx = 0;
-  var dy = 0;
+    var g = S.grid;
+    var dx = 0;
+    var dy = 0;
 
-  if (direction === 'left') dx = -g;
-  if (direction === 'up') dy = -g;
-  if (direction === 'right') dx = g;
-  if (direction === 'down') dy = g;
+    if (direction === 'left') dx = -g;
+    if (direction === 'up') dy = -g;
+    if (direction === 'right') dx = g;
+    if (direction === 'down') dy = g;
 
-  if ((dx !== 0 && S.snake.dx !== 0) || (dy !== 0 && S.snake.dy !== 0)) return false;
+    if ((dx !== 0 && S.snake.dx !== 0) || (dy !== 0 && S.snake.dy !== 0)) return false;
 
-  S.snake.dx = dx;
-  S.snake.dy = dy;
-  S.isMoving = true;
-  sfx.turn();
-  return true;
+    S.snake.dx = dx;
+    S.snake.dy = dy;
+    S.isMoving = true;
+    sfx.turn();
+    return true;
+  } catch (e) {
+    console.warn('Ошибка смены направления:', e);
+    return false;
+  }
 }
 
 function flashDirectionButton(direction) {
@@ -2462,60 +2499,64 @@ function handleSwipe(dx, dy) {
   if (setDirection(direction)) flashDirectionButton(direction);
 }
 
-function handleKey(e) {
-  if (isTypingTarget(e.target)) return;
+function handleKey(event) {
+  if (isTypingTarget(event.target)) return;
 
-  if (e.which === 32) {
-    if (S.isRunning) {
-      e.preventDefault();
-      togglePause();
+  try {
+    if (event.which === 32) {
+      if (S.isRunning) {
+        event.preventDefault();
+        togglePause();
+      }
+      return;
     }
-    return;
+
+    if (!S.isRunning || S.isPaused) return;
+
+    var key   = String(event.key  || '').toLowerCase();
+    var code  = String(event.code || '');
+    var which = event.which || event.keyCode || 0;
+
+    var physKey = '';
+    if (code === 'KeyW')            physKey = 'w';
+    else if (code === 'KeyA')       physKey = 'a';
+    else if (code === 'KeyS')       physKey = 's';
+    else if (code === 'KeyD')       physKey = 'd';
+    else if (code === 'ArrowLeft')  physKey = 'arrowleft';
+    else if (code === 'ArrowUp')    physKey = 'arrowup';
+    else if (code === 'ArrowRight') physKey = 'arrowright';
+    else if (code === 'ArrowDown')  physKey = 'arrowdown';
+
+    if (!physKey) {
+      var whichMap = {
+        87: 'w', 65: 'a', 83: 's', 68: 'd',
+        37: 'arrowleft', 38: 'arrowup', 39: 'arrowright', 40: 'arrowdown'
+      };
+      physKey = whichMap[which] || '';
+    }
+
+    var direction = null;
+    var scheme = S.controlScheme || 'wasd';
+    var allowArrows = scheme === 'both' || scheme === 'arrows';
+    var allowWasd   = scheme === 'both' || scheme === 'wasd';
+
+    if (key === S.keyBindings.left  || physKey === S.keyBindings.left)   direction = 'left';
+    else if (key === S.keyBindings.up    || physKey === S.keyBindings.up)     direction = 'up';
+    else if (key === S.keyBindings.right || physKey === S.keyBindings.right)  direction = 'right';
+    else if (key === S.keyBindings.down  || physKey === S.keyBindings.down)   direction = 'down';
+    else if (allowArrows && (key === 'arrowleft'  || physKey === 'arrowleft'))  direction = 'left';
+    else if (allowArrows && (key === 'arrowup'    || physKey === 'arrowup'))    direction = 'up';
+    else if (allowArrows && (key === 'arrowright' || physKey === 'arrowright')) direction = 'right';
+    else if (allowArrows && (key === 'arrowdown'  || physKey === 'arrowdown'))  direction = 'down';
+    else if (allowWasd && (key === 'a' || physKey === 'a')) direction = 'left';
+    else if (allowWasd && (key === 'w' || physKey === 'w')) direction = 'up';
+    else if (allowWasd && (key === 'd' || physKey === 'd')) direction = 'right';
+    else if (allowWasd && (key === 's' || physKey === 's')) direction = 'down';
+
+    if (direction && setDirection(direction)) event.preventDefault();
+  } catch (e) {
+    console.warn('Ошибка обработки клавиши "' + (event.key || '?') + '":', e);
   }
-
-  if (!S.isRunning || S.isPaused) return;
-
-  var key   = String(e.key  || '').toLowerCase();
-  var code  = String(e.code || '');
-  var which = e.which || e.keyCode || 0;
-
-  var physKey = '';
-  if (code === 'KeyW')            physKey = 'w';
-  else if (code === 'KeyA')       physKey = 'a';
-  else if (code === 'KeyS')       physKey = 's';
-  else if (code === 'KeyD')       physKey = 'd';
-  else if (code === 'ArrowLeft')  physKey = 'arrowleft';
-  else if (code === 'ArrowUp')    physKey = 'arrowup';
-  else if (code === 'ArrowRight') physKey = 'arrowright';
-  else if (code === 'ArrowDown')  physKey = 'arrowdown';
-
-  if (!physKey) {
-    var whichMap = {
-      87: 'w', 65: 'a', 83: 's', 68: 'd',
-      37: 'arrowleft', 38: 'arrowup', 39: 'arrowright', 40: 'arrowdown'
-    };
-    physKey = whichMap[which] || '';
-  }
-
-  var direction = null;
-  var scheme = S.controlScheme || 'wasd';
-  var allowArrows = scheme === 'both' || scheme === 'arrows';
-  var allowWasd   = scheme === 'both' || scheme === 'wasd';
-
-  if (key === S.keyBindings.left  || physKey === S.keyBindings.left)   direction = 'left';
-  else if (key === S.keyBindings.up    || physKey === S.keyBindings.up)     direction = 'up';
-  else if (key === S.keyBindings.right || physKey === S.keyBindings.right)  direction = 'right';
-  else if (key === S.keyBindings.down  || physKey === S.keyBindings.down)   direction = 'down';
-  else if (allowArrows && (key === 'arrowleft'  || physKey === 'arrowleft'))  direction = 'left';
-  else if (allowArrows && (key === 'arrowup'    || physKey === 'arrowup'))    direction = 'up';
-  else if (allowArrows && (key === 'arrowright' || physKey === 'arrowright')) direction = 'right';
-  else if (allowArrows && (key === 'arrowdown'  || physKey === 'arrowdown'))  direction = 'down';
-  else if (allowWasd && (key === 'a' || physKey === 'a')) direction = 'left';
-  else if (allowWasd && (key === 'w' || physKey === 'w')) direction = 'up';
-  else if (allowWasd && (key === 'd' || physKey === 'd')) direction = 'right';
-  else if (allowWasd && (key === 's' || physKey === 's')) direction = 'down';
-
-  if (direction && setDirection(direction)) e.preventDefault();
 }
 
 function bindButtons() {
@@ -2702,74 +2743,82 @@ function bindButtons() {
 }
 
 function handleVisibilityChange() {
-  var hidden = document.hidden || document.visibilityState === 'hidden';
+  try {
+    var hidden = document.hidden || document.visibilityState === 'hidden';
 
-  if (countdown.active) {
-    if (hidden) {
-      clearCountdownTimers();
-    } else if (S.isRunning && countdown.active) {
-      var resume = function() {
-        if (!countdown.active || !S.isRunning) { hideCountdown(); return; }
-        var value = countdown.steps[countdown.step];
-        var isGo = countdown.step === countdown.steps.length - 1;
-        showCountdownValue(value, isGo);
-        if (isGo) {
-          countdown.timerId = setTimeout(function() {
-            if (countdown.active) finishCountdown();
-          }, 650);
-          countdown.step++;
-        } else {
-          countdown.step++;
-          countdown.timerId = setTimeout(resume, 700);
-        }
-      };
-      resume();
+    if (countdown.active) {
+      if (hidden) {
+        clearCountdownTimers();
+      } else if (S.isRunning && countdown.active) {
+        var resume = function() {
+          if (!countdown.active || !S.isRunning) { hideCountdown(); return; }
+          var value = countdown.steps[countdown.step];
+          var isGo = countdown.step === countdown.steps.length - 1;
+          showCountdownValue(value, isGo);
+          if (isGo) {
+            countdown.timerId = setTimeout(function() {
+              if (countdown.active) finishCountdown();
+            }, 650);
+            countdown.step++;
+          } else {
+            countdown.step++;
+            countdown.timerId = setTimeout(resume, 700);
+          }
+        };
+        resume();
+      }
     }
-  }
 
-  if (hidden && S.autoPause && S.isRunning && !S.isPaused) {
-    S.isPaused = true;
-    if (screens.pause) screens.pause.classList.remove('hidden');
+    if (hidden && S.autoPause && S.isRunning && !S.isPaused) {
+      S.isPaused = true;
+      if (screens.pause) screens.pause.classList.remove('hidden');
+    }
+  } catch (e) {
+    console.warn('Ошибка обработки изменения видимости:', e);
   }
 }
 
 function init() {
-  createControlSchemeSetting();
-  bindButtons();
+  try {
+    createControlSchemeSetting();
+    bindButtons();
 
-  window.addEventListener('keydown', handleKeyBindingCapture, true);
-  window.addEventListener('keydown', handleKey);
-  window.addEventListener('resize', function () {
-    if (screens.game && !screens.game.classList.contains('hidden')) resizeCanvas();
-  });
-  document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('keydown', handleKeyBindingCapture, true);
+    window.addEventListener('keydown', handleKey);
+    window.addEventListener('resize', function () {
+      if (screens.game && !screens.game.classList.contains('hidden')) resizeCanvas();
+    });
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
-  loadSettings();
-  renderKeyBindings();
-  loadStats();
-  loadCoins();
-  loadPurchasedSkins();
-  loadOwnedSkins();
-  loadDailyQuests();
-  setupSkinPalette();
-  updateSkinOptionsActive();
-  updateCoinsUI();
-  renderLeaderboard();
-  renderQuests();
-  updateProgressBars();
-  updateContinueButton();
-  applyTheme(S.theme);
-  applyMobileSize(S.mobileSize);
-  applyMobileLayout(S.leftHanded);
-  applyHighContrast(S.highContrast);
-  applyPerformanceMode(S.performanceMode);
-  applyMobileControlMode(S.mobileControlMode);
-  applyReducedMotion(S.reducedMotion);
-  applyColorblindMarkers(S.colorblindMarkers);
-  applyUIScale(S.uiScale);
-  applyPowerupFrequency(S.powerupFrequency);
-  applyControlScheme(S.controlScheme || 'wasd');
-  resizeCanvas();
+    loadSettings();
+    renderKeyBindings();
+    loadStats();
+    loadCoins();
+    loadPurchasedSkins();
+    loadOwnedSkins();
+    loadDailyQuests();
+    setupSkinPalette();
+    updateSkinOptionsActive();
+    updateCoinsUI();
+    renderLeaderboard();
+    renderQuests();
+    updateProgressBars();
+    updateContinueButton();
+    applyTheme(S.theme);
+    applyMobileSize(S.mobileSize);
+    applyMobileLayout(S.leftHanded);
+    applyHighContrast(S.highContrast);
+    applyPerformanceMode(S.performanceMode);
+    applyMobileControlMode(S.mobileControlMode);
+    applyReducedMotion(S.reducedMotion);
+    applyColorblindMarkers(S.colorblindMarkers);
+    applyUIScale(S.uiScale);
+    applyPowerupFrequency(S.powerupFrequency);
+    applyControlScheme(S.controlScheme || 'wasd');
+    resizeCanvas();
+  } catch (e) {
+    console.warn('Ошибка инициализации:', e);
+  }
 }
 
 init();
@@ -3159,30 +3208,29 @@ function runCountdown() {
   }
 
   function saveCheckpoint() {
-    if (!S.isRunning || !S.snake || !S.snake.cells || S.snake.cells.length === 0) return;
-    var checkpoint = {
-      snake: S.snake,
-      foods: S.foods,
-      obstacles: S.obstacles,
-      score: S.score,
-      level: S.level,
-      foodPerLevel: S.foodPerLevel,
-      eatenThisLevel: S.eatenThisLevel,
-      combo: S.combo,
-      comboTimer: S.comboTimer,
-      shield: S.shield,
-      slow: S.slow,
-      magnet: S.magnet,
-      fever: S.fever,
-      ghost: S.ghost,
-      sessionEaten: sessionEaten,
-      sessionCoins: S.sessionCoins,
-      feverCount: S.feverCount,
-      maxComboThisGame: S.maxComboThisGame,
-      savedAt: Date.now()
-    };
-
     try {
+      if (!S.isRunning || !S.snake || !S.snake.cells || S.snake.cells.length === 0) return;
+      var checkpoint = {
+        snake: S.snake,
+        foods: S.foods,
+        obstacles: S.obstacles,
+        score: S.score,
+        level: S.level,
+        foodPerLevel: S.foodPerLevel,
+        eatenThisLevel: S.eatenThisLevel,
+        combo: S.combo,
+        comboTimer: S.comboTimer,
+        shield: S.shield,
+        slow: S.slow,
+        magnet: S.magnet,
+        fever: S.fever,
+        ghost: S.ghost,
+        sessionEaten: sessionEaten,
+        sessionCoins: S.sessionCoins,
+        feverCount: S.feverCount,
+        maxComboThisGame: S.maxComboThisGame,
+        savedAt: Date.now()
+      };
       storeSet(STORAGE_KEY, JSON.stringify(checkpoint));
       S.hasSavedGame = true;
       updateContinueButton();
@@ -3214,44 +3262,49 @@ function runCountdown() {
       return;
     }
 
-    initAudio();
-    showScreen('game');
+    try {
+      initAudio();
+      showScreen('game');
 
-    S.snake = checkpoint.snake;
-    S.foods = checkpoint.foods || [];
-    S.obstacles = checkpoint.obstacles || [];
-    S.score = checkpoint.score || 0;
-    S.level = checkpoint.level || 1;
-    S.foodPerLevel = checkpoint.foodPerLevel || 5;
-    S.eatenThisLevel = checkpoint.eatenThisLevel || 0;
-    S.combo = checkpoint.combo || 1;
-    S.comboTimer = checkpoint.comboTimer || 0;
-    S.shield = checkpoint.shield || 0;
-    S.slow = checkpoint.slow || 0;
-    S.magnet = checkpoint.magnet || 0;
-    S.fever = checkpoint.fever || 0;
-    S.ghost = checkpoint.ghost || 0;
-    S.sessionCoins = checkpoint.sessionCoins || 0;
-    S.feverCount = checkpoint.feverCount || 0;
-    S.maxComboThisGame = checkpoint.maxComboThisGame || 1;
-    S.isMoving = Boolean(S.snake.dx || S.snake.dy);
-    S.isPaused = false;
-    S.isRunning = true;
-    sessionEaten = checkpoint.sessionEaten || 0;
-    lastTime = performance.now();
+      S.snake = checkpoint.snake;
+      S.foods = checkpoint.foods || [];
+      S.obstacles = checkpoint.obstacles || [];
+      S.score = checkpoint.score || 0;
+      S.level = checkpoint.level || 1;
+      S.foodPerLevel = checkpoint.foodPerLevel || 5;
+      S.eatenThisLevel = checkpoint.eatenThisLevel || 0;
+      S.combo = checkpoint.combo || 1;
+      S.comboTimer = checkpoint.comboTimer || 0;
+      S.shield = checkpoint.shield || 0;
+      S.slow = checkpoint.slow || 0;
+      S.magnet = checkpoint.magnet || 0;
+      S.fever = checkpoint.fever || 0;
+      S.ghost = checkpoint.ghost || 0;
+      S.sessionCoins = checkpoint.sessionCoins || 0;
+      S.feverCount = checkpoint.feverCount || 0;
+      S.maxComboThisGame = checkpoint.maxComboThisGame || 1;
+      S.isMoving = Boolean(S.snake.dx || S.snake.dy);
+      S.isPaused = false;
+      S.isRunning = true;
+      sessionEaten = checkpoint.sessionEaten || 0;
+      lastTime = performance.now();
 
-    hideCountdown();
+      hideCountdown();
 
-    if (ui.score) ui.score.textContent = S.score;
-    if (ui.level) ui.level.textContent = S.level;
-    if (ui.combo) {
-      ui.combo.style.display = S.combo > 1 ? 'inline' : 'none';
-      if (ui.comboVal) ui.comboVal.textContent = S.combo;
+      if (ui.score) ui.score.textContent = S.score;
+      if (ui.level) ui.level.textContent = S.level;
+      if (ui.combo) {
+        ui.combo.style.display = S.combo > 1 ? 'inline' : 'none';
+        if (ui.comboVal) ui.comboVal.textContent = S.combo;
+      }
+      updatePowerupBar();
+      if (screens.gameOver) screens.gameOver.classList.add('hidden');
+      if (screens.pause) screens.pause.classList.add('hidden');
+      showNotification('Игра восстановлена', 'Продолжаем с сохранённого места', '▶️');
+    } catch (e) {
+      console.warn('Не удалось восстановить игру:', e);
+      showNotification('Не удалось восстановить игру', 'Начните новую', '⚠️');
     }
-    updatePowerupBar();
-    if (screens.gameOver) screens.gameOver.classList.add('hidden');
-    if (screens.pause) screens.pause.classList.add('hidden');
-    showNotification('Игра восстановлена', 'Продолжаем с сохранённого места', '▶️');
   }
 
   function createContinueButton() {
@@ -3308,35 +3361,40 @@ function runCountdown() {
 
   function pollGamepads() {
     if (!navigator.getGamepads) return;
-    var pads = navigator.getGamepads();
-    var gamepad = null;
-    for (var i = 0; i < pads.length; i++) {
-      if (pads[i]) {
-        gamepad = pads[i];
-        break;
+
+    try {
+      var pads = navigator.getGamepads();
+      var gamepad = null;
+      for (var i = 0; i < pads.length; i++) {
+        if (pads[i]) { gamepad = pads[i]; break; }
       }
-    }
 
-    if (gamepad) {
-      var direction = directionFromGamepad(gamepad);
-      if (direction && direction !== lastDirection) setDirection(direction);
-      lastDirection = direction;
+      if (gamepad) {
+        var direction = directionFromGamepad(gamepad);
+        if (direction && direction !== lastDirection) setDirection(direction);
+        lastDirection = direction;
 
-      var startPressed = buttonPressed(gamepad, 9);
-      if (startPressed && !previousButtons.start) togglePause();
-      previousButtons.start = startPressed;
+        var startPressed = buttonPressed(gamepad, 9);
+        if (startPressed && !previousButtons.start) togglePause();
+        previousButtons.start = startPressed;
 
-      var turboPressed = buttonPressed(gamepad, 0);
-      if (turboPressed && !previousButtons.turbo && window.snakeActivateTurbo) {
-        window.snakeActivateTurbo();
+        var turboPressed = buttonPressed(gamepad, 0);
+        if (turboPressed && !previousButtons.turbo && window.snakeActivateTurbo) {
+          window.snakeActivateTurbo();
+        }
+        previousButtons.turbo = turboPressed;
+      } else {
+        lastDirection = null;
+        previousButtons = {};
       }
-      previousButtons.turbo = turboPressed;
-    } else {
-      lastDirection = null;
-      previousButtons = {};
+    } catch (e) {
+      if (!pollGamepads._warned) {
+        pollGamepads._warned = true;
+        console.warn('Ошибка поллинга геймпада:', e);
+      }
+    } finally {
+      gamepadPollingId = requestAnimationFrame(pollGamepads);
     }
-
-    gamepadPollingId = requestAnimationFrame(pollGamepads);
   }
 
   function startGamepadPolling() {
