@@ -12,8 +12,8 @@ function el(id) {
 function storeGet(key) {
   try {
     return window.localStorage.getItem(key);
-  } catch (error) {
-    console.warn('Не удалось прочитать сохранение "' + key + '":', error);
+  } catch (e) {
+    console.warn('Не удалось прочитать сохранение "' + key + '":', e);
     return null;
   }
 }
@@ -32,8 +32,8 @@ function storeRemove(key) {
   try {
     window.localStorage.removeItem(key);
     return true;
-  } catch (error) {
-    console.warn('Не удалось удалить сохранение "' + key + '":', error);
+  } catch (e) {
+    console.warn('Не удалось удалить сохранение "' + key + '":', e);
     return false;
   }
 }
@@ -280,19 +280,26 @@ function initAudio() {
 function beep(f, d, t, v) {
   if (!audioCtx || S.volume <= 0) return;
 
-  if (audioCtx.state === 'suspended') {
-    audioCtx.resume();
+  try {
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    var o = audioCtx.createOscillator();
+    var g = audioCtx.createGain();
+    o.type = t || 'square';
+    o.frequency.setValueAtTime(f, audioCtx.currentTime);
+    g.gain.setValueAtTime(S.volume * 0.25 * (v || 1), audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + d);
+    o.connect(g);
+    g.connect(audioCtx.destination);
+    o.start();
+    o.stop(audioCtx.currentTime + d);
+  } catch (e) {
+    if (!beep._warned) {
+      beep._warned = true;
+      console.warn('Не удалось воспроизвести звук:', e);
+    }
   }
-  var o = audioCtx.createOscillator();
-  var g = audioCtx.createGain();
-  o.type = t || 'square';
-  o.frequency.setValueAtTime(f, audioCtx.currentTime);
-  g.gain.setValueAtTime(S.volume * 0.25 * (v || 1), audioCtx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + d);
-  o.connect(g);
-  g.connect(audioCtx.destination);
-  o.start();
-  o.stop(audioCtx.currentTime + d);
 }
 
 function haptic(pattern) {
@@ -936,7 +943,7 @@ function loadOwnedSkins() {
     var list = JSON.parse(raw);
     if (Array.isArray(list) && list.length) S.ownedSkins = list;
   } catch (e) {
-    console.warn('Не удалось прочитать список купленных скинов:', e)
+    console.warn('Не удалось прочитать список купленных скинов:', e);
   }
 }
 
@@ -1904,214 +1911,225 @@ function getFrameDelay() {
 
 function loop(ts) {
   if (!S.isRunning && S.deathFragments.length === 0) return;
-  var dt = ts - lastTime;
-  lastTime = ts;
 
-  if (S.deathFragments.length > 0) {
+  try {
+    var dt = ts - lastTime;
+    lastTime = ts;
+
+    if (S.deathFragments.length > 0) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawGrid();
+      drawObstacles();
+      drawFoods();
+      updateDeathFragments();
+      drawDeathFragments();
+      drawParticles();
+      updateParticles();
+      applyShake();
+      return;
+    }
+
+    if (S.isPaused) return;
+
+    if (++S.count < getFrameDelay()) return;
+    S.count = 0;
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawGrid();
-    drawObstacles();
-    drawFoods();
-    updateDeathFragments();
-    drawDeathFragments();
-    drawParticles();
-    updateParticles();
-    applyShake();
-    requestAnimationFrame(loop);
-    return;
-  }
 
-  if (S.isPaused) { requestAnimationFrame(loop); return; }
+    if (S.isMoving) {
+      S.snake.x += S.snake.dx;
+      S.snake.y += S.snake.dy;
 
-  if (++S.count < getFrameDelay()) { requestAnimationFrame(loop); return; }
-  S.count = 0;
+      if (S.snake.x < 0)                    S.snake.x = canvas.width - S.grid;
+      else if (S.snake.x >= canvas.width)  S.snake.x = 0;
+      if (S.snake.y < 0)                    S.snake.y = canvas.height - S.grid;
+      else if (S.snake.y >= canvas.height) S.snake.y = 0;
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+      S.snake.cells.unshift({ x: S.snake.x, y: S.snake.y });
+      if (S.snake.cells.length > S.snake.maxCells) S.snake.cells.pop();
 
-  if (S.isMoving) {
-    S.snake.x += S.snake.dx;
-    S.snake.y += S.snake.dy;
-
-    if (S.snake.x < 0)                    S.snake.x = canvas.width - S.grid;
-    else if (S.snake.x >= canvas.width)  S.snake.x = 0;
-    if (S.snake.y < 0)                    S.snake.y = canvas.height - S.grid;
-    else if (S.snake.y >= canvas.height) S.snake.y = 0;
-
-    S.snake.cells.unshift({ x: S.snake.x, y: S.snake.y });
-    if (S.snake.cells.length > S.snake.maxCells) S.snake.cells.pop();
-
-    for (var i = 0; i < S.obstacles.length; i++) {
-      if (S.obstacles[i].x === S.snake.x && S.obstacles[i].y === S.snake.y) {
-        if (S.ghost > 0) continue;
-        if (S.shield > 0) {
-          S.shield = 0; shake(8);
-          spawnParticles(S.snake.x, S.snake.y, 12, '155,89,182');
-          sfx.shield();
-        } else { gameOver(); return; }
-      }
-    }
-
-    for (var j = 1; j < S.snake.cells.length; j++) {
-      if (S.snake.cells[j].x === S.snake.x && S.snake.cells[j].y === S.snake.y) {
-        if (S.ghost > 0) continue;
-        if (S.shield > 0) {
-          S.shield = 0; shake(8);
-          spawnParticles(S.snake.x, S.snake.y, 12, '155,89,182');
-          sfx.shield();
-        } else { gameOver(); return; }
-      }
-    }
-  }
-
-  if (S.magnet > 0 && S.isMoving) {
-    var hcx = S.snake.x + S.grid / 2;
-    var hcy = S.snake.y + S.grid / 2;
-
-    for (var mi = 0; mi < S.foods.length; mi++) {
-      var mf  = S.foods[mi];
-      var fcx = mf.x + S.grid / 2;
-      var fcy = mf.y + S.grid / 2;
-      var mdx = hcx - fcx;
-      var mdy = hcy - fcy;
-      var mdist = Math.sqrt(mdx * mdx + mdy * mdy);
-
-      if (mdist < 0.0001) continue;
-
-      var pullSpeed = Math.max(
-        S.grid * 0.15,
-        S.grid * 0.6 / (1 + mdist / (S.grid * 3))
-      );
-      var mstep = Math.min(pullSpeed, mdist);
-      var mnx = mdx / mdist;
-      var mny = mdy / mdist;
-
-      mf.x += mnx * mstep;
-      mf.y += mny * mstep;
-
-      for (var oi = 0; oi < S.obstacles.length; oi++) {
-        var ob  = S.obstacles[oi];
-        var ocx = ob.x + S.grid / 2;
-        var ocy = ob.y + S.grid / 2;
-        var odx = (mf.x + S.grid / 2) - ocx;
-        var ody = (mf.y + S.grid / 2) - ocy;
-        var odist = Math.sqrt(odx * odx + ody * ody) || 1;
-        var minSafe = S.grid * 1.05;
-        if (odist < minSafe) {
-          var push = (minSafe - odist) * 0.7;
-          mf.x += (odx / odist) * push;
-          mf.y += (ody / odist) * push;
+      for (var i = 0; i < S.obstacles.length; i++) {
+        if (S.obstacles[i].x === S.snake.x && S.obstacles[i].y === S.snake.y) {
+          if (S.ghost > 0) continue;
+          if (S.shield > 0) {
+            S.shield = 0; shake(8);
+            spawnParticles(S.snake.x, S.snake.y, 12, '155,89,182');
+            sfx.shield();
+          } else { gameOver(); return; }
         }
       }
 
-      if (mf.x < 0) mf.x = 0;
-      if (mf.y < 0) mf.y = 0;
-      if (mf.x > canvas.width  - S.grid) mf.x = canvas.width  - S.grid;
-      if (mf.y > canvas.height - S.grid) mf.y = canvas.height - S.grid;
+      for (var j = 1; j < S.snake.cells.length; j++) {
+        if (S.snake.cells[j].x === S.snake.x && S.snake.cells[j].y === S.snake.y) {
+          if (S.ghost > 0) continue;
+          if (S.shield > 0) {
+            S.shield = 0; shake(8);
+            spawnParticles(S.snake.x, S.snake.y, 12, '155,89,182');
+            sfx.shield();
+          } else { gameOver(); return; }
+        }
+      }
+    }
+
+    if (S.magnet > 0 && S.isMoving) {
+      var hcx = S.snake.x + S.grid / 2;
+      var hcy = S.snake.y + S.grid / 2;
+
+      for (var mi = 0; mi < S.foods.length; mi++) {
+        var mf  = S.foods[mi];
+        var fcx = mf.x + S.grid / 2;
+        var fcy = mf.y + S.grid / 2;
+        var mdx = hcx - fcx;
+        var mdy = hcy - fcy;
+        var mdist = Math.sqrt(mdx * mdx + mdy * mdy);
+
+        if (mdist < 0.0001) continue;
+
+        var pullSpeed = Math.max(
+          S.grid * 0.15,
+          S.grid * 0.6 / (1 + mdist / (S.grid * 3))
+        );
+        var mstep = Math.min(pullSpeed, mdist);
+        var mnx = mdx / mdist;
+        var mny = mdy / mdist;
+
+        mf.x += mnx * mstep;
+        mf.y += mny * mstep;
+
+        for (var oi = 0; oi < S.obstacles.length; oi++) {
+          var ob  = S.obstacles[oi];
+          var ocx = ob.x + S.grid / 2;
+          var ocy = ob.y + S.grid / 2;
+          var odx = (mf.x + S.grid / 2) - ocx;
+          var ody = (mf.y + S.grid / 2) - ocy;
+          var odist = Math.sqrt(odx * odx + ody * ody) || 1;
+          var minSafe = S.grid * 1.05;
+          if (odist < minSafe) {
+            var push = (minSafe - odist) * 0.7;
+            mf.x += (odx / odist) * push;
+            mf.y += (ody / odist) * push;
+          }
+        }
+
+        if (mf.x < 0) mf.x = 0;
+        if (mf.y < 0) mf.y = 0;
+        if (mf.x > canvas.width  - S.grid) mf.x = canvas.width  - S.grid;
+        if (mf.y > canvas.height - S.grid) mf.y = canvas.height - S.grid;
+      }
+    }
+
+    for (var fi = S.foods.length - 1; fi >= 0; fi--) {
+      var f = S.foods[fi];
+      var eatFcx = f.x + S.grid / 2;
+      var eatFcy = f.y + S.grid / 2;
+      var eatHcx = S.snake.x + S.grid / 2;
+      var eatHcy = S.snake.y + S.grid / 2;
+      var eatDx = eatFcx - eatHcx;
+      var eatDy = eatFcy - eatHcy;
+      var eatDist = Math.sqrt(eatDx * eatDx + eatDy * eatDy);
+      var eatRadius = S.grid * 0.7;
+
+      if (eatDist <= eatRadius && S.isMoving) {
+        var ft = FOOD_TYPES[f.type];
+        var multiplier = S.fever > 0 ? 3 : 1;
+        var comboMult = S.combo;
+        S.score += ft.points * comboMult * multiplier;
+        S.totalEaten++; sessionEaten++; S.eatenThisLevel++;
+        S.snake.maxCells += ft.grow;
+
+        var coinsEarned = ft.coins || 1;
+        if (S.fever > 0) coinsEarned *= 2;
+        addCoins(coinsEarned);
+
+        S.combo = Math.min(S.combo + 1, 8);
+        S.maxComboThisGame = Math.max(S.maxComboThisGame, S.combo);
+        S.comboTimer = S.comboTimeout;
+
+        if (ui.combo) {
+          ui.combo.style.display = 'inline';
+          ui.comboVal.textContent = S.combo;
+          ui.combo.style.animation = 'none';
+          void ui.combo.offsetWidth;
+          ui.combo.style.animation = '';
+        }
+
+        if (ft.powerup === 'shield') { S.shield = 5000; sfx.shield(); }
+        if (ft.powerup === 'slow')    { S.slow = 5000; sfx.slow(); }
+        if (ft.powerup === 'magnet')  { S.magnet = 8000; sfx.magnet(); }
+        if (ft.powerup === 'fever') {
+          S.fever = 6000;
+          S.feverCount++;
+          sfx.fever();
+          shake(6);
+          showNotification('😵 ЛИХОРАДКА!', 'x3 очки на 6 секунд!', '😵');
+        }
+        if (ft.powerup === 'ghost') {
+          S.ghost = 6000;
+          sfx.ghost();
+          shake(4);
+          showNotification('👻 ПРИЗРАК!', 'Проходите сквозь себя и препятствия 6 секунд!', '👻');
+        }
+
+        if (f.type === 'gold') sfx.gold();
+        else if (!ft.powerup) sfx.eat();
+
+        var c = hexToRgb(ft.glow).join(',');
+        spawnParticles(f.x, f.y, f.type === 'gold' ? 16 : 10, c);
+        var label = ft.label;
+        if (S.fever > 0 && f.type !== 'fever') label += ' x3';
+        spawnPopup(f.x, f.y, label, 'rgb(' + c + ')');
+
+        S.foods.splice(fi, 1);
+        if (S.eatenThisLevel >= S.foodPerLevel) levelUp();
+        if (ui.score) ui.score.textContent = S.score;
+
+        updateQuestProgress('eat', 1);
+        updateQuestProgress('score', ft.points * comboMult * multiplier);
+        updateQuestProgress('combo', 0);
+        if (S.combo >= 5) updateQuestProgress('combo', S.combo);
+        if (ft.powerup === 'fever') updateQuestProgress('fever', 1);
+
+        checkAchievements();
+      }
+    }
+
+    ensureFoods();
+
+    if (S.comboTimer > 0) {
+      S.comboTimer -= dt;
+      if (S.comboTimer <= 0) { S.combo = 1; if (ui.combo) ui.combo.style.display = 'none'; }
+    }
+
+    if (S.shield > 0) S.shield = Math.max(0, S.shield - dt);
+    if (S.slow > 0)   S.slow   = Math.max(0, S.slow - dt);
+    if (S.magnet > 0) S.magnet = Math.max(0, S.magnet - dt);
+    if (S.fever > 0)  S.fever  = Math.max(0, S.fever - dt);
+    if (S.ghost > 0)  S.ghost  = Math.max(0, S.ghost - dt);
+    updatePowerupBar();
+
+    updateTrail();
+    drawGrid();
+    drawObstacles();
+    drawFoods();
+    drawTrail();
+    drawSnake();
+    drawParticles();
+    drawPopups();
+    updateParticles();
+    updatePopups();
+    applyShake();
+
+  } catch (e) {
+    var t = now();
+    if (!loop._lastWarn || t - loop._lastWarn > 5000) {
+      loop._lastWarn = t;
+      console.warn('Ошибка в игровом цикле:', e);
+    }
+  } finally {
+    if (S.isRunning || S.deathFragments.length > 0) {
+      requestAnimationFrame(loop);
     }
   }
-
-  for (var fi = S.foods.length - 1; fi >= 0; fi--) {
-    var f = S.foods[fi];
-    var eatFcx = f.x + S.grid / 2;
-    var eatFcy = f.y + S.grid / 2;
-    var eatHcx = S.snake.x + S.grid / 2;
-    var eatHcy = S.snake.y + S.grid / 2;
-    var eatDx = eatFcx - eatHcx;
-    var eatDy = eatFcy - eatHcy;
-    var eatDist = Math.sqrt(eatDx * eatDx + eatDy * eatDy);
-    var eatRadius = S.grid * 0.7;
-
-    if (eatDist <= eatRadius && S.isMoving) {
-      var ft = FOOD_TYPES[f.type];
-      var multiplier = S.fever > 0 ? 3 : 1;
-      var comboMult = S.combo;
-      S.score += ft.points * comboMult * multiplier;
-      S.totalEaten++; sessionEaten++; S.eatenThisLevel++;
-      S.snake.maxCells += ft.grow;
-
-      var coinsEarned = ft.coins || 1;
-      if (S.fever > 0) coinsEarned *= 2;
-      addCoins(coinsEarned);
-
-      S.combo = Math.min(S.combo + 1, 8);
-      S.maxComboThisGame = Math.max(S.maxComboThisGame, S.combo);
-      S.comboTimer = S.comboTimeout;
-
-      if (ui.combo) {
-        ui.combo.style.display = 'inline';
-        ui.comboVal.textContent = S.combo;
-        ui.combo.style.animation = 'none';
-        void ui.combo.offsetWidth;
-        ui.combo.style.animation = '';
-      }
-
-      if (ft.powerup === 'shield') { S.shield = 5000; sfx.shield(); }
-      if (ft.powerup === 'slow')    { S.slow = 5000; sfx.slow(); }
-      if (ft.powerup === 'magnet')  { S.magnet = 8000; sfx.magnet(); }
-      if (ft.powerup === 'fever') {
-        S.fever = 6000;
-        S.feverCount++;
-        sfx.fever();
-        shake(6);
-        showNotification('😵 ЛИХОРАДКА!', 'x3 очки на 6 секунд!', '😵');
-      }
-      if (ft.powerup === 'ghost') {
-        S.ghost = 6000;
-        sfx.ghost();
-        shake(4);
-        showNotification('👻 ПРИЗРАК!', 'Проходите сквозь себя и препятствия 6 секунд!', '👻');
-      }
-
-      if (f.type === 'gold') sfx.gold();
-      else if (!ft.powerup) sfx.eat();
-
-      var c = hexToRgb(ft.glow).join(',');
-      spawnParticles(f.x, f.y, f.type === 'gold' ? 16 : 10, c);
-      var label = ft.label;
-      if (S.fever > 0 && f.type !== 'fever') label += ' x3';
-      spawnPopup(f.x, f.y, label, 'rgb(' + c + ')');
-
-      S.foods.splice(fi, 1);
-      if (S.eatenThisLevel >= S.foodPerLevel) levelUp();
-      if (ui.score) ui.score.textContent = S.score;
-
-      updateQuestProgress('eat', 1);
-      updateQuestProgress('score', ft.points * comboMult * multiplier);
-      updateQuestProgress('combo', 0);
-      if (S.combo >= 5) updateQuestProgress('combo', S.combo);
-      if (ft.powerup === 'fever') updateQuestProgress('fever', 1);
-
-      checkAchievements();
-    }
-  }
-
-  ensureFoods();
-
-  if (S.comboTimer > 0) {
-    S.comboTimer -= dt;
-    if (S.comboTimer <= 0) { S.combo = 1; if (ui.combo) ui.combo.style.display = 'none'; }
-  }
-
-  if (S.shield > 0) S.shield = Math.max(0, S.shield - dt);
-  if (S.slow > 0)   S.slow   = Math.max(0, S.slow - dt);
-  if (S.magnet > 0) S.magnet = Math.max(0, S.magnet - dt);
-  if (S.fever > 0)  S.fever  = Math.max(0, S.fever - dt);
-  if (S.ghost > 0)  S.ghost  = Math.max(0, S.ghost - dt);
-  updatePowerupBar();
-
-  updateTrail();
-  drawGrid();
-  drawObstacles();
-  drawFoods();
-  drawTrail();
-  drawSnake();
-  drawParticles();
-  drawPopups();
-  updateParticles();
-  updatePopups();
-  applyShake();
-
-  requestAnimationFrame(loop);
 }
 
 function drawGrid() {
@@ -2979,7 +2997,7 @@ function runCountdown() {
     var requestResult = request.call(root);
     if (requestResult && requestResult.catch) {
       requestResult.catch(function(e) {
-        console.warn('Не удалось включить полноэкранный режим:', e)
+        console.warn('Не удалось включить полноэкранный режим:', e);
         showNotification('Не удалось включить полный экран', 'Попробуйте нажать кнопку ещё раз');
       });
     }
@@ -3069,8 +3087,9 @@ function runCountdown() {
     if (navigator.share) {
       navigator.share(shareData).then(function() {
         haptic(12);
-      }).catch(function(error) {
-        if (!error || error.name !== 'AbortError') {
+      }).catch(function(e) {
+        if (!e || e.name !== 'AbortError') {
+          console.warn('Не удалось поделиться через navigator.share:', e);
           showNotification('Не удалось поделиться', 'Попробуйте скопировать результат ещё раз');
         }
       });
@@ -3080,7 +3099,8 @@ function runCountdown() {
     fallbackCopy(text).then(function() {
       haptic(12);
       showNotification('Результат скопирован', 'Можно отправить его друзьям');
-    }).catch(function() {
+    }).catch(function(e) {
+      console.warn('Не удалось скопировать результат в буфер обмена:', e);
       showNotification('Скопируйте результат вручную', text.replace(/\n/g, ' · '));
     });
   }
