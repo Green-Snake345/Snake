@@ -933,6 +933,15 @@ function saveCoins() {
 }
 
 function addCoins(amount, reason) {
+ if (typeof amount !== 'number' || isNaN(amount) || !isFinite(amount)) {
+    console.warn('[addCoins] Некорректная сумма:', amount, '| reason:', reason);
+    return;
+  }
+   if (amount <= 0) {
+    console.warn('[addCoins] Сумма должна быть > 0, получено:', amount, '| reason:', reason);
+    return;
+  }
+  
   if (amount <= 0) return;
   S.coins += amount;
   S.totalCoins += amount;
