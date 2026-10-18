@@ -20,13 +20,15 @@ EXIT_FAIL = 1
 EXIT_CRITICAL = 2
 EXIT_INTERRUPTED = 130
 
-GAME_FILES = ("index.html", "index.js", "style.css", "favicon.ico")
+GAME_FILES = ("index.html", "index.js", "style.css", "favicon.ico", "track.js", "analytics.js")
 
 EXPECTED_CONTENT_TYPES = {
     "index.html": "text/html",
     "index.js": "javascript",
     "style.css": "text/css",
     "favicon.ico": "image/",
+    "track.js": "javascript",
+    "analytics.js": "javascript",
 }
 
 
