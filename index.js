@@ -537,6 +537,12 @@ var THEME_PALETTES = {
         accent: '#b8b8c0', accent2: '#70707a', text: '#f2f2f5',
         dim: '#7a7a85', canvas: '#050506',
         background: 'linear-gradient(-45deg, #0b0b0d, #141416, #1e1e21, #0d0d10)'
+    },
+    'bubble-tea': {
+       bgDark: '#fdf6f9', panel: '#ffffff', card: '#f6e6f0',
+       accent: '#d89ee4', accent2: '#b87dca', text: '#4a3648',
+       dim: '#a88c9e', canvas: '#fdf6f9',
+       background: 'linear-gradient(-45deg, #fdf6f9, #ffffff, #f6e6f0, #ebd4e3)'
     }
 };
 
