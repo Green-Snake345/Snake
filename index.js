@@ -12,8 +12,8 @@ function el(id) {
 function storeGet(key) {
   try {
     return window.localStorage.getItem(key);
-  } catch (error) {
-    console.warn('Не удалось прочитать сохранение "' + key + '":', error);
+  } catch (e) {
+    console.warn('Не удалось прочитать сохранение "' + key + '":', e);
     return null;
   }
 }
@@ -22,8 +22,8 @@ function storeSet(key, value) {
   try {
     window.localStorage.setItem(key, String(value));
     return true;
-  } catch (error) {
-    console.warn('Не удалось сохранить "' + key + '":', error);
+  } catch (e) {
+    console.warn('Не удалось сохранить "' + key + '":', e);
     return false;
   }
 }
@@ -32,8 +32,8 @@ function storeRemove(key) {
   try {
     window.localStorage.removeItem(key);
     return true;
-  } catch (error) {
-    console.warn('Не удалось удалить сохранение "' + key + '":', error);
+  } catch (e) {
+    console.warn('Не удалось удалить сохранение "' + key + '":', e);
     return false;
   }
 }
@@ -101,7 +101,7 @@ var ui = {
   feverOverlay:    el('fever-overlay'),
   msHighscore:     el('ms-highscore'),
   msGames:         el('ms-games-val'),
-  msEaten:         el('ms-eaten'),
+  msEaten:         el('ms-eaten-val'),
   coinsValue:      el('coins-value'),
   hudCoins:        el('hud-coins'),
   aboutGames:      el('about-games'),
@@ -156,7 +156,8 @@ var ACHIEVEMENTS = {
   coins100:   { name: 'Копилка',    desc: 'Соберите 100 монет за всё время', icon: '💰' },
   diamondBuy: { name: 'Ювелир',     desc: 'Купите «Алмазный скин»',           icon: '💎' },
   flameBuy:   { name: 'Пиромант',   desc: 'Купите «Огненный скин»',           icon: '🔥' },
-  collector:  { name: '🎨 Коллекционер', desc: 'Купите 5 разных скинов в магазине', icon: '🎨' }
+  collector:  { name: '🎨 Коллекционер', desc: 'Купите 5 разных скинов в магазине', icon: '🎨' },
+  crystalFind:{ name: 'Кристалл',   desc: 'Найдите кристалл в игре',           icon: '💠' }
 };
 
 var SKIN_CATALOG = [
@@ -180,7 +181,7 @@ var SKIN_CATALOG = [
   { id: 'lavender',   color: '#e6e6fa', name: 'Лавандовый',   price: 200 },
   { id: 'flame',      color: 'flame',   name: 'Огненный',     price: 9000 },
   { id: 'rainbow',    color: 'rainbow', name: 'Радужный',     price: 400 },
-  { id: 'diamond',    color: 'diamond', name: '💎 Алмазный',  price: 99000 }
+  { id: 'diamond',    color: 'diamond', name: 'Алмазный',  price: 99 }
 ];
 
 var S = {
@@ -233,6 +234,8 @@ var S = {
   magnet: 0,
   fever: 0,
   ghost: 0,
+  crystal: 0,
+  crystalCount: 0,
   popups: [],
   deathFragments: [],
   maxComboThisGame: 1,
@@ -267,10 +270,15 @@ var countdown = {
 function initAudio() {
   if (audioCtx) return;
   try {
-     audioCtx = new window.AudioContext();
+    audioCtx = new window.AudioContext();
 
     if (audioCtx && audioCtx.state === 'suspended') {
-      audioCtx.resume();
+      var resumeResult = audioCtx.resume();
+      if (resumeResult && resumeResult.catch) {
+        resumeResult.catch(function (e) {
+          console.warn('Не удалось возобновить AudioContext:', e);
+        });
+      }
     }
   } catch (e) {
     console.warn('AudioContext не поддерживается:', e);
@@ -280,24 +288,39 @@ function initAudio() {
 function beep(f, d, t, v) {
   if (!audioCtx || S.volume <= 0) return;
 
-  if (audioCtx.state === 'suspended') {
-    audioCtx.resume();
+  try {
+    if (audioCtx.state === 'suspended') {
+      var resumeResult = audioCtx.resume();
+      if (resumeResult && resumeResult.catch) {
+        resumeResult.catch(function (e) {
+          console.warn('Не удалось возобновить AudioContext в beep:', e);
+        });
+      }
+    }
+    var o = audioCtx.createOscillator();
+    var g = audioCtx.createGain();
+    o.type = t || 'square';
+    o.frequency.setValueAtTime(f, audioCtx.currentTime);
+    g.gain.setValueAtTime(S.volume * 0.25 * (v || 1), audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + d);
+    o.connect(g);
+    g.connect(audioCtx.destination);
+    o.start();
+    o.stop(audioCtx.currentTime + d);
+  } catch (e) {
+    if (!beep._warned) {
+      beep._warned = true;
+      console.warn('Не удалось воспроизвести звук:', e);
+    }
   }
-  var o = audioCtx.createOscillator();
-  var g = audioCtx.createGain();
-  o.type = t || 'square';
-  o.frequency.setValueAtTime(f, audioCtx.currentTime);
-  g.gain.setValueAtTime(S.volume * 0.25 * (v || 1), audioCtx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + d);
-  o.connect(g);
-  g.connect(audioCtx.destination);
-  o.start();
-  o.stop(audioCtx.currentTime + d);
 }
 
 function haptic(pattern) {
   if (!S.vibration || !navigator.vibrate) return;
-  try { navigator.vibrate(pattern); } catch (e) {}
+  try { navigator.vibrate(pattern); }
+  catch (e) {
+    console.warn('Вибрация недоступна:', e);
+  }
 }
 
 var sfx = {
@@ -313,6 +336,11 @@ var sfx = {
     setTimeout(function() { beep(1047, 0.15, 'triangle'); }, 180);
   },
   ghost:   function() { beep(1200, 0.08, 'sine'); setTimeout(function() { beep(900, 0.12, 'sine'); }, 70); setTimeout(function() { beep(1400, 0.14, 'sine'); }, 150);
+  },
+  crystal: function() {
+    beep(1200, 0.08, 'sine');
+    setTimeout(function() { beep(1600, 0.10, 'sine'); }, 60);
+    setTimeout(function() { beep(2000, 0.15, 'sine'); }, 130);
   },
   coin:    function() { beep(1200, 0.06, 'sine', 0.6); setTimeout(function() { beep(1600, 0.08, 'sine', 0.6); }, 50); },
   levelUp: function() { beep(523, 0.1, 'triangle'); setTimeout(function() { beep(659, 0.1, 'triangle'); }, 100); setTimeout(function() { beep(784, 0.15, 'triangle'); }, 200); },
@@ -495,6 +523,24 @@ var THEME_PALETTES = {
         accent: '#9ca3af', accent2: '#6b7280', text: '#f9fafb',
         dim: '#9ca3af', canvas: '#111827',
         background: 'linear-gradient(-45deg, #1f2937, #374151, #4b5563, #2d3748)'
+    },
+    sakura: {
+        bgDark: '#1a0d14', panel: '#2b1420', card: '#3d1c2e',
+        accent: '#ffb7c5', accent2: '#ff8fab', text: '#fff0f5',
+        dim: '#c9a0b0', canvas: '#120810',
+        background: 'linear-gradient(-45deg, #1a0d14, #2b1420, #3d1c2e, #201018)'
+    },
+    'neon-light': {
+        bgDark: '#f2f5f9', panel: '#ffffff', card: '#e8eef5',
+        accent: '#ff00e4', accent2: '#00f0ff', text: '#0b132b',
+        dim: '#64748b', canvas: '#f8fafc',
+        background: 'linear-gradient(-45deg, #f2f5f9, #ffffff, #e0f7fa, #fce4ec)'
+    },
+    bubbletea: {
+        bgDark: '#f5e6d3', panel: '#fff5eb', card: '#f0d9c4',
+        accent: '#c9a27a', accent2: '#ff9ec7', text: '#3d2817',
+        dim: '#8b6f47', canvas: '#faebd7',
+        background: 'linear-gradient(-45deg, #f5e6d3, #fff5eb, #f0d9c4, #ffe4e1)'
     }
 };
 
@@ -661,7 +707,7 @@ function createControlSchemeSetting() {
         '<option value="arrows">Только стрелки</option>' +
         '<option value="both">Стрелки и WASD</option>' +
       '</select>' +
-      '<p class="setting-help">Кастомные клавиши из «Управление клавишами» работают всегда.</p>';
+      '<p class="setting-help">Кастомные клавиши из «Управление клавишами» работают всегда</p>';
 
     container.appendChild(setting);
     ui.controlScheme = document.getElementById('control-scheme-select');
@@ -712,15 +758,19 @@ function handleKeyBindingCapture(e) {
 }
 
 function resizeCanvas() {
-  var isMobile = window.innerWidth <= 600;
-  var reservedHeight = isMobile ? 255 : 150;
-  var availableWidth = Math.max(S.grid * 10, window.innerWidth - (isMobile ? 24 : 40));
-  var availableHeight = Math.max(S.grid * 10, window.innerHeight - reservedHeight);
-  var s = Math.min(availableWidth, availableHeight, 520);
+  try {
+    var isMobile = window.innerWidth <= 600;
+    var reservedHeight = isMobile ? 255 : 150;
+    var availableWidth = Math.max(S.grid * 10, window.innerWidth - (isMobile ? 24 : 40));
+    var availableHeight = Math.max(S.grid * 10, window.innerHeight - reservedHeight);
+    var s = Math.min(availableWidth, availableHeight, 520);
 
-  if (S.grid < 4 || S.grid > 64 || !isFinite(S.grid)) S.grid = 16;
-  canvas.width  = Math.floor(s / S.grid) * S.grid;
-  canvas.height = Math.floor(s / S.grid) * S.grid;
+    if (S.grid < 4 || S.grid > 64 || !isFinite(S.grid)) S.grid = 16;
+    canvas.width  = Math.floor(s / S.grid) * S.grid;
+    canvas.height = Math.floor(s / S.grid) * S.grid;
+  } catch (e) {
+    console.warn('Не удалось изменить размер канваса:', e);
+  }
 }
 
 function showNotification(text, subtext, icon) {
@@ -750,11 +800,11 @@ function showGoodbyeScreen() {
     overlay.className = 'menu-screen';
     overlay.innerHTML =
       '<div class="logo"><h1>Пока! 👋</h1></div>' +
-      '<p class="confirm-text">Спасибо за игру в «Змейку»!</p>' +
+      '<p class="confirm-text">Спасибо за игру в «Змейка»!</p>' +
       '<p class="setting-help" style="text-align:center;">' +
-        'Браузер не даёт закрыть вкладку автоматически. ' +
-        'Нажмите <b>Ctrl&nbsp;+&nbsp;W</b> (Windows / Linux) ' +
-        'или <b>Cmd&nbsp;+&nbsp;W</b> (Mac), чтобы закрыть вкладку вручную.' +
+        'Браузер не даёт закрыть вкладку автоматически' +
+        'Нажмите <b>Ctrl&nbsp;+&nbsp;W</b> (Windows / Linux)' +
+        'или <b>Cmd&nbsp;+&nbsp;W</b> (Mac), чтобы закрыть вкладку вручную' +
       '</p>' +
       '<div class="btn-group">' +
         '<button id="btn-goodbye-back" class="btn btn-secondary">← Вернуться в меню</button>' +
@@ -778,8 +828,13 @@ function showGoodbyeScreen() {
 function loadAchievements() {
   var raw = storeGet('snake-pro-achievements');
   if (!raw) return {};
-  try { return JSON.parse(raw); } catch (e) { return {}; }
+  try { return JSON.parse(raw); }
+  catch (e) {
+    console.warn('Не удалось прочитать достижения:', e);
+    return {};
+  }
 }
+
 
 function saveAchievement(key) {
   var ach = loadAchievements();
@@ -859,6 +914,11 @@ function checkAchievements() {
     sfx.achievement();
     showNotification(ACHIEVEMENTS.collector.name, ACHIEVEMENTS.collector.desc, '🎨');
   }
+  if (!ach.crystalFind && S.crystalCount >= 1) {
+    saveAchievement('crystalFind');
+    sfx.achievement();
+    showNotification(ACHIEVEMENTS.crystalFind.name, ACHIEVEMENTS.crystalFind.desc, '💠');
+  }
 }
 
 function loadCoins() {
@@ -868,7 +928,9 @@ function loadCoins() {
     var d = JSON.parse(raw);
     S.coins = d.coins || 0;
     S.totalCoins = d.total || 0;
-  } catch (e) {}
+  } catch (e) {
+    console.warn('Не удалось прочитать монеты:', e);
+  }
 }
 
 function saveCoins() {
@@ -884,13 +946,22 @@ function saveCoins() {
 }
 
 function addCoins(amount, reason) {
+ if (typeof amount !== 'number' || isNaN(amount) || !isFinite(amount)) {
+    console.warn('[addCoins] Некорректная сумма:', amount, '| reason:', reason);
+    return;
+  }
+   if (amount <= 0) {
+    console.warn('[addCoins] Сумма должна быть > 0, получено:', amount, '| reason:', reason);
+    return;
+  }
   if (amount <= 0) return;
   S.coins += amount;
   S.totalCoins += amount;
   S.sessionCoins += amount;
   sfx.coin();
   saveCoins();
-  if (reason) showNotification('+' + amount + ' 🪙', reason, '💰');
+  updateQuestProgress('coins', amount);
+  if (reason) showNotification('+' + amount + '💰', reason, '💰');
 }
 
 function updateCoinsUI() {
@@ -906,7 +977,9 @@ function loadOwnedSkins() {
   try {
     var list = JSON.parse(raw);
     if (Array.isArray(list) && list.length) S.ownedSkins = list;
-  } catch (e) {}
+  } catch (e) {
+    console.warn('Не удалось прочитать список купленных скинов:', e);
+  }
 }
 
 function saveOwnedSkins() {
@@ -923,7 +996,9 @@ function loadPurchasedSkins() {
   try {
     var list = JSON.parse(raw);
     if (Array.isArray(list)) S.purchasedSkins = list;
-  } catch (e) {}
+  } catch (e) {
+    console.warn('Не удалось прочитать историю покупок скинов:', e);
+  }
 }
 
 function savePurchasedSkins() {
@@ -963,7 +1038,7 @@ function renderShop() {
     } else if (skin.price === 0) {
       actionHtml = '<button class="shop-btn free-btn">Бесплатно</button>';
     } else {
-      actionHtml = '<button class="shop-btn buy-btn">Купить за ' + skin.price + ' 🪙</button>';
+      actionHtml = '<button class="shop-btn buy-btn">Купить за ' + skin.price + '💰</button>';
     }
 
     item.innerHTML = dotHtml + '<div class="shop-name">' + skin.name + '</div>' + actionHtml;
@@ -980,13 +1055,12 @@ function renderShop() {
       if (e.target.classList.contains('buy-btn')) {
         if (S.coins < skin.price) {
           sfx.denied();
-          showNotification('Недостаточно монет', 'Нужно ещё ' + (skin.price - S.coins) + ' 🪙', '💸');
+          showNotification('Недостаточно монет', 'Нужно ещё ' + (skin.price - S.coins) + '💰', '💸');
           return;
         }
         S.coins -= skin.price;
         S.ownedSkins.push(id);
 
-        // Фиксируем покупку отдельно от владения — для ачивок
         if (S.purchasedSkins.indexOf(id) === -1) {
           S.purchasedSkins.push(id);
         }
@@ -1078,7 +1152,8 @@ var QUEST_TEMPLATES = [
   { id: 'games5',   text: 'Сыграй 5 игр',          target: 5,  type: 'games',  reward: 55 },
   { id: 'fever1',   text: 'Активируй лихорадку',   target: 1,  type: 'fever',  reward: 30 },
   { id: 'fever2',   text: 'Активируй лихорадку 2 раза', target: 2, type: 'fever', reward: 60 },
-  { id: 'fever3',   text: 'Активируй лихорадку 3 раза', target: 3, type: 'fever', reward: 90 }
+  { id: 'fever3',   text: 'Активируй лихорадку 3 раза', target: 3, type: 'fever', reward: 90 },
+  { id: 'coins50',  text: 'Заработай 50 монет за день', target: 50, type: 'coins', reward: 40 }
 ];
 
 function loadDailyQuests() {
@@ -1092,7 +1167,9 @@ function loadDailyQuests() {
         S.dailyQuestsDate = today;
         return;
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Не удалось прочитать ежедневные задания:', e);
+    }
   }
   generateDailyQuests(today);
 }
@@ -1122,7 +1199,7 @@ function updateQuestProgress(type, value) {
   S.dailyQuests.forEach(function(q) {
     if (q.claimed) return;
     if (q.type === type) {
-      if (type === 'eat' || type === 'score' || type === 'combo' || type === 'fever' || type === 'games') {
+      if (type === 'eat' || type === 'score' || type === 'combo' || type === 'fever' || type === 'games' || type === 'coins') {
         q.progress += value;
       } else if (type === 'level') {
         q.progress = Math.max(q.progress, value);
@@ -1251,39 +1328,43 @@ function setupSkinPalette() {
 }
 
 function showScreen(name) {
-  if (name !== 'settings' && activeKeyBind) {
-    activeKeyBind = null;
-    renderKeyBindings();
-  }
-  ['mainMenu', 'instructions', 'about', 'settings', 'shop', 'exitConfirm'].forEach(function(k) {
-    if (screens[k]) screens[k].classList.remove('active');
-  });
-  if (screens.game)     screens.game.classList.add('hidden');
-  if (screens.gameOver) screens.gameOver.classList.add('hidden');
-  if (screens.pause)    screens.pause.classList.add('hidden');
-
-  if (name === 'game') {
-    if (screens.game) {
-      screens.game.classList.remove('hidden');
-      resizeCanvas();
-      startGame();
+  try {
+    if (name !== 'settings' && activeKeyBind) {
+      activeKeyBind = null;
+      renderKeyBindings();
     }
-  } else if (name === 'shop') {
-    if (screens.shop) {
-      screens.shop.classList.remove('hidden');
-      screens.shop.classList.add('active');
-      renderShop();
-    }
-  } else if (screens[name]) {
-    screens[name].classList.remove('hidden');
-    screens[name].classList.add('active');
-  }
+    ['mainMenu', 'instructions', 'about', 'settings', 'shop', 'exitConfirm'].forEach(function(k) {
+      if (screens[k]) screens[k].classList.remove('active');
+    });
+    if (screens.game)     screens.game.classList.add('hidden');
+    if (screens.gameOver) screens.gameOver.classList.add('hidden');
+    if (screens.pause)    screens.pause.classList.add('hidden');
 
-  if (name === 'mainMenu') {
-    updateProgressBars();
-    updateContinueButton();
-    updateCoinsUI();
-    renderQuests();
+    if (name === 'game') {
+      if (screens.game) {
+        screens.game.classList.remove('hidden');
+        resizeCanvas();
+        startGame();
+      }
+    } else if (name === 'shop') {
+      if (screens.shop) {
+        screens.shop.classList.remove('hidden');
+        screens.shop.classList.add('active');
+        renderShop();
+      }
+    } else if (screens[name]) {
+      screens[name].classList.remove('hidden');
+      screens[name].classList.add('active');
+    }
+
+    if (name === 'mainMenu') {
+      updateProgressBars();
+      updateContinueButton();
+      updateCoinsUI();
+      renderQuests();
+    }
+  } catch (e) {
+    console.warn('Ошибка переключения экрана "' + name + '":', e);
   }
 }
 
@@ -1391,32 +1472,42 @@ function saveSettings() {
   } catch (e) {
     console.warn('Не удалось сохранить настройки:', e);
   }
-  S.difficulty = s.difficulty; S.grid = s.grid; S.theme = s.theme;
-  S.showGrid = s.showGrid; S.showTrail = s.showTrail;
-  S.baseSpeed = s.baseSpeed; S.snakeColor = s.snakeColor;
-  S.showParticles = s.particles; S.showShake = s.shake; S.vibration = s.vibration;
-  S.autoPause = s.autoPause; S.volume = s.volume;
-  S.keyBindings = s.keyBindings;
-  applyMobileSize(s.mobileSize);
-  applyMobileLayout(s.leftHanded);
-  applyHighContrast(s.highContrast);
-  applyPerformanceMode(s.performanceMode);
-  applyMobileControlMode(s.mobileControlMode);
-  applyReducedMotion(s.reducedMotion);
-  applyColorblindMarkers(s.colorblindMarkers);
-  applyUIScale(s.uiScale);
-  applyPowerupFrequency(s.powerupFrequency);
-  applyControlScheme(s.controlScheme);
-  renderKeyBindings();
+
+  try {
+    S.difficulty = s.difficulty; S.grid = s.grid; S.theme = s.theme;
+    S.showGrid = s.showGrid; S.showTrail = s.showTrail;
+    S.baseSpeed = s.baseSpeed; S.snakeColor = s.snakeColor;
+    S.showParticles = s.particles; S.showShake = s.shake; S.vibration = s.vibration;
+    S.autoPause = s.autoPause; S.volume = s.volume;
+    S.keyBindings = s.keyBindings;
+    applyMobileSize(s.mobileSize);
+    applyMobileLayout(s.leftHanded);
+    applyHighContrast(s.highContrast);
+    applyPerformanceMode(s.performanceMode);
+    applyMobileControlMode(s.mobileControlMode);
+    applyReducedMotion(s.reducedMotion);
+    applyColorblindMarkers(s.colorblindMarkers);
+    applyUIScale(s.uiScale);
+    applyPowerupFrequency(s.powerupFrequency);
+    applyControlScheme(s.controlScheme);
+    renderKeyBindings();
+  } catch (e) {
+    console.warn('Не удалось применить настройки:', e);
+  }
 
   try {
     storeSet('snakeSkinColor', s.snakeColor);
   } catch (e) {
     console.warn('Не удалось сохранить цвет змейки:', e);
   }
-  applyTheme(S.theme);
-  resizeCanvas();
-  showScreen('mainMenu');
+
+  try {
+    applyTheme(S.theme);
+    resizeCanvas();
+    showScreen('mainMenu');
+  } catch (e) {
+    console.warn('Не удалось вернуться в меню после сохранения:', e);
+  }
 }
 
 function resetSettings() {
@@ -1485,7 +1576,9 @@ function loadStats() {
     if (ui.aboutGames)   ui.aboutGames.textContent = S.gamesPlayed;
     if (ui.aboutEaten)   ui.aboutEaten.textContent = S.totalEaten;
     if (ui.aboutBest)    ui.aboutBest.textContent = S.highScore;
-  } catch (e) {}
+  } catch (e) {
+    console.warn('Не удалось прочитать статистику:', e);
+  }
 }
 
 function saveStats() {
@@ -1514,6 +1607,7 @@ function loadLeaderboard() {
     list.sort(function(a, b) { return b.score - a.score; });
     return list;
   } catch (e) {
+    console.warn('Не удалось прочитать таблицу лидеров:', e);
     return [];
   }
 }
@@ -1557,7 +1651,8 @@ var FOOD_TYPES = {
   shield: { color: '#9b59b6', glow: '#9b59b6', points: 2, grow: 1, weight: 6, label: 'SHIELD', powerup: 'shield', coins: 1 },
   magnet: { color: '#e67e22', glow: '#e67e22', points: 2, grow: 1, weight: 5, label: 'MAGNET', powerup: 'magnet', coins: 1 },
   fever:  { color: '#ffeb3b', glow: '#ff9800', points: 3, grow: 1, weight: 4, label: 'FEVER', powerup: 'fever', coins: 2 },
-  ghost:  { color: '#00d4ff', glow: '#00ffff', points: 3, grow: 1, weight: 4, label: 'GHOST', powerup: 'ghost', coins: 2 }
+  ghost:  { color: '#00d4ff', glow: '#00ffff', points: 3, grow: 1, weight: 4, label: 'GHOST', powerup: 'ghost', coins: 2 },
+  crystal:{ color: '#a8e6ff', glow: '#7ee8fa', points: 8, grow: 2, weight: 2, label: 'CRYSTAL', powerup: 'crystal', coins: 5 }
 };
 
 function pickFoodType() {
@@ -1806,7 +1901,8 @@ function updatePowerupBar() {
     { key: 'slow',   label: 'Замедление', val: S.slow,   max: 5000, cls: 'slow' },
     { key: 'magnet', label: 'Магнит',    val: S.magnet, max: 8000, cls: 'magnet' },
     { key: 'fever',  label: 'Лихорадка', val: S.fever,  max: 6000, cls: 'fever' },
-    { key: 'ghost',  label: 'Призрак',   val: S.ghost,  max: 6000, cls: 'ghost' }
+    { key: 'ghost',  label: 'Призрак',   val: S.ghost,  max: 6000, cls: 'ghost' },
+    { key: 'crystal', label: 'Кристалл', val: S.crystal, max: 8000, cls: 'crystal' }
   ];
 
   for (var i = 0; i < ups.length; i++) {
@@ -1828,6 +1924,12 @@ function updatePowerupBar() {
         chip.innerHTML = '<span>' + u.label + '</span><div class="timer-bar"><div class="timer-fill" style="width:' + pct + '%"></div></div>';
         ui.powerupBar.appendChild(chip);
 
+        if (u.key === 'crystal') {
+          chip.style.background = 'rgba(168, 230, 255, 0.25)';
+          chip.style.border = '1px solid #a8e6ff';
+          chip.style.color = '#b8ecff';
+        }
+        
         void chip.offsetWidth;
       } else {
         var fill = chip.querySelector('.timer-fill');
@@ -1866,214 +1968,236 @@ function getFrameDelay() {
 
 function loop(ts) {
   if (!S.isRunning && S.deathFragments.length === 0) return;
-  var dt = ts - lastTime;
-  lastTime = ts;
 
-  if (S.deathFragments.length > 0) {
+  try {
+    var dt = ts - lastTime;
+    lastTime = ts;
+
+    if (S.deathFragments.length > 0) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawGrid();
+      drawObstacles();
+      drawFoods();
+      updateDeathFragments();
+      drawDeathFragments();
+      drawParticles();
+      updateParticles();
+      applyShake();
+      return;
+    }
+
+    if (S.isPaused) return;
+
+    if (++S.count < getFrameDelay()) return;
+    S.count = 0;
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawGrid();
-    drawObstacles();
-    drawFoods();
-    updateDeathFragments();
-    drawDeathFragments();
-    drawParticles();
-    updateParticles();
-    applyShake();
-    requestAnimationFrame(loop);
-    return;
-  }
 
-  if (S.isPaused) { requestAnimationFrame(loop); return; }
+    if (S.isMoving) {
+      S.snake.x += S.snake.dx;
+      S.snake.y += S.snake.dy;
 
-  if (++S.count < getFrameDelay()) { requestAnimationFrame(loop); return; }
-  S.count = 0;
+      if (S.snake.x < 0)                    S.snake.x = canvas.width - S.grid;
+      else if (S.snake.x >= canvas.width)  S.snake.x = 0;
+      if (S.snake.y < 0)                    S.snake.y = canvas.height - S.grid;
+      else if (S.snake.y >= canvas.height) S.snake.y = 0;
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+      S.snake.cells.unshift({ x: S.snake.x, y: S.snake.y });
+      if (S.snake.cells.length > S.snake.maxCells) S.snake.cells.pop();
 
-  if (S.isMoving) {
-    S.snake.x += S.snake.dx;
-    S.snake.y += S.snake.dy;
-
-    if (S.snake.x < 0)                    S.snake.x = canvas.width - S.grid;
-    else if (S.snake.x >= canvas.width)  S.snake.x = 0;
-    if (S.snake.y < 0)                    S.snake.y = canvas.height - S.grid;
-    else if (S.snake.y >= canvas.height) S.snake.y = 0;
-
-    S.snake.cells.unshift({ x: S.snake.x, y: S.snake.y });
-    if (S.snake.cells.length > S.snake.maxCells) S.snake.cells.pop();
-
-    for (var i = 0; i < S.obstacles.length; i++) {
-      if (S.obstacles[i].x === S.snake.x && S.obstacles[i].y === S.snake.y) {
-        if (S.ghost > 0) continue;
-        if (S.shield > 0) {
-          S.shield = 0; shake(8);
-          spawnParticles(S.snake.x, S.snake.y, 12, '155,89,182');
-          sfx.shield();
-        } else { gameOver(); return; }
-      }
-    }
-
-    for (var j = 1; j < S.snake.cells.length; j++) {
-      if (S.snake.cells[j].x === S.snake.x && S.snake.cells[j].y === S.snake.y) {
-        if (S.ghost > 0) continue;
-        if (S.shield > 0) {
-          S.shield = 0; shake(8);
-          spawnParticles(S.snake.x, S.snake.y, 12, '155,89,182');
-          sfx.shield();
-        } else { gameOver(); return; }
-      }
-    }
-  }
-
-  if (S.magnet > 0 && S.isMoving) {
-    var hcx = S.snake.x + S.grid / 2;
-    var hcy = S.snake.y + S.grid / 2;
-
-    for (var mi = 0; mi < S.foods.length; mi++) {
-      var mf  = S.foods[mi];
-      var fcx = mf.x + S.grid / 2;
-      var fcy = mf.y + S.grid / 2;
-      var mdx = hcx - fcx;
-      var mdy = hcy - fcy;
-      var mdist = Math.sqrt(mdx * mdx + mdy * mdy);
-
-      if (mdist < 0.0001) continue;
-
-      var pullSpeed = Math.max(
-        S.grid * 0.15,
-        S.grid * 0.6 / (1 + mdist / (S.grid * 3))
-      );
-      var mstep = Math.min(pullSpeed, mdist);
-      var mnx = mdx / mdist;
-      var mny = mdy / mdist;
-
-      mf.x += mnx * mstep;
-      mf.y += mny * mstep;
-
-      for (var oi = 0; oi < S.obstacles.length; oi++) {
-        var ob  = S.obstacles[oi];
-        var ocx = ob.x + S.grid / 2;
-        var ocy = ob.y + S.grid / 2;
-        var odx = (mf.x + S.grid / 2) - ocx;
-        var ody = (mf.y + S.grid / 2) - ocy;
-        var odist = Math.sqrt(odx * odx + ody * ody) || 1;
-        var minSafe = S.grid * 1.05;
-        if (odist < minSafe) {
-          var push = (minSafe - odist) * 0.7;
-          mf.x += (odx / odist) * push;
-          mf.y += (ody / odist) * push;
+      for (var i = 0; i < S.obstacles.length; i++) {
+        if (S.obstacles[i].x === S.snake.x && S.obstacles[i].y === S.snake.y) {
+          if (S.ghost > 0 || S.crystal > 0) continue;
+          if (S.shield > 0) {
+            S.shield = 0; shake(8);
+            spawnParticles(S.snake.x, S.snake.y, 12, '155,89,182');
+            sfx.shield();
+          } else { gameOver(); return; }
         }
       }
 
-      if (mf.x < 0) mf.x = 0;
-      if (mf.y < 0) mf.y = 0;
-      if (mf.x > canvas.width  - S.grid) mf.x = canvas.width  - S.grid;
-      if (mf.y > canvas.height - S.grid) mf.y = canvas.height - S.grid;
+      for (var j = 1; j < S.snake.cells.length; j++) {
+        if (S.snake.cells[j].x === S.snake.x && S.snake.cells[j].y === S.snake.y) {
+          if (S.ghost > 0 || S.crystal > 0) continue;
+          if (S.shield > 0) {
+            S.shield = 0; shake(8);
+            spawnParticles(S.snake.x, S.snake.y, 12, '155,89,182');
+            sfx.shield();
+          } else { gameOver(); return; }
+        }
+      }
+    }
+
+    if (S.magnet > 0 && S.isMoving) {
+      var hcx = S.snake.x + S.grid / 2;
+      var hcy = S.snake.y + S.grid / 2;
+
+      for (var mi = 0; mi < S.foods.length; mi++) {
+        var mf  = S.foods[mi];
+        var fcx = mf.x + S.grid / 2;
+        var fcy = mf.y + S.grid / 2;
+        var mdx = hcx - fcx;
+        var mdy = hcy - fcy;
+        var mdist = Math.sqrt(mdx * mdx + mdy * mdy);
+
+        if (mdist < 0.0001) continue;
+
+        var pullSpeed = Math.max(
+          S.grid * 0.15,
+          S.grid * 0.6 / (1 + mdist / (S.grid * 3))
+        );
+        var mstep = Math.min(pullSpeed, mdist);
+        var mnx = mdx / mdist;
+        var mny = mdy / mdist;
+
+        mf.x += mnx * mstep;
+        mf.y += mny * mstep;
+
+        for (var oi = 0; oi < S.obstacles.length; oi++) {
+          var ob  = S.obstacles[oi];
+          var ocx = ob.x + S.grid / 2;
+          var ocy = ob.y + S.grid / 2;
+          var odx = (mf.x + S.grid / 2) - ocx;
+          var ody = (mf.y + S.grid / 2) - ocy;
+          var odist = Math.sqrt(odx * odx + ody * ody) || 1;
+          var minSafe = S.grid * 1.05;
+          if (odist < minSafe) {
+            var push = (minSafe - odist) * 0.7;
+            mf.x += (odx / odist) * push;
+            mf.y += (ody / odist) * push;
+          }
+        }
+
+        if (mf.x < 0) mf.x = 0;
+        if (mf.y < 0) mf.y = 0;
+        if (mf.x > canvas.width  - S.grid) mf.x = canvas.width  - S.grid;
+        if (mf.y > canvas.height - S.grid) mf.y = canvas.height - S.grid;
+      }
+    }
+
+    for (var fi = S.foods.length - 1; fi >= 0; fi--) {
+      var f = S.foods[fi];
+      var eatFcx = f.x + S.grid / 2;
+      var eatFcy = f.y + S.grid / 2;
+      var eatHcx = S.snake.x + S.grid / 2;
+      var eatHcy = S.snake.y + S.grid / 2;
+      var eatDx = eatFcx - eatHcx;
+      var eatDy = eatFcy - eatHcy;
+      var eatDist = Math.sqrt(eatDx * eatDx + eatDy * eatDy);
+      var eatRadius = S.grid * 0.7;
+
+      if (eatDist <= eatRadius && S.isMoving) {
+        var ft = FOOD_TYPES[f.type];
+        var multiplier = S.fever > 0 ? 3 : 1;
+        var crystalMult = S.crystal > 0 ? 2 : 1;
+        var comboMult = S.combo;
+        S.score += ft.points * comboMult * multiplier * crystalMult;
+        S.totalEaten++; sessionEaten++; S.eatenThisLevel++;
+        S.snake.maxCells += ft.grow;
+
+        var coinsEarned = ft.coins || 1;
+        if (S.fever > 0) coinsEarned *= 2;
+        if (S.crystal > 0) coinsEarned *= 2;
+        addCoins(coinsEarned);
+
+        S.combo = Math.min(S.combo + 1, 8);
+        S.maxComboThisGame = Math.max(S.maxComboThisGame, S.combo);
+        S.comboTimer = S.comboTimeout;
+
+        if (ui.combo) {
+          ui.combo.style.display = 'inline';
+          ui.comboVal.textContent = S.combo;
+          ui.combo.style.animation = 'none';
+          void ui.combo.offsetWidth;
+          ui.combo.style.animation = '';
+        }
+
+        if (ft.powerup === 'shield') { S.shield = 5000; sfx.shield(); }
+        if (ft.powerup === 'slow')    { S.slow = 5000; sfx.slow(); }
+        if (ft.powerup === 'magnet')  { S.magnet = 8000; sfx.magnet(); }
+        if (ft.powerup === 'fever') {
+          S.fever = 6000;
+          S.feverCount++;
+          sfx.fever();
+          shake(6);
+          showNotification('😵 ЛИХОРАДКА!', 'x3 очки на 6 секунд!', '😵');
+        }
+        if (ft.powerup === 'ghost') {
+          S.ghost = 6000;
+          sfx.ghost();
+          shake(4);
+          showNotification('👻 ПРИЗРАК!', 'Проходите сквозь себя и препятствия 6 секунд!', '👻');
+        }
+        if (ft.powerup === 'crystal') {
+          S.crystal = 8000;
+          S.crystalCount++;
+          sfx.crystal();
+          shake(8);
+          showNotification('💠 КРИСТАЛЛ!', 'Неуязвимость и удвоение очков на 8 секунд!', '💠');
+        }
+
+        if (f.type === 'gold') sfx.gold();
+        else if (!ft.powerup) sfx.eat();
+
+        var c = hexToRgb(ft.glow).join(',');
+        spawnParticles(f.x, f.y, f.type === 'gold' ? 16 : 10, c);
+        var label = ft.label;
+        if (S.fever > 0 && f.type !== 'fever') label += ' x3';
+        if (S.crystal > 0 && f.type !== 'crystal') label += ' x2';
+        spawnPopup(f.x, f.y, label, 'rgb(' + c + ')');
+
+        S.foods.splice(fi, 1);
+        if (S.eatenThisLevel >= S.foodPerLevel) levelUp();
+        if (ui.score) ui.score.textContent = S.score;
+
+        updateQuestProgress('eat', 1);
+        updateQuestProgress('score', ft.points * comboMult * multiplier * crystalMult);
+        updateQuestProgress('combo', 0);
+        if (S.combo >= 5) updateQuestProgress('combo', S.combo);
+        if (ft.powerup === 'fever') updateQuestProgress('fever', 1);
+
+        checkAchievements();
+      }
+    }
+
+    ensureFoods();
+
+    if (S.comboTimer > 0) {
+      S.comboTimer -= dt;
+      if (S.comboTimer <= 0) { S.combo = 1; if (ui.combo) ui.combo.style.display = 'none'; }
+    }
+
+    if (S.shield > 0) S.shield = Math.max(0, S.shield - dt);
+    if (S.slow > 0)   S.slow   = Math.max(0, S.slow - dt);
+    if (S.magnet > 0) S.magnet = Math.max(0, S.magnet - dt);
+    if (S.fever > 0)  S.fever  = Math.max(0, S.fever - dt);
+    if (S.ghost > 0)  S.ghost  = Math.max(0, S.ghost - dt);
+    if (S.crystal > 0) S.crystal = Math.max(0, S.crystal - dt);
+    updatePowerupBar();
+
+    updateTrail();
+    drawGrid();
+    drawObstacles();
+    drawFoods();
+    drawTrail();
+    drawSnake();
+    drawParticles();
+    drawPopups();
+    updateParticles();
+    updatePopups();
+    applyShake();
+
+  } catch (e) {
+    var t = now();
+    if (!loop._lastWarn || t - loop._lastWarn > 5000) {
+      loop._lastWarn = t;
+      console.warn('Ошибка в игровом цикле:', e);
+    }
+  } finally {
+    if (S.isRunning || S.deathFragments.length > 0) {
+      requestAnimationFrame(loop);
     }
   }
-
-  for (var fi = S.foods.length - 1; fi >= 0; fi--) {
-    var f = S.foods[fi];
-    var eatFcx = f.x + S.grid / 2;
-    var eatFcy = f.y + S.grid / 2;
-    var eatHcx = S.snake.x + S.grid / 2;
-    var eatHcy = S.snake.y + S.grid / 2;
-    var eatDx = eatFcx - eatHcx;
-    var eatDy = eatFcy - eatHcy;
-    var eatDist = Math.sqrt(eatDx * eatDx + eatDy * eatDy);
-    var eatRadius = S.grid * 0.7;
-
-    if (eatDist <= eatRadius && S.isMoving) {
-      var ft = FOOD_TYPES[f.type];
-      var multiplier = S.fever > 0 ? 3 : 1;
-      var comboMult = S.combo;
-      S.score += ft.points * comboMult * multiplier;
-      S.totalEaten++; sessionEaten++; S.eatenThisLevel++;
-      S.snake.maxCells += ft.grow;
-
-      var coinsEarned = ft.coins || 1;
-      if (S.fever > 0) coinsEarned *= 2;
-      addCoins(coinsEarned);
-
-      S.combo = Math.min(S.combo + 1, 8);
-      S.maxComboThisGame = Math.max(S.maxComboThisGame, S.combo);
-      S.comboTimer = S.comboTimeout;
-
-      if (ui.combo) {
-        ui.combo.style.display = 'inline';
-        ui.comboVal.textContent = S.combo;
-        ui.combo.style.animation = 'none';
-        void ui.combo.offsetWidth;
-        ui.combo.style.animation = '';
-      }
-
-      if (ft.powerup === 'shield') { S.shield = 5000; sfx.shield(); }
-      if (ft.powerup === 'slow')    { S.slow = 5000; sfx.slow(); }
-      if (ft.powerup === 'magnet')  { S.magnet = 8000; sfx.magnet(); }
-      if (ft.powerup === 'fever') {
-        S.fever = 6000;
-        S.feverCount++;
-        sfx.fever();
-        shake(6);
-        showNotification('😵 ЛИХОРАДКА!', 'x3 очки на 6 секунд!', '😵');
-      }
-      if (ft.powerup === 'ghost') {
-        S.ghost = 6000;
-        sfx.ghost();
-        shake(4);
-        showNotification('👻 ПРИЗРАК!', 'Проходите сквозь себя и препятствия 6 секунд!', '👻');
-      }
-
-      if (f.type === 'gold') sfx.gold();
-      else if (!ft.powerup) sfx.eat();
-
-      var c = hexToRgb(ft.glow).join(',');
-      spawnParticles(f.x, f.y, f.type === 'gold' ? 16 : 10, c);
-      var label = ft.label;
-      if (S.fever > 0 && f.type !== 'fever') label += ' x3';
-      spawnPopup(f.x, f.y, label, 'rgb(' + c + ')');
-
-      S.foods.splice(fi, 1);
-      if (S.eatenThisLevel >= S.foodPerLevel) levelUp();
-      if (ui.score) ui.score.textContent = S.score;
-
-      updateQuestProgress('eat', 1);
-      updateQuestProgress('score', ft.points * comboMult * multiplier);
-      updateQuestProgress('combo', 0);
-      if (S.combo >= 5) updateQuestProgress('combo', S.combo);
-      if (ft.powerup === 'fever') updateQuestProgress('fever', 1);
-
-      checkAchievements();
-    }
-  }
-
-  ensureFoods();
-
-  if (S.comboTimer > 0) {
-    S.comboTimer -= dt;
-    if (S.comboTimer <= 0) { S.combo = 1; if (ui.combo) ui.combo.style.display = 'none'; }
-  }
-
-  if (S.shield > 0) S.shield = Math.max(0, S.shield - dt);
-  if (S.slow > 0)   S.slow   = Math.max(0, S.slow - dt);
-  if (S.magnet > 0) S.magnet = Math.max(0, S.magnet - dt);
-  if (S.fever > 0)  S.fever  = Math.max(0, S.fever - dt);
-  if (S.ghost > 0)  S.ghost  = Math.max(0, S.ghost - dt);
-  updatePowerupBar();
-
-  updateTrail();
-  drawGrid();
-  drawObstacles();
-  drawFoods();
-  drawTrail();
-  drawSnake();
-  drawParticles();
-  drawPopups();
-  updateParticles();
-  updatePopups();
-  applyShake();
-
-  requestAnimationFrame(loop);
 }
 
 function drawGrid() {
@@ -2112,17 +2236,34 @@ function drawFoods() {
     var pulse = S.reducedMotion ? 1 : Math.sin(age * 4) * 0.15 + 0.85;
 
     ctx.shadowColor = ft.glow;
-    ctx.shadowBlur = f.type === 'gold' ? 16 : (f.type === 'fever' ? 20 : 8);
+    ctx.shadowBlur = f.type === 'gold' ? 16 : (f.type === 'fever' ? 20 : (f.type === 'crystal' ? 24 : 8));
     var size = (S.grid - 1) * pulse;
     var off = (S.grid - size) / 2;
 
-    if (f.type === 'fever') {
+    if (f.type === 'crystal') {
+      var ccx = f.x + S.grid / 2;
+      var ccy = f.y + S.grid / 2;
+      var rr  = size / 2;
+      ctx.save();
+      ctx.translate(ccx, ccy);
+      ctx.rotate(Math.PI / 4);
+      var grad = ctx.createLinearGradient(-rr, -rr, rr, rr);
+      grad.addColorStop(0, '#ffffff');
+      grad.addColorStop(0.5, '#a8e6ff');
+      grad.addColorStop(1, '#4fc3f7');
+      ctx.fillStyle = grad;
+      ctx.fillRect(-rr * 0.75, -rr * 0.75, rr * 1.5, rr * 1.5);
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      ctx.fillRect(-rr * 0.3, -rr * 0.3, rr * 0.6, rr * 0.6);
+      ctx.restore();
+    } else if (f.type === 'fever') {
       var flicker = S.reducedMotion ? 1 : Math.sin(age * 12) * 0.3 + 0.7;
       ctx.fillStyle = 'rgba(255, 235, 59, ' + flicker + ')';
+      ctx.fillRect(f.x + off, f.y + off, size, size);
     } else {
       ctx.fillStyle = ft.color;
+      ctx.fillRect(f.x + off, f.y + off, size, size);
     }
-    ctx.fillRect(f.x + off, f.y + off, size, size);
     ctx.shadowBlur = 0;
     ctx.shadowColor = 'transparent';
 
@@ -2134,7 +2275,7 @@ function drawFoods() {
       ctx.textBaseline = 'middle';
       ctx.lineWidth = 2;
       ctx.strokeStyle = 'rgba(0,0,0,0.8)';
-      var labels = { normal: 'N', gold: 'G', slow: 'S', shield: 'D', magnet: 'M', fever: 'F', ghost: 'P' };
+      var labels = { normal: 'N', gold: 'G', slow: 'S', shield: 'D', magnet: 'M', fever: 'F', ghost: 'P', crystal: 'C' };
       ctx.strokeText(labels[f.type] || '', f.x + S.grid / 2, f.y + S.grid / 2);
       ctx.fillText(labels[f.type] || '', f.x + S.grid / 2, f.y + S.grid / 2);
       ctx.restore();
@@ -2199,6 +2340,12 @@ function drawSnake() {
       ctx.strokeRect(c.x - 1, c.y - 1, S.grid + 1, S.grid + 1);
     }
 
+    if (S.crystal > 0) {
+      ctx.strokeStyle = 'rgba(168,230,255,' + (0.5 + Math.sin(now() / 150) * 0.3) + ')';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(c.x - 1, c.y - 1, S.grid + 1, S.grid + 1);
+    }
+
     if (S.fever > 0 && !isFlame && !isDiamond) {
       ctx.shadowColor = '#ffd700';
       ctx.shadowBlur = 15;
@@ -2259,17 +2406,21 @@ function levelUp() {
 }
 
 function startGame() {
-  resetGame();
-  S.isRunning = true;
-  S.sessionStartTime = now();
-  S.sessionCoins = 0;
+  try {
+    resetGame();
+    S.isRunning = true;
+    S.sessionStartTime = now();
+    S.sessionCoins = 0;
 
-  claimDailyReward();
-  lastTime = performance.now();
-  requestAnimationFrame(loop);
-  updateQuestProgress('games', 1);
+    claimDailyReward();
+    lastTime = performance.now();
+    requestAnimationFrame(loop);
+    updateQuestProgress('games', 1);
 
-  runCountdown();
+    runCountdown();
+  } catch (e) {
+    console.warn('Не удалось запустить игру:', e);
+  }
 }
 
 function stopGame() {
@@ -2285,7 +2436,7 @@ function resetGame() {
   S.score = 0; S.level = 1; S.eatenThisLevel = 0; S.foodPerLevel = 5;
   S.foods = []; S.obstacles = []; S.particles = []; S.popups = []; S.trail = []; S.deathFragments = [];
   S.combo = 1; S.comboTimer = 0;
-  S.shield = 0; S.slow = 0; S.magnet = 0; S.fever = 0; S.ghost = 0;
+  S.shield = 0; S.slow = 0; S.magnet = 0; S.fever = 0; S.ghost = 0; S.crystal = 0;
   S.shakeAmount = 0;
   S.isMoving = false; S.isPaused = false; S.count = 0;
   S.maxComboThisGame = 1;
@@ -2363,25 +2514,30 @@ function togglePause() {
 }
 
 function setDirection(direction) {
-  if (countdown.active) return false;
-  if (!S.isRunning || S.isPaused) return false;
+  try {
+    if (countdown.active) return false;
+    if (!S.isRunning || S.isPaused) return false;
 
-  var g = S.grid;
-  var dx = 0;
-  var dy = 0;
+    var g = S.grid;
+    var dx = 0;
+    var dy = 0;
 
-  if (direction === 'left') dx = -g;
-  if (direction === 'up') dy = -g;
-  if (direction === 'right') dx = g;
-  if (direction === 'down') dy = g;
+    if (direction === 'left') dx = -g;
+    if (direction === 'up') dy = -g;
+    if (direction === 'right') dx = g;
+    if (direction === 'down') dy = g;
 
-  if ((dx !== 0 && S.snake.dx !== 0) || (dy !== 0 && S.snake.dy !== 0)) return false;
+    if ((dx !== 0 && S.snake.dx !== 0) || (dy !== 0 && S.snake.dy !== 0)) return false;
 
-  S.snake.dx = dx;
-  S.snake.dy = dy;
-  S.isMoving = true;
-  sfx.turn();
-  return true;
+    S.snake.dx = dx;
+    S.snake.dy = dy;
+    S.isMoving = true;
+    sfx.turn();
+    return true;
+  } catch (e) {
+    console.warn('Ошибка смены направления:', e);
+    return false;
+  }
 }
 
 function flashDirectionButton(direction) {
@@ -2406,60 +2562,64 @@ function handleSwipe(dx, dy) {
   if (setDirection(direction)) flashDirectionButton(direction);
 }
 
-function handleKey(e) {
-  if (isTypingTarget(e.target)) return;
+function handleKey(event) {
+  if (isTypingTarget(event.target)) return;
 
-  if (e.which === 32) {
-    if (S.isRunning) {
-      e.preventDefault();
-      togglePause();
+  try {
+    if (event.which === 32) {
+      if (S.isRunning) {
+        event.preventDefault();
+        togglePause();
+      }
+      return;
     }
-    return;
+
+    if (!S.isRunning || S.isPaused) return;
+
+    var key   = String(event.key  || '').toLowerCase();
+    var code  = String(event.code || '');
+    var which = event.which || event.keyCode || 0;
+
+    var physKey = '';
+    if (code === 'KeyW')            physKey = 'w';
+    else if (code === 'KeyA')       physKey = 'a';
+    else if (code === 'KeyS')       physKey = 's';
+    else if (code === 'KeyD')       physKey = 'd';
+    else if (code === 'ArrowLeft')  physKey = 'arrowleft';
+    else if (code === 'ArrowUp')    physKey = 'arrowup';
+    else if (code === 'ArrowRight') physKey = 'arrowright';
+    else if (code === 'ArrowDown')  physKey = 'arrowdown';
+
+    if (!physKey) {
+      var whichMap = {
+        87: 'w', 65: 'a', 83: 's', 68: 'd',
+        37: 'arrowleft', 38: 'arrowup', 39: 'arrowright', 40: 'arrowdown'
+      };
+      physKey = whichMap[which] || '';
+    }
+
+    var direction = null;
+    var scheme = S.controlScheme || 'wasd';
+    var allowArrows = scheme === 'both' || scheme === 'arrows';
+    var allowWasd   = scheme === 'both' || scheme === 'wasd';
+
+    if (key === S.keyBindings.left  || physKey === S.keyBindings.left)   direction = 'left';
+    else if (key === S.keyBindings.up    || physKey === S.keyBindings.up)     direction = 'up';
+    else if (key === S.keyBindings.right || physKey === S.keyBindings.right)  direction = 'right';
+    else if (key === S.keyBindings.down  || physKey === S.keyBindings.down)   direction = 'down';
+    else if (allowArrows && (key === 'arrowleft'  || physKey === 'arrowleft'))  direction = 'left';
+    else if (allowArrows && (key === 'arrowup'    || physKey === 'arrowup'))    direction = 'up';
+    else if (allowArrows && (key === 'arrowright' || physKey === 'arrowright')) direction = 'right';
+    else if (allowArrows && (key === 'arrowdown'  || physKey === 'arrowdown'))  direction = 'down';
+    else if (allowWasd && (key === 'a' || physKey === 'a')) direction = 'left';
+    else if (allowWasd && (key === 'w' || physKey === 'w')) direction = 'up';
+    else if (allowWasd && (key === 'd' || physKey === 'd')) direction = 'right';
+    else if (allowWasd && (key === 's' || physKey === 's')) direction = 'down';
+
+    if (direction && setDirection(direction)) event.preventDefault();
+  } catch (e) {
+    console.warn('Ошибка обработки клавиши "' + (event.key || '?') + '":', e);
   }
-
-  if (!S.isRunning || S.isPaused) return;
-
-  var key   = String(e.key  || '').toLowerCase();
-  var code  = String(e.code || '');
-  var which = e.which || e.keyCode || 0;
-
-  var physKey = '';
-  if (code === 'KeyW')            physKey = 'w';
-  else if (code === 'KeyA')       physKey = 'a';
-  else if (code === 'KeyS')       physKey = 's';
-  else if (code === 'KeyD')       physKey = 'd';
-  else if (code === 'ArrowLeft')  physKey = 'arrowleft';
-  else if (code === 'ArrowUp')    physKey = 'arrowup';
-  else if (code === 'ArrowRight') physKey = 'arrowright';
-  else if (code === 'ArrowDown')  physKey = 'arrowdown';
-
-  if (!physKey) {
-    var whichMap = {
-      87: 'w', 65: 'a', 83: 's', 68: 'd',
-      37: 'arrowleft', 38: 'arrowup', 39: 'arrowright', 40: 'arrowdown'
-    };
-    physKey = whichMap[which] || '';
-  }
-
-  var direction = null;
-  var scheme = S.controlScheme || 'wasd';
-  var allowArrows = scheme === 'both' || scheme === 'arrows';
-  var allowWasd   = scheme === 'both' || scheme === 'wasd';
-
-  if (key === S.keyBindings.left  || physKey === S.keyBindings.left)   direction = 'left';
-  else if (key === S.keyBindings.up    || physKey === S.keyBindings.up)     direction = 'up';
-  else if (key === S.keyBindings.right || physKey === S.keyBindings.right)  direction = 'right';
-  else if (key === S.keyBindings.down  || physKey === S.keyBindings.down)   direction = 'down';
-  else if (allowArrows && (key === 'arrowleft'  || physKey === 'arrowleft'))  direction = 'left';
-  else if (allowArrows && (key === 'arrowup'    || physKey === 'arrowup'))    direction = 'up';
-  else if (allowArrows && (key === 'arrowright' || physKey === 'arrowright')) direction = 'right';
-  else if (allowArrows && (key === 'arrowdown'  || physKey === 'arrowdown'))  direction = 'down';
-  else if (allowWasd && (key === 'a' || physKey === 'a')) direction = 'left';
-  else if (allowWasd && (key === 'w' || physKey === 'w')) direction = 'up';
-  else if (allowWasd && (key === 'd' || physKey === 'd')) direction = 'right';
-  else if (allowWasd && (key === 's' || physKey === 's')) direction = 'down';
-
-  if (direction && setDirection(direction)) e.preventDefault();
 }
 
 function bindButtons() {
@@ -2483,12 +2643,16 @@ function bindButtons() {
         window.opener = null;
         window.close();
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Не удалось закрыть окно через opener:', e);
+    }
 
     try {
       window.open('', '_self', '');
       window.close();
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Не удалось закрыть окно через _self:', e);
+    }
 
     setTimeout(function() {
       if (!window.closed) {
@@ -2642,74 +2806,82 @@ function bindButtons() {
 }
 
 function handleVisibilityChange() {
-  var hidden = document.hidden || document.visibilityState === 'hidden';
+  try {
+    var hidden = document.hidden || document.visibilityState === 'hidden';
 
-  if (countdown.active) {
-    if (hidden) {
-      clearCountdownTimers();
-    } else if (S.isRunning && countdown.active) {
-      var resume = function() {
-        if (!countdown.active || !S.isRunning) { hideCountdown(); return; }
-        var value = countdown.steps[countdown.step];
-        var isGo = countdown.step === countdown.steps.length - 1;
-        showCountdownValue(value, isGo);
-        if (isGo) {
-          countdown.timerId = setTimeout(function() {
-            if (countdown.active) finishCountdown();
-          }, 650);
-          countdown.step++;
-        } else {
-          countdown.step++;
-          countdown.timerId = setTimeout(resume, 700);
-        }
-      };
-      resume();
+    if (countdown.active) {
+      if (hidden) {
+        clearCountdownTimers();
+      } else if (S.isRunning && countdown.active) {
+        var resume = function() {
+          if (!countdown.active || !S.isRunning) { hideCountdown(); return; }
+          var value = countdown.steps[countdown.step];
+          var isGo = countdown.step === countdown.steps.length - 1;
+          showCountdownValue(value, isGo);
+          if (isGo) {
+            countdown.timerId = setTimeout(function() {
+              if (countdown.active) finishCountdown();
+            }, 650);
+            countdown.step++;
+          } else {
+            countdown.step++;
+            countdown.timerId = setTimeout(resume, 700);
+          }
+        };
+        resume();
+      }
     }
-  }
 
-  if (hidden && S.autoPause && S.isRunning && !S.isPaused) {
-    S.isPaused = true;
-    if (screens.pause) screens.pause.classList.remove('hidden');
+    if (hidden && S.autoPause && S.isRunning && !S.isPaused) {
+      S.isPaused = true;
+      if (screens.pause) screens.pause.classList.remove('hidden');
+    }
+  } catch (e) {
+    console.warn('Ошибка обработки изменения видимости:', e);
   }
 }
 
 function init() {
-  createControlSchemeSetting();
-  bindButtons();
+  try {
+    createControlSchemeSetting();
+    bindButtons();
 
-  window.addEventListener('keydown', handleKeyBindingCapture, true);
-  window.addEventListener('keydown', handleKey);
-  window.addEventListener('resize', function () {
-    if (screens.game && !screens.game.classList.contains('hidden')) resizeCanvas();
-  });
-  document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('keydown', handleKeyBindingCapture, true);
+    window.addEventListener('keydown', handleKey);
+    window.addEventListener('resize', function () {
+      if (screens.game && !screens.game.classList.contains('hidden')) resizeCanvas();
+    });
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
-  loadSettings();
-  renderKeyBindings();
-  loadStats();
-  loadCoins();
-  loadPurchasedSkins();
-  loadOwnedSkins();
-  loadDailyQuests();
-  setupSkinPalette();
-  updateSkinOptionsActive();
-  updateCoinsUI();
-  renderLeaderboard();
-  renderQuests();
-  updateProgressBars();
-  updateContinueButton();
-  applyTheme(S.theme);
-  applyMobileSize(S.mobileSize);
-  applyMobileLayout(S.leftHanded);
-  applyHighContrast(S.highContrast);
-  applyPerformanceMode(S.performanceMode);
-  applyMobileControlMode(S.mobileControlMode);
-  applyReducedMotion(S.reducedMotion);
-  applyColorblindMarkers(S.colorblindMarkers);
-  applyUIScale(S.uiScale);
-  applyPowerupFrequency(S.powerupFrequency);
-  applyControlScheme(S.controlScheme || 'wasd');
-  resizeCanvas();
+    loadSettings();
+    renderKeyBindings();
+    loadStats();
+    loadCoins();
+    loadPurchasedSkins();
+    loadOwnedSkins();
+    loadDailyQuests();
+    setupSkinPalette();
+    updateSkinOptionsActive();
+    updateCoinsUI();
+    renderLeaderboard();
+    renderQuests();
+    updateProgressBars();
+    updateContinueButton();
+    applyTheme(S.theme);
+    applyMobileSize(S.mobileSize);
+    applyMobileLayout(S.leftHanded);
+    applyHighContrast(S.highContrast);
+    applyPerformanceMode(S.performanceMode);
+    applyMobileControlMode(S.mobileControlMode);
+    applyReducedMotion(S.reducedMotion);
+    applyColorblindMarkers(S.colorblindMarkers);
+    applyUIScale(S.uiScale);
+    applyPowerupFrequency(S.powerupFrequency);
+    applyControlScheme(S.controlScheme || 'wasd');
+    resizeCanvas();
+  } catch (e) {
+    console.warn('Ошибка инициализации:', e);
+  }
 }
 
 init();
@@ -2919,7 +3091,11 @@ function runCountdown() {
       var exit = document.exitFullscreen || document.webkitExitFullscreen;
       if (exit) {
         var exitResult = exit.call(document);
-        if (exitResult && exitResult.catch) exitResult.catch(function() {});
+        if (exitResult && exitResult.catch) {
+          exitResult.catch(function(e) {
+            console.warn('Не удалось выйти из полноэкранного режима:', e);
+          });
+        }
       }
       return;
     }
@@ -2932,7 +3108,8 @@ function runCountdown() {
     }
     var requestResult = request.call(root);
     if (requestResult && requestResult.catch) {
-      requestResult.catch(function() {
+      requestResult.catch(function(e) {
+        console.warn('Не удалось включить полноэкранный режим:', e);
         showNotification('Не удалось включить полный экран', 'Попробуйте нажать кнопку ещё раз');
       });
     }
@@ -3002,8 +3179,9 @@ function runCountdown() {
       try {
         if (!document.execCommand('copy')) throw new Error('copy failed');
         resolve();
-      } catch (error) {
-        reject(error);
+      } catch (e) {
+        console.warn('Копирование через execCommand не сработало:', e);
+        reject(e);
       } finally {
         area.remove();
       }
@@ -3021,8 +3199,9 @@ function runCountdown() {
     if (navigator.share) {
       navigator.share(shareData).then(function() {
         haptic(12);
-      }).catch(function(error) {
-        if (!error || error.name !== 'AbortError') {
+      }).catch(function(e) {
+        if (!e || e.name !== 'AbortError') {
+          console.warn('Не удалось поделиться через navigator.share:', e);
           showNotification('Не удалось поделиться', 'Попробуйте скопировать результат ещё раз');
         }
       });
@@ -3032,7 +3211,8 @@ function runCountdown() {
     fallbackCopy(text).then(function() {
       haptic(12);
       showNotification('Результат скопирован', 'Можно отправить его друзьям');
-    }).catch(function() {
+    }).catch(function(e) {
+      console.warn('Не удалось скопировать результат в буфер обмена:', e);
       showNotification('Скопируйте результат вручную', text.replace(/\n/g, ' · '));
     });
   }
@@ -3085,35 +3265,37 @@ function runCountdown() {
       var raw = storeGet(STORAGE_KEY);
       return raw ? JSON.parse(raw) : null;
     } catch (e) {
+      console.warn('Не удалось прочитать чекпоинт:', e);
       return null;
     }
   }
 
   function saveCheckpoint() {
-    if (!S.isRunning || !S.snake || !S.snake.cells || S.snake.cells.length === 0) return;
-    var checkpoint = {
-      snake: S.snake,
-      foods: S.foods,
-      obstacles: S.obstacles,
-      score: S.score,
-      level: S.level,
-      foodPerLevel: S.foodPerLevel,
-      eatenThisLevel: S.eatenThisLevel,
-      combo: S.combo,
-      comboTimer: S.comboTimer,
-      shield: S.shield,
-      slow: S.slow,
-      magnet: S.magnet,
-      fever: S.fever,
-      ghost: S.ghost,
-      sessionEaten: sessionEaten,
-      sessionCoins: S.sessionCoins,
-      feverCount: S.feverCount,
-      maxComboThisGame: S.maxComboThisGame,
-      savedAt: Date.now()
-    };
-
     try {
+      if (!S.isRunning || !S.snake || !S.snake.cells || S.snake.cells.length === 0) return;
+      var checkpoint = {
+        snake: S.snake,
+        foods: S.foods,
+        obstacles: S.obstacles,
+        score: S.score,
+        level: S.level,
+        foodPerLevel: S.foodPerLevel,
+        eatenThisLevel: S.eatenThisLevel,
+        combo: S.combo,
+        comboTimer: S.comboTimer,
+        shield: S.shield,
+        slow: S.slow,
+        magnet: S.magnet,
+        fever: S.fever,
+        ghost: S.ghost,
+        crystal: S.crystal,
+        crystalCount: S.crystalCount,
+        sessionEaten: sessionEaten,
+        sessionCoins: S.sessionCoins,
+        feverCount: S.feverCount,
+        maxComboThisGame: S.maxComboThisGame,
+        savedAt: Date.now()
+      };
       storeSet(STORAGE_KEY, JSON.stringify(checkpoint));
       S.hasSavedGame = true;
       updateContinueButton();
@@ -3123,7 +3305,10 @@ function runCountdown() {
   }
 
   function clearCheckpoint() {
-    try { storeRemove(STORAGE_KEY); } catch (e) {}
+    try { storeRemove(STORAGE_KEY); }
+    catch (e) {
+      console.warn('Не удалось удалить чекпоинт:', e);
+    }
     S.hasSavedGame = false;
     updateContinueButton();
   }
@@ -3142,44 +3327,51 @@ function runCountdown() {
       return;
     }
 
-    initAudio();
-    showScreen('game');
+    try {
+      initAudio();
+      showScreen('game');
 
-    S.snake = checkpoint.snake;
-    S.foods = checkpoint.foods || [];
-    S.obstacles = checkpoint.obstacles || [];
-    S.score = checkpoint.score || 0;
-    S.level = checkpoint.level || 1;
-    S.foodPerLevel = checkpoint.foodPerLevel || 5;
-    S.eatenThisLevel = checkpoint.eatenThisLevel || 0;
-    S.combo = checkpoint.combo || 1;
-    S.comboTimer = checkpoint.comboTimer || 0;
-    S.shield = checkpoint.shield || 0;
-    S.slow = checkpoint.slow || 0;
-    S.magnet = checkpoint.magnet || 0;
-    S.fever = checkpoint.fever || 0;
-    S.ghost = checkpoint.ghost || 0;
-    S.sessionCoins = checkpoint.sessionCoins || 0;
-    S.feverCount = checkpoint.feverCount || 0;
-    S.maxComboThisGame = checkpoint.maxComboThisGame || 1;
-    S.isMoving = Boolean(S.snake.dx || S.snake.dy);
-    S.isPaused = false;
-    S.isRunning = true;
-    sessionEaten = checkpoint.sessionEaten || 0;
-    lastTime = performance.now();
+      S.snake = checkpoint.snake;
+      S.foods = checkpoint.foods || [];
+      S.obstacles = checkpoint.obstacles || [];
+      S.score = checkpoint.score || 0;
+      S.level = checkpoint.level || 1;
+      S.foodPerLevel = checkpoint.foodPerLevel || 5;
+      S.eatenThisLevel = checkpoint.eatenThisLevel || 0;
+      S.combo = checkpoint.combo || 1;
+      S.comboTimer = checkpoint.comboTimer || 0;
+      S.shield = checkpoint.shield || 0;
+      S.slow = checkpoint.slow || 0;
+      S.magnet = checkpoint.magnet || 0;
+      S.fever = checkpoint.fever || 0;
+      S.ghost = checkpoint.ghost || 0;
+      S.crystal = checkpoint.crystal || 0;
+      S.crystalCount = checkpoint.crystalCount || 0;
+      S.sessionCoins = checkpoint.sessionCoins || 0;
+      S.feverCount = checkpoint.feverCount || 0;
+      S.maxComboThisGame = checkpoint.maxComboThisGame || 1;
+      S.isMoving = Boolean(S.snake.dx || S.snake.dy);
+      S.isPaused = false;
+      S.isRunning = true;
+      sessionEaten = checkpoint.sessionEaten || 0;
+      lastTime = performance.now();
 
-    hideCountdown();
+      hideCountdown();
 
-    if (ui.score) ui.score.textContent = S.score;
-    if (ui.level) ui.level.textContent = S.level;
-    if (ui.combo) {
-      ui.combo.style.display = S.combo > 1 ? 'inline' : 'none';
-      if (ui.comboVal) ui.comboVal.textContent = S.combo;
+      if (ui.score) ui.score.textContent = S.score;
+      if (ui.level) ui.level.textContent = S.level;
+      if (ui.combo) {
+        ui.combo.style.display = S.combo > 1 ? 'inline' : 'none';
+        if (ui.comboVal) ui.comboVal.textContent = S.combo;
+      }
+      updatePowerupBar();
+      if (screens.gameOver) screens.gameOver.classList.add('hidden');
+      if (screens.pause) screens.pause.classList.add('hidden');
+      showNotification('Игра восстановлена', 'Продолжаем с сохранённого места', '▶️');
+    } catch (e) {
+      console.warn('Не удалось восстановить игру:', e);
+      showNotification('Не удалось восстановить игру', 'Начните новую', '⚠️');
     }
-    updatePowerupBar();
-    if (screens.gameOver) screens.gameOver.classList.add('hidden');
-    if (screens.pause) screens.pause.classList.add('hidden');
-    showNotification('Игра восстановлена', 'Продолжаем с сохранённого места', '▶️');
   }
 
   function createContinueButton() {
@@ -3236,35 +3428,40 @@ function runCountdown() {
 
   function pollGamepads() {
     if (!navigator.getGamepads) return;
-    var pads = navigator.getGamepads();
-    var gamepad = null;
-    for (var i = 0; i < pads.length; i++) {
-      if (pads[i]) {
-        gamepad = pads[i];
-        break;
+
+    try {
+      var pads = navigator.getGamepads();
+      var gamepad = null;
+      for (var i = 0; i < pads.length; i++) {
+        if (pads[i]) { gamepad = pads[i]; break; }
       }
-    }
 
-    if (gamepad) {
-      var direction = directionFromGamepad(gamepad);
-      if (direction && direction !== lastDirection) setDirection(direction);
-      lastDirection = direction;
+      if (gamepad) {
+        var direction = directionFromGamepad(gamepad);
+        if (direction && direction !== lastDirection) setDirection(direction);
+        lastDirection = direction;
 
-      var startPressed = buttonPressed(gamepad, 9);
-      if (startPressed && !previousButtons.start) togglePause();
-      previousButtons.start = startPressed;
+        var startPressed = buttonPressed(gamepad, 9);
+        if (startPressed && !previousButtons.start) togglePause();
+        previousButtons.start = startPressed;
 
-      var turboPressed = buttonPressed(gamepad, 0);
-      if (turboPressed && !previousButtons.turbo && window.snakeActivateTurbo) {
-        window.snakeActivateTurbo();
+        var turboPressed = buttonPressed(gamepad, 0);
+        if (turboPressed && !previousButtons.turbo && window.snakeActivateTurbo) {
+          window.snakeActivateTurbo();
+        }
+        previousButtons.turbo = turboPressed;
+      } else {
+        lastDirection = null;
+        previousButtons = {};
       }
-      previousButtons.turbo = turboPressed;
-    } else {
-      lastDirection = null;
-      previousButtons = {};
+    } catch (e) {
+      if (!pollGamepads._warned) {
+        pollGamepads._warned = true;
+        console.warn('Ошибка поллинга геймпада:', e);
+      }
+    } finally {
+      gamepadPollingId = requestAnimationFrame(pollGamepads);
     }
-
-    gamepadPollingId = requestAnimationFrame(pollGamepads);
   }
 
   function startGamepadPolling() {
