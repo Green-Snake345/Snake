@@ -156,8 +156,12 @@ var ACHIEVEMENTS = {
   coins100:   { name: 'Копилка',    desc: 'Соберите 100 монет за всё время', icon: '💰' },
   diamondBuy: { name: 'Ювелир',     desc: 'Купите «Алмазный скин»',           icon: '💎' },
   flameBuy:   { name: 'Пиромант',   desc: 'Купите «Огненный скин»',           icon: '🔥' },
+<<<<<<< HEAD
   collector:  { name: '🎨 Коллекционер', desc: 'Купите 5 разных скинов в магазине', icon: '🎨' },
   crystalFind:{ name: 'Кристалл',   desc: 'Найдите кристалл в игре',           icon: '💠' }
+=======
+  collector:  { name: '🎨 Коллекционер', desc: 'Купите 5 разных скинов в магазине', icon: '🎨' }
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
 };
 
 var SKIN_CATALOG = [
@@ -234,8 +238,11 @@ var S = {
   magnet: 0,
   fever: 0,
   ghost: 0,
+<<<<<<< HEAD
   crystal: 0,
   crystalCount: 0,
+=======
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
   popups: [],
   deathFragments: [],
   maxComboThisGame: 1,
@@ -337,11 +344,14 @@ var sfx = {
   },
   ghost:   function() { beep(1200, 0.08, 'sine'); setTimeout(function() { beep(900, 0.12, 'sine'); }, 70); setTimeout(function() { beep(1400, 0.14, 'sine'); }, 150);
   },
+<<<<<<< HEAD
   crystal: function() {
     beep(1200, 0.08, 'sine');
     setTimeout(function() { beep(1600, 0.10, 'sine'); }, 60);
     setTimeout(function() { beep(2000, 0.15, 'sine'); }, 130);
   },
+=======
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
   coin:    function() { beep(1200, 0.06, 'sine', 0.6); setTimeout(function() { beep(1600, 0.08, 'sine', 0.6); }, 50); },
   levelUp: function() { beep(523, 0.1, 'triangle'); setTimeout(function() { beep(659, 0.1, 'triangle'); }, 100); setTimeout(function() { beep(784, 0.15, 'triangle'); }, 200); },
   death:   function() { beep(220, 0.3, 'sawtooth'); setTimeout(function() { beep(165, 0.4, 'sawtooth'); }, 150); },
@@ -834,7 +844,11 @@ function loadAchievements() {
     return {};
   }
 }
+<<<<<<< HEAD
 
+=======
+  
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
 
 function saveAchievement(key) {
   var ach = loadAchievements();
@@ -914,11 +928,14 @@ function checkAchievements() {
     sfx.achievement();
     showNotification(ACHIEVEMENTS.collector.name, ACHIEVEMENTS.collector.desc, '🎨');
   }
+<<<<<<< HEAD
   if (!ach.crystalFind && S.crystalCount >= 1) {
     saveAchievement('crystalFind');
     sfx.achievement();
     showNotification(ACHIEVEMENTS.crystalFind.name, ACHIEVEMENTS.crystalFind.desc, '💠');
   }
+=======
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
 }
 
 function loadCoins() {
@@ -954,6 +971,10 @@ function addCoins(amount, reason) {
     console.warn('[addCoins] Сумма должна быть > 0, получено:', amount, '| reason:', reason);
     return;
   }
+<<<<<<< HEAD
+=======
+  
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
   if (amount <= 0) return;
   S.coins += amount;
   S.totalCoins += amount;
@@ -1651,8 +1672,12 @@ var FOOD_TYPES = {
   shield: { color: '#9b59b6', glow: '#9b59b6', points: 2, grow: 1, weight: 6, label: 'SHIELD', powerup: 'shield', coins: 1 },
   magnet: { color: '#e67e22', glow: '#e67e22', points: 2, grow: 1, weight: 5, label: 'MAGNET', powerup: 'magnet', coins: 1 },
   fever:  { color: '#ffeb3b', glow: '#ff9800', points: 3, grow: 1, weight: 4, label: 'FEVER', powerup: 'fever', coins: 2 },
+<<<<<<< HEAD
   ghost:  { color: '#00d4ff', glow: '#00ffff', points: 3, grow: 1, weight: 4, label: 'GHOST', powerup: 'ghost', coins: 2 },
   crystal:{ color: '#a8e6ff', glow: '#7ee8fa', points: 8, grow: 2, weight: 2, label: 'CRYSTAL', powerup: 'crystal', coins: 5 }
+=======
+  ghost:  { color: '#00d4ff', glow: '#00ffff', points: 3, grow: 1, weight: 4, label: 'GHOST', powerup: 'ghost', coins: 2 }
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
 };
 
 function pickFoodType() {
@@ -1901,8 +1926,12 @@ function updatePowerupBar() {
     { key: 'slow',   label: 'Замедление', val: S.slow,   max: 5000, cls: 'slow' },
     { key: 'magnet', label: 'Магнит',    val: S.magnet, max: 8000, cls: 'magnet' },
     { key: 'fever',  label: 'Лихорадка', val: S.fever,  max: 6000, cls: 'fever' },
+<<<<<<< HEAD
     { key: 'ghost',  label: 'Призрак',   val: S.ghost,  max: 6000, cls: 'ghost' },
     { key: 'crystal', label: 'Кристалл', val: S.crystal, max: 8000, cls: 'crystal' }
+=======
+    { key: 'ghost',  label: 'Призрак',   val: S.ghost,  max: 6000, cls: 'ghost' }
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
   ];
 
   for (var i = 0; i < ups.length; i++) {
@@ -1924,12 +1953,15 @@ function updatePowerupBar() {
         chip.innerHTML = '<span>' + u.label + '</span><div class="timer-bar"><div class="timer-fill" style="width:' + pct + '%"></div></div>';
         ui.powerupBar.appendChild(chip);
 
+<<<<<<< HEAD
         if (u.key === 'crystal') {
           chip.style.background = 'rgba(168, 230, 255, 0.25)';
           chip.style.border = '1px solid #a8e6ff';
           chip.style.color = '#b8ecff';
         }
         
+=======
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
         void chip.offsetWidth;
       } else {
         var fill = chip.querySelector('.timer-fill');
@@ -2007,7 +2039,11 @@ function loop(ts) {
 
       for (var i = 0; i < S.obstacles.length; i++) {
         if (S.obstacles[i].x === S.snake.x && S.obstacles[i].y === S.snake.y) {
+<<<<<<< HEAD
           if (S.ghost > 0 || S.crystal > 0) continue;
+=======
+          if (S.ghost > 0) continue;
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
           if (S.shield > 0) {
             S.shield = 0; shake(8);
             spawnParticles(S.snake.x, S.snake.y, 12, '155,89,182');
@@ -2018,7 +2054,11 @@ function loop(ts) {
 
       for (var j = 1; j < S.snake.cells.length; j++) {
         if (S.snake.cells[j].x === S.snake.x && S.snake.cells[j].y === S.snake.y) {
+<<<<<<< HEAD
           if (S.ghost > 0 || S.crystal > 0) continue;
+=======
+          if (S.ghost > 0) continue;
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
           if (S.shield > 0) {
             S.shield = 0; shake(8);
             spawnParticles(S.snake.x, S.snake.y, 12, '155,89,182');
@@ -2089,15 +2129,23 @@ function loop(ts) {
       if (eatDist <= eatRadius && S.isMoving) {
         var ft = FOOD_TYPES[f.type];
         var multiplier = S.fever > 0 ? 3 : 1;
+<<<<<<< HEAD
         var crystalMult = S.crystal > 0 ? 2 : 1;
         var comboMult = S.combo;
         S.score += ft.points * comboMult * multiplier * crystalMult;
+=======
+        var comboMult = S.combo;
+        S.score += ft.points * comboMult * multiplier;
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
         S.totalEaten++; sessionEaten++; S.eatenThisLevel++;
         S.snake.maxCells += ft.grow;
 
         var coinsEarned = ft.coins || 1;
         if (S.fever > 0) coinsEarned *= 2;
+<<<<<<< HEAD
         if (S.crystal > 0) coinsEarned *= 2;
+=======
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
         addCoins(coinsEarned);
 
         S.combo = Math.min(S.combo + 1, 8);
@@ -2128,6 +2176,7 @@ function loop(ts) {
           shake(4);
           showNotification('👻 ПРИЗРАК!', 'Проходите сквозь себя и препятствия 6 секунд!', '👻');
         }
+<<<<<<< HEAD
         if (ft.powerup === 'crystal') {
           S.crystal = 8000;
           S.crystalCount++;
@@ -2135,6 +2184,8 @@ function loop(ts) {
           shake(8);
           showNotification('💠 КРИСТАЛЛ!', 'Неуязвимость и удвоение очков на 8 секунд!', '💠');
         }
+=======
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
 
         if (f.type === 'gold') sfx.gold();
         else if (!ft.powerup) sfx.eat();
@@ -2143,7 +2194,10 @@ function loop(ts) {
         spawnParticles(f.x, f.y, f.type === 'gold' ? 16 : 10, c);
         var label = ft.label;
         if (S.fever > 0 && f.type !== 'fever') label += ' x3';
+<<<<<<< HEAD
         if (S.crystal > 0 && f.type !== 'crystal') label += ' x2';
+=======
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
         spawnPopup(f.x, f.y, label, 'rgb(' + c + ')');
 
         S.foods.splice(fi, 1);
@@ -2151,7 +2205,11 @@ function loop(ts) {
         if (ui.score) ui.score.textContent = S.score;
 
         updateQuestProgress('eat', 1);
+<<<<<<< HEAD
         updateQuestProgress('score', ft.points * comboMult * multiplier * crystalMult);
+=======
+        updateQuestProgress('score', ft.points * comboMult * multiplier);
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
         updateQuestProgress('combo', 0);
         if (S.combo >= 5) updateQuestProgress('combo', S.combo);
         if (ft.powerup === 'fever') updateQuestProgress('fever', 1);
@@ -2172,7 +2230,10 @@ function loop(ts) {
     if (S.magnet > 0) S.magnet = Math.max(0, S.magnet - dt);
     if (S.fever > 0)  S.fever  = Math.max(0, S.fever - dt);
     if (S.ghost > 0)  S.ghost  = Math.max(0, S.ghost - dt);
+<<<<<<< HEAD
     if (S.crystal > 0) S.crystal = Math.max(0, S.crystal - dt);
+=======
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
     updatePowerupBar();
 
     updateTrail();
@@ -2236,6 +2297,7 @@ function drawFoods() {
     var pulse = S.reducedMotion ? 1 : Math.sin(age * 4) * 0.15 + 0.85;
 
     ctx.shadowColor = ft.glow;
+<<<<<<< HEAD
     ctx.shadowBlur = f.type === 'gold' ? 16 : (f.type === 'fever' ? 20 : (f.type === 'crystal' ? 24 : 8));
     var size = (S.grid - 1) * pulse;
     var off = (S.grid - size) / 2;
@@ -2264,6 +2326,19 @@ function drawFoods() {
       ctx.fillStyle = ft.color;
       ctx.fillRect(f.x + off, f.y + off, size, size);
     }
+=======
+    ctx.shadowBlur = f.type === 'gold' ? 16 : (f.type === 'fever' ? 20 : 8);
+    var size = (S.grid - 1) * pulse;
+    var off = (S.grid - size) / 2;
+
+    if (f.type === 'fever') {
+      var flicker = S.reducedMotion ? 1 : Math.sin(age * 12) * 0.3 + 0.7;
+      ctx.fillStyle = 'rgba(255, 235, 59, ' + flicker + ')';
+    } else {
+      ctx.fillStyle = ft.color;
+    }
+    ctx.fillRect(f.x + off, f.y + off, size, size);
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
     ctx.shadowBlur = 0;
     ctx.shadowColor = 'transparent';
 
@@ -2275,7 +2350,11 @@ function drawFoods() {
       ctx.textBaseline = 'middle';
       ctx.lineWidth = 2;
       ctx.strokeStyle = 'rgba(0,0,0,0.8)';
+<<<<<<< HEAD
       var labels = { normal: 'N', gold: 'G', slow: 'S', shield: 'D', magnet: 'M', fever: 'F', ghost: 'P', crystal: 'C' };
+=======
+      var labels = { normal: 'N', gold: 'G', slow: 'S', shield: 'D', magnet: 'M', fever: 'F', ghost: 'P' };
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
       ctx.strokeText(labels[f.type] || '', f.x + S.grid / 2, f.y + S.grid / 2);
       ctx.fillText(labels[f.type] || '', f.x + S.grid / 2, f.y + S.grid / 2);
       ctx.restore();
@@ -2340,12 +2419,15 @@ function drawSnake() {
       ctx.strokeRect(c.x - 1, c.y - 1, S.grid + 1, S.grid + 1);
     }
 
+<<<<<<< HEAD
     if (S.crystal > 0) {
       ctx.strokeStyle = 'rgba(168,230,255,' + (0.5 + Math.sin(now() / 150) * 0.3) + ')';
       ctx.lineWidth = 2;
       ctx.strokeRect(c.x - 1, c.y - 1, S.grid + 1, S.grid + 1);
     }
 
+=======
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
     if (S.fever > 0 && !isFlame && !isDiamond) {
       ctx.shadowColor = '#ffd700';
       ctx.shadowBlur = 15;
@@ -2436,7 +2518,11 @@ function resetGame() {
   S.score = 0; S.level = 1; S.eatenThisLevel = 0; S.foodPerLevel = 5;
   S.foods = []; S.obstacles = []; S.particles = []; S.popups = []; S.trail = []; S.deathFragments = [];
   S.combo = 1; S.comboTimer = 0;
+<<<<<<< HEAD
   S.shield = 0; S.slow = 0; S.magnet = 0; S.fever = 0; S.ghost = 0; S.crystal = 0;
+=======
+  S.shield = 0; S.slow = 0; S.magnet = 0; S.fever = 0; S.ghost = 0;
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
   S.shakeAmount = 0;
   S.isMoving = false; S.isPaused = false; S.count = 0;
   S.maxComboThisGame = 1;
@@ -3288,8 +3374,11 @@ function runCountdown() {
         magnet: S.magnet,
         fever: S.fever,
         ghost: S.ghost,
+<<<<<<< HEAD
         crystal: S.crystal,
         crystalCount: S.crystalCount,
+=======
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
         sessionEaten: sessionEaten,
         sessionCoins: S.sessionCoins,
         feverCount: S.feverCount,
@@ -3345,8 +3434,11 @@ function runCountdown() {
       S.magnet = checkpoint.magnet || 0;
       S.fever = checkpoint.fever || 0;
       S.ghost = checkpoint.ghost || 0;
+<<<<<<< HEAD
       S.crystal = checkpoint.crystal || 0;
       S.crystalCount = checkpoint.crystalCount || 0;
+=======
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
       S.sessionCoins = checkpoint.sessionCoins || 0;
       S.feverCount = checkpoint.feverCount || 0;
       S.maxComboThisGame = checkpoint.maxComboThisGame || 1;
@@ -3497,4 +3589,8 @@ function runCountdown() {
   }
 
   startGamepadPolling();
+<<<<<<< HEAD
 })();
+=======
+})();
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568

@@ -12,10 +12,15 @@
   var lastEaten = 0;
   var lastLevel = 1;
   var lastCoins = null;
+<<<<<<< HEAD
   var lastShopCoins = null;
   var lastActiveSkin = null;
   var isPaused = false;
   var gameRunning = false;
+=======
+  var lastActiveSkin = null;
+  var isPaused = false;
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
 
   function safe(fn) {
     try { return fn(); }
@@ -26,6 +31,7 @@
     }
   }
 
+<<<<<<< HEAD
   function normalize(props) {
     var p = props || {};
     var n = {};
@@ -54,6 +60,11 @@
   function send(event, props) {
     if (!T || typeof T.track !== 'function') return;
     safe(function () { T.track(event, normalize(props)); });
+=======
+  function send(event, props) {
+    if (!T || typeof T.track !== 'function') return;
+    safe(function () { T.track(event, props || {}); });
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
   }
 
   function $(id) { return document.getElementById(id); }
@@ -76,6 +87,7 @@
         ? performance.now()
         : Date.now();
       lastScore = 0;
+<<<<<<< HEAD
       lastEaten = 0;
       lastLevel = 1;
       isPaused = false;
@@ -89,6 +101,11 @@
         var lvl = num($('level-display'));
         if (lvl > lastLevel) lastLevel = lvl;
       }, 150);
+=======
+      lastLevel = 1;
+      isPaused = false;
+      send('game_started', { mode: opts.mode || 'classic' });
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
     });
   }
 
@@ -101,6 +118,7 @@
           : Date.now();
         duration = Math.round((now - gameStartTime) / 1000);
       }
+<<<<<<< HEAD
       gameRunning = false;
       gameStartTime = null;
 
@@ -126,6 +144,30 @@
   }
 
   function pause()  { if (isPaused || !gameRunning) return; isPaused = true;  send('game_paused'); }
+=======
+      var finalScore = num($('final-score'));
+      var finalLevel = num($('final-level'));
+      var finalEaten = num($('final-eaten'));
+      var finalCombo = text($('final-combo'));
+
+      send('game_over', {
+        score: finalScore,
+        level: finalLevel,
+        eaten: finalEaten,
+        combo: finalCombo,
+        duration: duration
+      });
+
+      if ($('new-record') && !isHidden($('new-record'))) {
+        send('new_record', { score: finalScore });
+      }
+
+      gameStartTime = null;
+    });
+  }
+
+  function pause()  { if (isPaused) return; isPaused = true;  send('game_paused'); }
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
   function resume() { if (!isPaused) return; isPaused = false; send('game_resumed'); }
   function levelUp(level) { send('level_up', { level: level }); }
   function appleEaten(score, eaten) { send('apple_eaten', { score: score, eaten: eaten }); }
@@ -201,7 +243,10 @@
     watchVisibility('pause-overlay', pause, resume);
 
     watchText('level-display', function (cur) {
+<<<<<<< HEAD
       if (!gameRunning) return;
+=======
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
       var lvl = parseInt(cur, 10);
       if (!isNaN(lvl) && lvl > lastLevel) {
         lastLevel = lvl;
@@ -210,12 +255,18 @@
     });
 
     watchText('score-display', function (cur) {
+<<<<<<< HEAD
       if (!gameRunning) return;
+=======
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
       var s = parseInt(cur, 10);
       if (isNaN(s)) return;
       if (s > lastScore) {
         lastScore = s;
+<<<<<<< HEAD
         lastEaten += 1;
+=======
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
         appleEaten(s, lastEaten);
       }
     });
@@ -229,6 +280,7 @@
       lastCoins = c;
     });
 
+<<<<<<< HEAD
     watchText('shop-coins-value', function (cur) {
       var c = parseInt(cur, 10);
       if (isNaN(c)) return;
@@ -238,6 +290,8 @@
       lastShopCoins = c;
     });
 
+=======
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
     var skins = document.querySelector('.skin-options');
     if (skins) {
       var obs = new MutationObserver(function () {
@@ -256,8 +310,11 @@
     safe(function () {
       var c = $('coins-value');
       if (c) lastCoins = parseInt(text(c), 10) || 0;
+<<<<<<< HEAD
       var sc = $('shop-coins-value');
       if (sc) lastShopCoins = parseInt(text(sc), 10) || 0;
+=======
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
       var act = document.querySelector('.skin-option.active');
       if (act) lastActiveSkin = act.getAttribute('data-id');
     });
@@ -282,4 +339,8 @@
   } else {
     safe(init);
   }
+<<<<<<< HEAD
 })();
+=======
+})();
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568

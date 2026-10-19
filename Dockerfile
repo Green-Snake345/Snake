@@ -14,4 +14,8 @@ COPY . .
 
 EXPOSE 5000
 
+<<<<<<< HEAD
 CMD ["python", "main.py"]
+=======
+CMD ["python", "main.py"]
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568

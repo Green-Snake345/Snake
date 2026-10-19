@@ -31,11 +31,14 @@ app.logger.addHandler(handler)
 app.logger.setLevel(logging.INFO)
 
 
+<<<<<<< HEAD
 def _column_exists(conn, table, column):
     cur = conn.execute(f"PRAGMA table_info({table})")
     return any(row[1] == column for row in cur.fetchall())
 
 
+=======
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     conn.executescript("""
@@ -56,6 +59,7 @@ def init_db():
             ua          TEXT,
             ip          TEXT,
             raw         TEXT,
+<<<<<<< HEAD
             created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
             eaten           INTEGER,
             combo           INTEGER,
@@ -63,11 +67,15 @@ def init_db():
             balance         INTEGER,
             skin_id         TEXT,
             previous_score  INTEGER
+=======
+            created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
         );
         CREATE INDEX IF NOT EXISTS idx_events_event   ON events(event);
         CREATE INDEX IF NOT EXISTS idx_events_created ON events(created_at DESC);
         CREATE INDEX IF NOT EXISTS idx_events_session ON events(session_id);
     """)
+<<<<<<< HEAD
 
     migrations = [
         ('eaten',          'INTEGER'),
@@ -82,6 +90,8 @@ def init_db():
             conn.execute(f"ALTER TABLE events ADD COLUMN {col} {typ}")
             app.logger.info(f"DB migration: добавлена колонка events.{col}")
 
+=======
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
     conn.commit()
     conn.close()
 
@@ -183,9 +193,14 @@ def api_track():
         conn.execute("""
             INSERT INTO events (
                 event, session_id, score, level, reason, duration, mode, platform,
+<<<<<<< HEAD
                 message, stack, context, url, ua, ip, raw,
                 eaten, combo, spent, balance, skin_id, previous_score
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+=======
+                message, stack, context, url, ua, ip, raw
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
         """, (
             _to_str(event, 64),
             _to_str(body.get('sessionId'), 64),
@@ -202,12 +217,15 @@ def api_track():
             _to_str(body.get('ua'), 300),
             _to_str(request.remote_addr, 64),
             _to_str(json.dumps(body, ensure_ascii=False), 4000),
+<<<<<<< HEAD
             _to_int(body.get('eaten')),
             _to_int(body.get('combo')),
             _to_int(body.get('spent')),
             _to_int(body.get('balance')),
             _to_str(body.get('skin_id'), 64),
             _to_int(body.get('previous_score')),
+=======
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
         ))
         conn.commit()
         conn.close()
@@ -282,6 +300,7 @@ def api_stats():
             GROUP BY platform
         """).fetchall()]
 
+<<<<<<< HEAD
         combos = dict(conn.execute("""
             SELECT
                 MAX(combo)  AS best,
@@ -318,6 +337,8 @@ def api_stats():
             LIMIT 10
         """).fetchall()]
 
+=======
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
         conn.close()
 
         return jsonify({
@@ -328,10 +349,13 @@ def api_stats():
             'topScores': top_scores,
             'errors': errors,
             'platforms': platforms,
+<<<<<<< HEAD
             'combos': combos,
             'eaten': eaten_stats,
             'shop': shop,
             'skins': skins,
+=======
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
         })
     except Exception as e:
         app.logger.exception(f"stats error: {e}")
@@ -371,4 +395,8 @@ def internal_error(error):
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', '5000'))
+<<<<<<< HEAD
     serve(app, host='0.0.0.0', port=port, threads=6, connection_limit=200, channel_timeout=30)
+=======
+    serve(app, host='0.0.0.0', port=port, threads=6, connection_limit=200, channel_timeout=30)
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568

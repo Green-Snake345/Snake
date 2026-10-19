@@ -13,7 +13,10 @@
   --orange: #e67e22;
   --fever: #ff9800;
   --ghost: #00d4ff;
+<<<<<<< HEAD
   --crystal: #a8e6ff;
+=======
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
   --canvas-bg: #050508;
 }
 
@@ -25,7 +28,10 @@ body.theme-light {
   --accent2: #6c5ce7;
   --text: #1a1a1d;
   --text-dim: #777;
+<<<<<<< HEAD
   --crystal: #2e9fd4;
+=======
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
   --canvas-bg: #f8f9fa;
 }
 
@@ -549,6 +555,7 @@ transform: translateY(-8px);
   to   { box-shadow: 0 0 20px rgba(0, 212, 255, 0.85); }
 }
 
+<<<<<<< HEAD
 .powerup-chip.crystal {
   background: rgba(168, 230, 255, .25) !important;
   color: #b8ecff !important;
@@ -572,6 +579,8 @@ transform: translateY(-8px);
   to   { opacity: 1;   box-shadow: 0 0 14px rgba(79, 195, 247, 0.9); }
 }
 
+=======
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
 .powerup-chip .timer-bar {
   width: 32px;
   height: 4px;
@@ -592,7 +601,10 @@ background: #fff;
 .powerup-chip.magnet .timer-fill { background: #fab36c; }
 .powerup-chip.fever .timer-fill  { background: #ffd54f; }
 .powerup-chip.ghost .timer-fill  { background: #7fe9ff; }
+<<<<<<< HEAD
 .powerup-chip.crystal .timer-fill { background: #b8ecff; }
+=======
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
 
 .canvas-container {
   position: relative;
@@ -1818,4 +1830,8 @@ body.performance-performance .start-countdown .countdown-tick {
 select:focus,
 input[type="range"]:focus {
   outline-color: var(--accent);
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568

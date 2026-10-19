@@ -147,4 +147,8 @@
     getSessionId: getSessionId,
     getPlatform: getPlatform
   };
+<<<<<<< HEAD
 })();
+=======
+})();
+>>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
