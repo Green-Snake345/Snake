@@ -495,6 +495,48 @@ var THEME_PALETTES = {
         accent: '#9ca3af', accent2: '#6b7280', text: '#f9fafb',
         dim: '#9ca3af', canvas: '#111827',
         background: 'linear-gradient(-45deg, #1f2937, #374151, #4b5563, #2d3748)'
+    },
+    sakura: {
+        bgDark: '#1c0f14', panel: '#2d181f', card: '#42222d',
+        accent: '#ffb7c5', accent2: '#e899bc', text: '#fff5f8',
+        dim: '#c9a5b2', canvas: '#140a0e',
+        background: 'linear-gradient(-45deg, #1c0f14, #2d181f, #4a2432, #1e1016)'
+    },
+    matcha: {
+        bgDark: '#0f1a10', panel: '#18281a', card: '#223a24',
+        accent: '#9acd7a', accent2: '#6b9e4f', text: '#f0fff0',
+        dim: '#9cb39a', canvas: '#081108',
+        background: 'linear-gradient(-45deg, #0f1a10, #18281a, #25402a, #0d180e)'
+    },
+    lavender: {
+        bgDark: '#14101f', panel: '#1e1830', card: '#2a2145',
+        accent: '#c4a7f5', accent2: '#9d7bd8', text: '#f5f0ff',
+        dim: '#a99cc4', canvas: '#0e0a18',
+        background: 'linear-gradient(-45deg, #14101f, #1e1830, #2e2450, #171228)'
+    },
+    coffee: {
+        bgDark: '#1a120b', panel: '#2a1d13', card: '#3d2a1c',
+        accent: '#c8956d', accent2: '#8b5a3c', text: '#f5e6d3',
+        dim: '#a89080', canvas: '#120c07',
+        background: 'linear-gradient(-45deg, #1a120b, #2a1d13, #3d2a1c, #1e1510)'
+    },
+    desert: {
+        bgDark: '#1a1208', panel: '#2d1f0f', card: '#3d2c18',
+        accent: '#e8a862', accent2: '#c97d3a', text: '#fff5e0',
+        dim: '#c4a882', canvas: '#120c06',
+        background: 'linear-gradient(-45deg, #1a1208, #2d1f0f, #3d2c18, #1e150a)'
+    },
+    steel: {
+        bgDark: '#0d1117', panel: '#161b22', card: '#21262d',
+        accent: '#58a6ff', accent2: '#8b949e', text: '#e6edf3',
+        dim: '#7d8590', canvas: '#010409',
+        background: 'linear-gradient(-45deg, #0d1117, #161b22, #21262d, #0f141a)'
+    },
+    onyx: {
+        bgDark: '#0b0b0d', panel: '#141416', card: '#1e1e21',
+        accent: '#b8b8c0', accent2: '#70707a', text: '#f2f2f5',
+        dim: '#7a7a85', canvas: '#050506',
+        background: 'linear-gradient(-45deg, #0b0b0d, #141416, #1e1e21, #0d0d10)'
     }
 };
 
