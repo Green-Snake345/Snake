@@ -269,8 +269,5 @@ if __name__ == "__main__":
         sys.exit(EXIT_INTERRUPTED)
     except Exception as e:
         print(c(f"[CRITICAL] непредвиденная ошибка: {e!r}", Color.ERR), file=sys.stderr)
-<<<<<<< HEAD
         sys.exit(EXIT_CRITICAL)
-=======
         sys.exit(EXIT_CRITICAL)
->>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
