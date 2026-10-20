@@ -1830,8 +1830,4 @@ body.performance-performance .start-countdown .countdown-tick {
 select:focus,
 input[type="range"]:focus {
   outline-color: var(--accent);
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
