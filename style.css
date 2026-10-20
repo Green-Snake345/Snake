@@ -547,32 +547,6 @@ transform: translateY(-8px);
   to   { box-shadow: 0 0 20px rgba(0, 212, 255, 0.85); }
 }
 
-<<<<<<< HEAD
-.powerup-chip.crystal {
-  background: rgba(168, 230, 255, .25) !important;
-  color: #b8ecff !important;
-  border: 1px solid #a8e6ff !important;
-  animation: crystalGlow 1.3s ease-in-out infinite alternate !important;
-}
-
-@keyframes crystalGlow {
-  from { box-shadow: 0 0 8px rgba(168, 230, 255, 0.4); }
-  to   { box-shadow: 0 0 22px rgba(79, 195, 247, 0.85), 0 0 34px rgba(168, 230, 255, 0.4); }
-}
-
-.dot.crystal {
-  background: linear-gradient(135deg, #ffffff, #a8e6ff, #4fc3f7);
-  box-shadow: 0 0 8px rgba(168, 230, 255, 0.7), inset 0 0 4px rgba(255, 255, 255, 0.85);
-  animation: crystalDotPulse 1.2s ease-in-out infinite alternate;
-}
-
-@keyframes crystalDotPulse {
-  from { opacity: 0.7; box-shadow: 0 0 6px rgba(168, 230, 255, 0.5); }
-  to   { opacity: 1;   box-shadow: 0 0 14px rgba(79, 195, 247, 0.9); }
-}
-
-=======
->>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
 .powerup-chip .timer-bar {
   width: 32px;
   height: 4px;
@@ -593,10 +567,6 @@ background: #fff;
 .powerup-chip.magnet .timer-fill { background: #fab36c; }
 .powerup-chip.fever .timer-fill  { background: #ffd54f; }
 .powerup-chip.ghost .timer-fill  { background: #7fe9ff; }
-<<<<<<< HEAD
-.powerup-chip.crystal .timer-fill { background: #b8ecff; }
-=======
->>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
 
 .canvas-container {
   position: relative;
