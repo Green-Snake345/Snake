@@ -180,7 +180,7 @@ var SKIN_CATALOG = [
   { id: 'lavender',   color: '#e6e6fa', name: 'Лавандовый',   price: 200 },
   { id: 'flame',      color: 'flame',   name: 'Огненный',     price: 9000 },
   { id: 'rainbow',    color: 'rainbow', name: 'Радужный',     price: 400 },
-  { id: 'diamond',    color: 'diamond', name: '💎 Алмазный',  price: 99000 }
+  { id: 'diamond',    color: 'diamond', name: '💎 Алмазный',  price: 99 }
 ];
 
 var S = {
