@@ -4,10 +4,21 @@
   var DOMAIN = 'studio.posty5.com';
   var SCRIPT_URL = 'https://plausible.io/js/plausible.js';
 
+  // === ИСПРАВЛЕННАЯ ФУНКЦИЯ TRACK EVENT ===
   window['trackEvent'] = function(name, props) {
     if (typeof window.plausible === 'function') {
       try {
-        window.plausible(name, { props: props || {} });
+        
+        var isFirst = false;
+        try {
+          if (!localStorage.getItem('snake_first_game_played')) {
+            isFirst = true;
+          }
+        } catch(e) {}
+
+        var finalProps = Object.assign({ first_game: isFirst }, props || {});
+        
+        window.plausible(name, { props: finalProps });
       } catch (e) {}
     }
   };
