@@ -53,7 +53,6 @@
       return originalStartGame.apply(this, arguments);
     };
 
-    // --- Конец игры ---
     var originalGameOver = gameOver;
     gameOver = function() {
       var isRecord = S.score > S.highScore;
@@ -97,7 +96,6 @@
       return originalGameOver.apply(this, arguments);
     };
 
-    // --- Уровень ---
     var originalLevelUp = levelUp;
     levelUp = function() {
       trackEvent('LevelUp', { level: S.level });
