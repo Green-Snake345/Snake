@@ -4,7 +4,6 @@
   var DOMAIN = 'studio.posty5.com';
   var SCRIPT_URL = 'https://plausible.io/js/plausible.js';
 
-  // === ИСПРАВЛЕННАЯ ФУНКЦИЯ TRACK EVENT ===
   window['trackEvent'] = function(name, props) {
     if (typeof window.plausible === 'function') {
       try {
@@ -17,7 +16,7 @@
         } catch(e) {}
 
         var finalProps = Object.assign({ first_game: isFirst }, props || {});
-        
+
         window.plausible(name, { props: finalProps });
       } catch (e) {}
     }
