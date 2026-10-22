@@ -1,7 +1,9 @@
 'use strict';
 
 var canvas = document.getElementById('game');
-var ctx    = canvas.getContext('2d');
+if (!canvas) console.warn('Элемент <canvas id="game" не найден')
+var ctx = canvas ? canvas.getContext('2d') : null;
+if (!ctx) console.warn('Не удалось получить 2D-контекст canvas')
 
 function el(id) {
   var e = document.getElementById(id);
@@ -297,8 +299,13 @@ function beep(f, d, t, v) {
 
 function haptic(pattern) {
   if (!S.vibration || !navigator.vibrate) return;
-  try { navigator.vibrate(pattern); } catch (e) {}
+  try {
+    navigator.vibrate(pattern);
+  } catch (e) {
+    console.warn('Вибрация недоступна:', e);
+  }
 }
+    
 
 var sfx = {
   eat:     function() { beep(660, 0.1, 'square'); },
@@ -759,16 +766,21 @@ function handleKeyBindingCapture(e) {
   renderKeyBindings();
 }
 
-function resizeCanvas() {
-  var isMobile = window.innerWidth <= 600;
-  var reservedHeight = isMobile ? 255 : 150;
-  var availableWidth = Math.max(S.grid * 10, window.innerWidth - (isMobile ? 24 : 40));
-  var availableHeight = Math.max(S.grid * 10, window.innerHeight - reservedHeight);
-  var s = Math.min(availableWidth, availableHeight, 520);
 
-  if (S.grid < 4 || S.grid > 64 || !isFinite(S.grid)) S.grid = 16;
-  canvas.width  = Math.floor(s / S.grid) * S.grid;
-  canvas.height = Math.floor(s / S.grid) * S.grid;
+function resizeCanvas() {
+  try {
+    var isMobile = window.innerWidth <= 600;
+    var reservedHeight = isMobile ? 255 : 150;
+    var availableWidth = Math.max(S.grid * 10, window.innerWidth - (isMobile ? 24 : 40));
+    var availableHeight = Math.max(S.grid * 10, window.innerHeight - reservedHeight);
+    var s = Math.min(availableWidth, availableHeight, 520);
+
+    if (S.grid < 4 || S.grid > 64 || !isFinite(S.grid)) S.grid = 16;
+    canvas.width  = Math.floor(s / S.grid) * S.grid;
+    canvas.height = Math.floor(s / S.grid) * S.grid;
+  } catch (e) {
+    console.warn('Не удалось изменить размер канваса:', e);
+  }
 }
 
 function showNotification(text, subtext, icon) {
@@ -909,6 +921,7 @@ function checkAchievements() {
   }
 }
 
+
 function loadCoins() {
   var raw = storeGet('snake-pro-coins');
   if (!raw) return;
@@ -916,7 +929,9 @@ function loadCoins() {
     var d = JSON.parse(raw);
     S.coins = d.coins || 0;
     S.totalCoins = d.total || 0;
-  } catch (e) {}
+  } catch (e) {
+    console.warn('Не удалось прочитать монеты:', e);
+  }
 }
 
 function saveCoins() {
@@ -1908,6 +1923,11 @@ function getFrameDelay() {
   b += (5 - S.baseSpeed) * 0.6;
   if (S.slow > 0) b += 4;
   if (S.fever > 0) b = Math.max(2, b - 1);
+
+  if (S.turboUntil && S.turboUntil > now()) {
+    b = Math.max(1, b - 2);
+  }
+
   return Math.max(2, b);
 }
 
@@ -2838,13 +2858,6 @@ function runCountdown() {
   S.turboUntil = 0;
   S.turboReadyAt = 0;
 
-  var regularFrameDelay = getFrameDelay;
-  getFrameDelay = function() {
-    var delay = regularFrameDelay();
-    if (S.turboUntil > now()) return Math.max(1, delay - 2);
-    return delay;
-  };
-
   function addTurboStyles() {
     if (document.getElementById('turbo-styles')) return;
     var style = document.createElement('style');
@@ -2859,8 +2872,14 @@ function runCountdown() {
   }
 
   function createTurboButton() {
+    var existing = document.getElementById('btn-turbo');
+    if (existing) {
+      turboButton = existing;
+      return;
+    }
+
     var controls = document.querySelector('.game-controls');
-    if (!controls || document.getElementById('btn-turbo')) return;
+    if (!controls) return;
 
     turboButton = document.createElement('button');
     turboButton.id = 'btn-turbo';
@@ -2868,11 +2887,19 @@ function runCountdown() {
     turboButton.className = 'btn btn-small turbo-control ready';
     turboButton.setAttribute('aria-label', 'Активировать турбо');
     turboButton.textContent = '⚡ Турбо';
-    turboButton.addEventListener('click', activateTurbo);
+
+    turboButton.addEventListener('click', function(e) {
+      e.preventDefault();
+      activateTurbo();
+    });
+
     controls.insertBefore(turboButton, ui.toMenu || null);
   }
 
   function updateTurboButton() {
+    if (!turboButton) {
+      createTurboButton();
+    }
     if (!turboButton) return;
 
     var current = now();
@@ -2896,6 +2923,13 @@ function runCountdown() {
 
     S.turboUntil = now() + TURBO_DURATION;
     S.turboReadyAt = now() + TURBO_COOLDOWN;
+
+    console.log('ТУРБО АКТИВИРОВАНО!', {
+      turboUntil: S.turboUntil,
+      duration: TURBO_DURATION,
+      currentDelay: getFrameDelay()
+    });
+
     if (typeof beep === 'function') beep(740, 0.12, 'triangle', 0.8);
     haptic([18, 35, 18]);
     updateTurboButton();
@@ -2943,7 +2977,11 @@ function runCountdown() {
   createTurboButton();
   addMobileHint();
   updateTurboButton();
-  window.setInterval(updateTurboButton, 100);
+
+  window.setInterval(function() {
+    if (!document.getElementById('btn-turbo')) createTurboButton();
+    updateTurboButton();
+  }, 100);
 })();
 
 (function addDesktopFullscreen() {
