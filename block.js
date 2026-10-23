@@ -1,5 +1,5 @@
 (function() {
-    const blockedCountries = ['UA', 'US', 'RU']; 
+    const blockedCountries = ['UA', 'US']; 
 
     fetch('https://get.geojs.io/v1/ip/country.json')
         .then(response => response.json())
