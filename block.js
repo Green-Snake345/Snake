@@ -1,19 +1,27 @@
 (function() {
     
-    const blockedCountries = ['UA', 'US', 'FI']; 
+    const blockedCountries = ['UA', 'US', 'FI', 'CN', 'JP']; 
 
     const translations = {
         'US': { 
             title: "Access Restricted", 
-            message: "Unfortunately, the game is not available in your region." 
+            message: "Unfortunately, the game is not available in your region" 
         },
         'UA': { 
             title: "Доступ обмежено", 
-            message: "На жаль, гра недоступна у вашому регіоні." 
+            message: "На жаль, гра недоступна у вашому регіоні" 
         },
         'FI': { 
             title: "Pääsy estetty", 
-            message: "Valitettavasti peli ei ole saatavilla alueellasi." 
+            message: "Valitettavasti peli ei ole saatavilla alueellasi" 
+        },
+        'CN': {
+            title: "访问受限",
+            message: "很抱歉，该游戏在您所在的地区不可用"
+        },
+        'JP': {
+            title: "アクセスが制限されています",
+            message: "申し訳ありませんが、このゲームはお住まいの地域ではご利用いただけません"
         }
     };
 
