@@ -21,7 +21,6 @@ CACHE_TIME = {
     'favicon.ico': 86400,
     'track.js': 3600,
     'analytics.js': 3600,
-    'block.js': 3600,
 }
 
 BLOCKED_COUNTRIES = {'UA', 'US', 'FI', 'CN', 'JP', 'DE', 'ME', 'NO', 'SE', 'FR'}
