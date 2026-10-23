@@ -7,7 +7,7 @@
   window['trackEvent'] = function(name, props) {
     if (typeof window.plausible === 'function') {
       try {
-        
+
         var isFirst = false;
         try {
           if (!localStorage.getItem('snake_first_game_played')) {
@@ -20,6 +20,10 @@
         window.plausible(name, { props: finalProps });
       } catch (e) {}
     }
+  };
+
+  window['trackError'] = function(code, message) {
+    trackEvent('ErrorBoundary', { error_code: code, message: message || '' });
   };
 
   function loadPlausible() {
@@ -42,6 +46,18 @@
 
     var gameStartTime = 0;
     var pauseCount = 0;
+    var pageLoadTime = Math.round(performance.now());
+
+    try {
+      var lastPlay = localStorage.getItem('snake_last_play');
+      if (lastPlay) {
+        var daysSince = Math.floor((Date.now() - parseInt(lastPlay, 10)) / (1000 * 60 * 60 * 24));
+        if (daysSince > 0) {
+          trackEvent('PlayerReturned', { days_since_last_play: daysSince });
+        }
+      }
+      localStorage.setItem('snake_last_play', Date.now().toString());
+    } catch (e) {}
 
     var originalStartGame = startGame;
     startGame = function() {
@@ -54,12 +70,17 @@
           isFirst = true;
         }
       } catch (e) {}
+
       trackEvent('GameStarted', {
         difficulty: S.difficulty,
         theme: S.theme,
         grid: S.grid,
         first_game: isFirst
       });
+
+      var currentSkin = S.currentSkin || S.skin || (S.snakeColor ? 'custom' : 'default');
+      trackEvent('SkinEquipped', { skin_id: currentSkin });
+
       return originalStartGame.apply(this, arguments);
     };
 
@@ -68,6 +89,8 @@
       var isRecord = S.score > S.highScore;
       var snakeLen = (S.snake && S.snake.length) || 0;
       var durationSec = gameStartTime ? Math.round((Date.now() - gameStartTime) / 1000) : 0;
+
+      var deathReason = S.deathReason || window.deathReason || 'unknown';
 
       trackEvent('GameOver', {
         score: S.score,
@@ -80,6 +103,8 @@
         duration_sec: durationSec,
         pause_count: pauseCount
       });
+
+      trackEvent('DeathReason', { reason: deathReason });
 
       if (isRecord) trackEvent('NewRecord', { score: S.score, level: S.level });
 
@@ -118,6 +143,74 @@
       return originalSaveAchievement.apply(this, arguments);
     };
 
+    ['collectPowerUp', 'applyPowerUp', 'usePowerUp', 'activatePowerUp'].forEach(function(funcName) {
+      if (typeof window[funcName] === 'function') {
+        var original = window[funcName];
+        window[funcName] = function(type) {
+          trackEvent('PowerUpCollected', { type: type || 'unknown', level: S.level });
+          return original.apply(this, arguments);
+        };
+      }
+    });
+
+    ['expirePowerUp', 'removePowerUp', 'deactivatePowerUp', 'resetPowerUps'].forEach(function(funcName) {
+      if (typeof window[funcName] === 'function') {
+        var original = window[funcName];
+        window[funcName] = function(type) {
+          trackEvent('PowerUpExpired', { type: type || 'unknown' });
+          return original.apply(this, arguments);
+        };
+      }
+    });
+
+    if (typeof window.snakeActivateTurbo === 'function') {
+      var originalActivateTurbo = window.snakeActivateTurbo;
+      window.snakeActivateTurbo = function() {
+        trackEvent('TurboUsed', { level: S.level, score: S.score });
+        return originalActivateTurbo.apply(this, arguments);
+      };
+    }
+
+    if (typeof window.snakeDeactivateTurbo === 'function') {
+      var originalDeactivateTurbo = window.snakeDeactivateTurbo;
+      window.snakeDeactivateTurbo = function() {
+        trackEvent('TurboDeactivated');
+        return originalDeactivateTurbo.apply(this, arguments);
+      };
+    }
+
+    if (typeof window.completeQuest === 'function') {
+      var originalCompleteQuest = window.completeQuest;
+      window.completeQuest = function(questId, reward) {
+        trackEvent('QuestCompleted', { quest_id: questId || 'unknown', reward: reward || 0 });
+        return originalCompleteQuest.apply(this, arguments);
+      };
+    }
+
+    if (typeof window.showRewardedAd === 'function') {
+      var originalShowAd = window.showRewardedAd;
+      window.showRewardedAd = function(placement) {
+        trackEvent('AdWatched', { placement: placement || 'unknown' });
+        return originalShowAd.apply(this, arguments);
+      };
+    }
+
+    if (typeof window.claimAdReward === 'function') {
+      var originalClaimAd = window.claimAdReward;
+      window.claimAdReward = function(placement) {
+        trackEvent('AdRewardClaimed', { placement: placement || 'unknown' });
+        return originalClaimAd.apply(this, arguments);
+      };
+    }
+
+    if (typeof window.buyCoins === 'function') {
+      var originalBuyCoins = window.buyCoins;
+      window.buyCoins = function(amount, price) {
+        trackEvent('IAP_Purchase', { coins: amount, price: price });
+        return originalBuyCoins.apply(this, arguments);
+      };
+    }
+
     var pauseOverlay = document.getElementById('pause-overlay');
     if (pauseOverlay) {
       var wasPaused = false;
@@ -140,14 +233,6 @@
         wasPaused = isPaused;
       });
       observer.observe(pauseOverlay, { attributes: true, attributeFilter: ['class'] });
-    }
-
-    if (typeof window.snakeActivateTurbo === 'function') {
-      var originalActivateTurbo = window.snakeActivateTurbo;
-      window.snakeActivateTurbo = function() {
-        trackEvent('TurboUsed', { level: S.level, score: S.score });
-        return originalActivateTurbo.apply(this, arguments);
-      };
     }
 
     document.addEventListener('click', function(e) {
@@ -186,15 +271,29 @@
       }
 
       if (target.id === 'btn-shop')         trackEvent('ShopOpened');
-      if (target.id === 'btn-settings')     trackEvent('SettingsOpened');
+
+      if (target.id === 'btn-settings') {
+        trackEvent('SettingsOpened');
+        
+        var gameScreen = document.getElementById('game-screen');
+        if (gameScreen && !gameScreen.classList.contains('hidden')) {
+          trackEvent('SettingsOpenedDuringGame');
+        }
+      }
+
       if (target.id === 'btn-instructions') trackEvent('InstructionsOpened');
       if (target.id === 'btn-about')        trackEvent('AboutOpened');
       if (target.id === 'btn-continue')     trackEvent('GameContinued');
+
+      if (target.closest('.leaderboard-panel') || target.id === 'btn-leaderboard') {
+        trackEvent('LeaderboardViewed');
+      }
 
       if (target.id === 'btn-restart' ||
           target.id === 'btn-restart-from-overlay') {
         trackEvent('GameRestarted', { score: S.score, level: S.level });
       }
+
       if (target.id === 'btn-to-menu' ||
           target.id === 'btn-pause-to-menu' ||
           target.id === 'btn-back-to-menu') {
@@ -203,6 +302,17 @@
           level: S.level,
           reason: target.id === 'btn-back-to-menu' ? 'game_over' : 'in_game'
         });
+      }
+
+      if (target.id === 'btn-share-score' || target.closest('.share-btn')) {
+        trackEvent('ResultShared', { score: S.score, level: S.level });
+
+        var platform = 'unknown';
+        if (target.classList.contains('share-vk') || target.closest('.share-vk')) platform = 'VK';
+        else if (target.classList.contains('share-telegram') || target.closest('.share-telegram')) platform = 'Telegram';
+        else if (target.classList.contains('share-copy') || target.closest('.share-copy')) platform = 'CopyLink';
+
+        trackEvent('ShareClicked', { platform: platform });
       }
 
       if (target.id === 'btn-save-settings') {
@@ -234,6 +344,8 @@
       if (t.id === 'speed-slider')               trackEvent('SpeedChanged', { speed: t.value });
       if (t.id === 'volume-slider')              trackEvent('VolumeChanged', { volume: t.value });
     });
+
+    trackEvent('GameLoaded', { load_time_ms: pageLoadTime });
 
     console.log(' Аналитика Plausible: перехват активирован');
   }
