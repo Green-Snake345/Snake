@@ -1,13 +1,10 @@
 'use strict';
 
 (function() {
-  var DOMAIN = 'studio.posty5.com';
-  var SCRIPT_URL = 'https://plausible.io/js/plausible.js';
-
   window['trackEvent'] = function(name, props) {
-    if (typeof window.plausible === 'function') {
+    // Проверяем, загрузился ли скрипт Umami
+    if (typeof window.umami !== 'undefined' && typeof window.umami.track === 'function') {
       try {
-
         var isFirst = false;
         try {
           if (!localStorage.getItem('snake_first_game_played')) {
@@ -15,28 +12,29 @@
           }
         } catch(e) {}
 
+        // Объединяем свойства
         var finalProps = Object.assign({ first_game: isFirst }, props || {});
+        
+        // Umami принимает только строки и числа. 
+        // Конвертируем булевы значения (true/false) в строки.
+        var sanitizedProps = {};
+        for (var key in finalProps) {
+          if (finalProps.hasOwnProperty(key)) {
+            sanitizedProps[key] = String(finalProps[key]);
+          }
+        }
 
-        window.plausible(name, { props: finalProps });
-      } catch (e) {}
+        // Отправляем событие в Umami
+        window.umami.track(name, sanitizedProps);
+      } catch (e) {
+        console.warn('Ошибка Umami:', e);
+      }
     }
   };
 
   window['trackError'] = function(code, message) {
     trackEvent('ErrorBoundary', { error_code: code, message: message || '' });
   };
-
-  function loadPlausible() {
-    if (document.querySelector('script[src*="plausible.io"]')) return;
-    var script = document.createElement('script');
-    script.defer = true;
-    script.dataset.domain = DOMAIN;
-    script.src = SCRIPT_URL;
-    script.onerror = function() {
-      console.warn('Не удалось загрузить Plausible Analytics');
-    };
-    document.body.appendChild(script);
-  }
 
   function hookGameEvents() {
     if (typeof S === 'undefined' || typeof startGame !== 'function') {
@@ -347,7 +345,7 @@
 
     trackEvent('GameLoaded', { load_time_ms: pageLoadTime });
 
-    console.log(' Аналитика Plausible: перехват активирован');
+    console.log(' Аналитика Umami: перехват активирован');
   }
 
   var sessionStart = Date.now();
@@ -375,8 +373,7 @@
     }
   });
 
-  loadPlausible();
   hookGameEvents();
 
-  console.log('Аналитика Plausible инициализирована для ' + DOMAIN);
+  console.log('Аналитика Umami инициализирована');
 })();
