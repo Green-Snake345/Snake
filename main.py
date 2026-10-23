@@ -13,7 +13,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_PATH = os.path.join(BASE_DIR, 'snake.log')
 DB_PATH = os.path.join(BASE_DIR, 'analytics.db')
 
-ALLOWED_FILES = {'index.html', 'index.js', 'style.css', 'favicon.ico', 'track.js', 'analytics.js'}
+ALLOWED_FILES = {'index.html', 'index.js', 'style.css', 'favicon.ico', 'track.js', 'analytics.js', 'block.js'}
 CACHE_TIME = {
     'index.html': 0,
     'index.js': 3600,
