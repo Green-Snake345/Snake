@@ -38,8 +38,9 @@
                 document.documentElement.style.visibility = 'visible';
             }
         })
-        .catch(error => {
-            console.log('Ошибка проверки геолокации:', error);
+        .catch(e => {
+            console.log('Ошибка проверки геолокации:', e);
+        .finally(() => {
             document.documentElement.style.visibility = 'visible';
         });
 })();
