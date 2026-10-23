@@ -33,13 +33,11 @@
                         </div>
                     </div>
                 `;
-                document.documentElement.style.visibility = 'visible';
-            } else {
-                document.documentElement.style.visibility = 'visible';
             }
         })
         .catch(e => {
             console.log('Ошибка проверки геолокации:', e);
+        })
         .finally(() => {
             document.documentElement.style.visibility = 'visible';
         });
