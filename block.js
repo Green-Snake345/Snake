@@ -8,7 +8,8 @@
         'FI': { title: "Pääsy estetty", message: "Valitettavasti peli ei ole saatavilla alueellasi" },
         'CN': { title: "访问受限", message: "很抱歉，该游戏在您所在的地区不可用" },
         'JP': { title: "アクセスが制限されています", message: "申し訳ありませんが、このゲームはお住まいの地域ではご利用いただけません" },
-        'DE': { title: "Zugriff eingeschränkt", message: "Leider ist das Spiel in Ihrer Region nicht verfügbar" }
+        'DE': { title: "Zugriff eingeschränkt", message: "Leider ist das Spiel in Ihrer Region nicht verfügbar" },
+        'ME': { title: "Pristup ograničen", message: "Nažalost, igra nije dostupna u vašoj regiji" }
     };
 
     const defaultText = { 
