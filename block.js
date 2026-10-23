@@ -1,4 +1,5 @@
 (function() {
+    
     const blockedCountries = ['UA', 'US', 'FI']; 
 
     const translations = {
