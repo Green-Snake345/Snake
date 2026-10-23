@@ -2,7 +2,7 @@
 
 (function() {
   window['trackEvent'] = function(name, props) {
-    // Проверяем, загрузился ли скрипт Umami
+    
     if (typeof window.umami !== 'undefined' && typeof window.umami.track === 'function') {
       try {
         var isFirst = false;
@@ -12,19 +12,15 @@
           }
         } catch(e) {}
 
-        // Объединяем свойства
         var finalProps = Object.assign({ first_game: isFirst }, props || {});
         
-        // Umami принимает только строки и числа. 
-        // Конвертируем булевы значения (true/false) в строки.
         var sanitizedProps = {};
         for (var key in finalProps) {
           if (finalProps.hasOwnProperty(key)) {
             sanitizedProps[key] = String(finalProps[key]);
           }
         }
-
-        // Отправляем событие в Umami
+        
         window.umami.track(name, sanitizedProps);
       } catch (e) {
         console.warn('Ошибка Umami:', e);
