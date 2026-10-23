@@ -1,7 +1,6 @@
 (function() {
     const blockedCountries = ['UA', 'US', 'FI']; 
 
-    // Словарь с переводами для заблокированных стран
     const translations = {
         'US': { 
             title: "Access Restricted", 
@@ -19,7 +18,7 @@
 
     const defaultText = { 
         title: "Доступ ограничен", 
-        message: "К сожалению, игра недоступна в вашем регионе." 
+        message: "К сожалению, игра недоступна в вашей стране" 
     };
 
     fetch('https://get.geojs.io/v1/ip/country.json')
@@ -28,7 +27,7 @@
             const country = data.country;
             
             if (blockedCountries.includes(country)) {
-                // Выбираем перевод для текущей страны (или стандартный русский)
+                
                 const text = translations[country] || defaultText;
 
                 document.documentElement.innerHTML = `
