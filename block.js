@@ -1,6 +1,6 @@
 (function() {
     
-    const blockedCountries = ['UA', 'US', 'FI', 'CN', 'JP', 'RU'];
+    const blockedCountries = ['UA', 'US', 'FI', 'CN', 'JP'];
 
     const translations = {
         'US': { title: "Access Restricted", message: "Unfortunately, the game is not available in your region" },
