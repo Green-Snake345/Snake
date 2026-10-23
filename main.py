@@ -6,12 +6,14 @@ import time
 import json
 import sqlite3
 from waitress import serve
+import requests
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_PATH = os.path.join(BASE_DIR, 'snake.log')
 DB_PATH = os.path.join(BASE_DIR, 'analytics.db')
 
-ALLOWED_FILES = {'index.html', 'index.js', 'style.css', 'favicon.ico', 'track.js', 'analytics.js'}
+ALLOWED_FILES = {'index.html', 'index.js', 'style.css', 'favicon.ico', 'track.js', 'analytics.js', 'block.js'}
 CACHE_TIME = {
     'index.html': 0,
     'index.js': 3600,
@@ -19,7 +21,10 @@ CACHE_TIME = {
     'favicon.ico': 86400,
     'track.js': 3600,
     'analytics.js': 3600,
+    'block.js': 3600,
 }
+
+BLOCKED_COUNTRIES = {'UA', 'US', 'FI', 'CN', 'JP', 'DE', 'ME', 'NO', 'SE', 'FR'}
 
 handler = RotatingFileHandler(LOG_PATH, maxBytes=1000000, backupCount=3, encoding='utf-8')
 handler.setLevel(logging.INFO)
@@ -27,18 +32,14 @@ formatter = logging.Formatter('%(asctime)s | %(levelname)s | %(message)s')
 handler.setFormatter(formatter)
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 app.logger.addHandler(handler)
 app.logger.setLevel(logging.INFO)
 
-
-<<<<<<< HEAD
 def _column_exists(conn, table, column):
     cur = conn.execute(f"PRAGMA table_info({table})")
     return any(row[1] == column for row in cur.fetchall())
 
-
-=======
->>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     conn.executescript("""
@@ -59,7 +60,6 @@ def init_db():
             ua          TEXT,
             ip          TEXT,
             raw         TEXT,
-<<<<<<< HEAD
             created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
             eaten           INTEGER,
             combo           INTEGER,
@@ -67,15 +67,11 @@ def init_db():
             balance         INTEGER,
             skin_id         TEXT,
             previous_score  INTEGER
-=======
-            created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
->>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
         );
         CREATE INDEX IF NOT EXISTS idx_events_event   ON events(event);
         CREATE INDEX IF NOT EXISTS idx_events_created ON events(created_at DESC);
         CREATE INDEX IF NOT EXISTS idx_events_session ON events(session_id);
     """)
-<<<<<<< HEAD
 
     migrations = [
         ('eaten',          'INTEGER'),
@@ -90,20 +86,15 @@ def init_db():
             conn.execute(f"ALTER TABLE events ADD COLUMN {col} {typ}")
             app.logger.info(f"DB migration: добавлена колонка events.{col}")
 
-=======
->>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
     conn.commit()
     conn.close()
 
-
 init_db()
-
 
 def db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
-
 
 def _to_int(v):
     try:
@@ -111,17 +102,33 @@ def _to_int(v):
     except (TypeError, ValueError):
         return None
 
-
 def _to_str(v, limit):
     if v is None:
         return None
     return str(v)[:limit]
 
+@app.before_request
+def block_countries():
+    ip = request.remote_addr
+
+    if ip in ('127.0.0.1', 'localhost') or ip.startswith('192.168.') or ip.startswith('10.'):
+        return
+
+    try:
+        res = requests.get(f'http://ip-api.com/json/{ip}?fields=countryCode', timeout=2)
+        if res.status_code == 200:
+            data = res.json()
+            country = data.get('countryCode', '')
+
+            if country in BLOCKED_COUNTRIES:
+                app.logger.warning(f"Заблокирован доступ из страны: {country} | IP: {ip}")
+                abort(403)
+    except Exception as e:
+        app.logger.error(f"Ошибка проверки IP: {e}")
 
 @app.before_request
 def log_request():
     request.start_time = time.time()
-
 
 @app.after_request
 def log_response(response):
@@ -131,7 +138,6 @@ def log_response(response):
         f"{request.remote_addr} | {request.method} {request.path} | "
         f"{response.status_code} | {duration*1000:.1f}ms")
     return response
-
 
 @app.after_request
 def add_security_headers(response):
@@ -147,7 +153,6 @@ def add_security_headers(response):
         "connect-src 'self';")
     return response
 
-
 def _apply_cache_headers(response, filename):
     cache_time = CACHE_TIME.get(filename, 0)
     if cache_time > 0:
@@ -156,19 +161,16 @@ def _apply_cache_headers(response, filename):
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     return response
 
-
 @app.route('/')
 def index():
     response = make_response(send_from_directory(BASE_DIR, 'index.html'))
     return _apply_cache_headers(response, 'index.html')
-
 
 @app.route('/health')
 def health():
     response = make_response(jsonify({'status': 'Окей', 'service': 'Змейка'}), 200)
     response.headers['Cache-Control'] = 'no-store'
     return response
-
 
 @app.route('/api/track', methods=['POST', 'OPTIONS'])
 def api_track():
@@ -193,14 +195,9 @@ def api_track():
         conn.execute("""
             INSERT INTO events (
                 event, session_id, score, level, reason, duration, mode, platform,
-<<<<<<< HEAD
                 message, stack, context, url, ua, ip, raw,
                 eaten, combo, spent, balance, skin_id, previous_score
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-=======
-                message, stack, context, url, ua, ip, raw
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
->>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
         """, (
             _to_str(event, 64),
             _to_str(body.get('sessionId'), 64),
@@ -217,15 +214,12 @@ def api_track():
             _to_str(body.get('ua'), 300),
             _to_str(request.remote_addr, 64),
             _to_str(json.dumps(body, ensure_ascii=False), 4000),
-<<<<<<< HEAD
             _to_int(body.get('eaten')),
             _to_int(body.get('combo')),
             _to_int(body.get('spent')),
             _to_int(body.get('balance')),
             _to_str(body.get('skin_id'), 64),
             _to_int(body.get('previous_score')),
-=======
->>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
         ))
         conn.commit()
         conn.close()
@@ -236,7 +230,6 @@ def api_track():
     finally:
         if conn:
             conn.close()
-
 
 @app.route('/api/stats', methods=['GET'])
 def api_stats():
@@ -300,7 +293,6 @@ def api_stats():
             GROUP BY platform
         """).fetchall()]
 
-<<<<<<< HEAD
         combos = dict(conn.execute("""
             SELECT
                 MAX(combo)  AS best,
@@ -337,8 +329,6 @@ def api_stats():
             LIMIT 10
         """).fetchall()]
 
-=======
->>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
         conn.close()
 
         return jsonify({
@@ -349,13 +339,10 @@ def api_stats():
             'topScores': top_scores,
             'errors': errors,
             'platforms': platforms,
-<<<<<<< HEAD
             'combos': combos,
             'eaten': eaten_stats,
             'shop': shop,
             'skins': skins,
-=======
->>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
         })
     except Exception as e:
         app.logger.exception(f"stats error: {e}")
@@ -363,7 +350,6 @@ def api_stats():
     finally:
         if conn:
             conn.close()
-
 
 @app.route('/<path:filename>')
 def static_files(filename):
@@ -376,27 +362,39 @@ def static_files(filename):
     response = make_response(send_from_directory(BASE_DIR, filename))
     return _apply_cache_headers(response, filename)
 
-
 @app.errorhandler(403)
 def forbidden(error):
-    return "Доступ запрещён", 403
-
+    html = """
+    <!DOCTYPE html>
+    <html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <title>Доступ ограничен</title>
+        <style>
+            body { display: flex; justify-content: center; align-items: center; height: 100vh; background: #0b1020; color: white; font-family: sans-serif; text-align: center; margin: 0; }
+            h1 { color: #ff4444; font-size: 32px; margin-bottom: 10px; }
+            p { font-size: 18px; opacity: 0.8; }
+        </style>
+    </head>
+    <body>
+        <div>
+            <h1>Доступ ограничен</h1>
+            <p>К сожалению, игра недоступна в вашей стране.</p>
+        </div>
+    </body>
+    </html>
+    """
+    return html, 403
 
 @app.errorhandler(404)
 def not_found(error):
     return "Файл не найден", 404
-
 
 @app.errorhandler(500)
 def internal_error(error):
     app.logger.exception("Внутренняя ошибка сервера")
     return "Ошибка сервера", 500
 
-
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', '5000'))
-<<<<<<< HEAD
     serve(app, host='0.0.0.0', port=port, threads=6, connection_limit=200, channel_timeout=30)
-=======
-    serve(app, host='0.0.0.0', port=port, threads=6, connection_limit=200, channel_timeout=30)
->>>>>>> b61c6d2fa33dcd056c48a071794ecd880a122568
