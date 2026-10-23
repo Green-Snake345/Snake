@@ -1,6 +1,6 @@
 (function() {
     
-    const blockedCountries = ['UA', 'US', 'FI', 'CN', 'JP', 'DE'];
+    const blockedCountries = ['UA', 'US', 'FI', 'CN', 'JP', 'DE', 'ME', 'NO', 'SE', 'FR'];
 
     const translations = {
         'US': { title: "Access Restricted", message: "Unfortunately, the game is not available in your region" },
@@ -9,7 +9,10 @@
         'CN': { title: "访问受限", message: "很抱歉，该游戏在您所在的地区不可用" },
         'JP': { title: "アクセスが制限されています", message: "申し訳ありませんが、このゲームはお住まいの地域ではご利用いただけません" },
         'DE': { title: "Zugriff eingeschränkt", message: "Leider ist das Spiel in Ihrer Region nicht verfügbar" },
-        'ME': { title: "Pristup ograničen", message: "Nažalost, igra nije dostupna u vašoj regiji" }
+        'ME': { title: "Pristup ograničen", message: "Nažalost, igra nije dostupna u vašoj regiji" },
+        'NO': { title: "Tilgang begrenset", message: "Dessverre er spillet ikke tilgjengelig i din region" },
+        'SE': { title: "Åtkomst begränsad", message: "Tyvärr är spelet inte tillgängligt i din region" },
+        'FR': { title: "Accès restreint", message: "Malheureusement, le jeu n'est pas disponible dans votre région" }
     };
 
     const defaultText = { 
