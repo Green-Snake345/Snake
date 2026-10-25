@@ -24,7 +24,7 @@ CACHE_TIME = {
     'block.js': 3600,
 }
 
-BLOCKED_COUNTRIES = {'UA', 'US', 'FI', 'CN', 'JP', 'DE', 'ME', 'NO', 'SE', 'FR'}
+BLOCKED_COUNTRIES = {'UA', 'US', 'FI', 'CN', 'JP', 'DE', 'ME', 'NO', 'SE', 'FR', 'BY'}
 
 handler = RotatingFileHandler(LOG_PATH, maxBytes=1000000, backupCount=3, encoding='utf-8')
 handler.setLevel(logging.INFO)
