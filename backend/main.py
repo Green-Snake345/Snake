@@ -8,6 +8,7 @@ import sqlite3
 from waitress import serve
 import requests
 from werkzeug.middleware.proxy_fix import ProxyFix
+from flask_cors import CORS
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_PATH = os.path.join(BASE_DIR, 'snake.log')
@@ -24,7 +25,7 @@ CACHE_TIME = {
     'block.js': 3600,
 }
 
-BLOCKED_COUNTRIES = {'UA', 'US', 'FI', 'CN', 'JP', 'DE', 'ME', 'NO', 'SE', 'FR', 'BY'}
+BLOCKED_COUNTRIES = {'UA', 'US', 'FI', 'CN', 'JP', 'DE', 'ME', 'NO', 'SE', 'FR', 'BY', 'PL', 'KZ', 'LT', 'LV', 'GB', 'ES', 'IT', 'NL', 'KR', 'TR', 'BR', 'CZ', 'HU', 'RO', 'GR', 'IL', 'VN', 'ID', 'CH', 'AT', 'BE', 'RS', 'HR', 'MD', 'EE', 'IE', 'DK', 'TH', 'PH', 'PT', 'PK', 'SA', 'AE', 'MX', 'IS', 'BA', 'BD', 'LK', 'MY', 'LA', 'MN', 'UZ', 'KG', 'AZ', 'GE', 'AM', 'TJ', 'TM', 'IR'}
 
 handler = RotatingFileHandler(LOG_PATH, maxBytes=1000000, backupCount=3, encoding='utf-8')
 handler.setLevel(logging.INFO)
@@ -35,6 +36,8 @@ app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 app.logger.addHandler(handler)
 app.logger.setLevel(logging.INFO)
+
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 def _column_exists(conn, table, column):
     cur = conn.execute(f"PRAGMA table_info({table})")
@@ -109,6 +112,9 @@ def _to_str(v, limit):
 
 @app.before_request
 def block_countries():
+    if request.path == '/health' or request.method == 'OPTIONS':
+        return
+
     ip = request.remote_addr
 
     if ip in ('127.0.0.1', 'localhost') or ip.startswith('192.168.') or ip.startswith('10.'):
@@ -150,7 +156,7 @@ def add_security_headers(response):
         "style-src 'self' 'unsafe-inline';"
         "img-src 'self' data:;"
         "font-src 'self';"
-        "connect-src 'self';")
+        "connect-src 'self' https://get.geojs.io;")
     return response
 
 def _apply_cache_headers(response, filename):
@@ -184,6 +190,9 @@ def api_track():
             raw = request.get_data(as_text=True) or ''
             body = json.loads(raw) if raw else {}
     except Exception:
+        body = {}
+
+    if not isinstance(body, dict):
         body = {}
 
     event = body.get('event')
@@ -222,7 +231,6 @@ def api_track():
             _to_int(body.get('previous_score')),
         ))
         conn.commit()
-        conn.close()
         return ('', 204)
     except Exception as e:
         app.logger.exception(f"track error: {e}")
@@ -379,7 +387,7 @@ def forbidden(error):
     <body>
         <div>
             <h1>Доступ ограничен</h1>
-            <p>К сожалению, игра недоступна в вашей стране.</p>
+            <p>К сожалению, игра недоступна в вашей стране</p>
         </div>
     </body>
     </html>
