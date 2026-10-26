@@ -287,9 +287,12 @@ def log_request():
 @app.after_request
 def log_response(response):
     duration = time.time() - getattr(request, 'start_time', time.time())
+    
     if request.path not in ('/favicon.ico', '/api/track') and not request.path.endswith(('.css', '.js')):
+        real_ip = _get_real_ip()
+        country = _get_country(real_ip) or "XX"
         app.logger.info(
-            f"{request.remote_addr} | {request.method} {request.path} | "
+            f"{real_ip} [{country}] | {request.method} {request.path} | "
             f"{response.status_code} | {duration * 1000:.1f}ms"
         )
     return response
@@ -392,6 +395,14 @@ def api_track():
             _to_int(body.get('previous_score')),
         ))
         conn.commit()
+
+        # Выводим в лог только важные игровые события
+        if event in ('GameStarted', 'GameOver'):
+            real_ip = _get_real_ip()
+            country = _get_country(real_ip) or "XX"
+            score_str = f" | Score: {body.get('score')}" if event == 'GameOver' else ""
+            app.logger.info(f"🎮 ИГРА: {real_ip} [{country}] | {event}{score_str}")
+
         return ('', 204)
     except Exception as e:
         app.logger.exception(f"track error: {e}")
