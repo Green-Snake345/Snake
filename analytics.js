@@ -1,30 +1,46 @@
 'use strict';
 
 (function() {
-  window['trackEvent'] = function(name, props) {
-    
-    if (typeof window.umami !== 'undefined' && typeof window.umami.track === 'function') {
-      try {
-        var isFirst = false;
-        try {
-          if (!localStorage.getItem('snake_first_game_played')) {
-            isFirst = true;
-          }
-        } catch(e) {}
 
-        var finalProps = Object.assign({ first_game: isFirst }, props || {});
-        
-        var sanitizedProps = {};
-        for (var key in finalProps) {
-          if (finalProps.hasOwnProperty(key)) {
-            sanitizedProps[key] = String(finalProps[key]);
-          }
+  var sessionId = sessionStorage.getItem('snake_session_id');
+  if (!sessionId) {
+    sessionId = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+    sessionStorage.setItem('snake_session_id', sessionId);
+  }
+
+  window['trackEvent'] = function(name, props) {
+    try {
+      var isFirst = false;
+      try {
+        if (!localStorage.getItem('snake_first_game_played')) {
+          isFirst = true;
         }
-        
-        window.umami.track(name, sanitizedProps);
-      } catch (e) {
-        console.warn('Ошибка Umami:', e);
+      } catch(e) {}
+
+      var finalProps = Object.assign({ first_game: isFirst }, props || {});
+
+      var payload = Object.assign({
+        event: name,
+        sessionId: sessionId,
+        platform: navigator.platform || 'Unknown',
+        url: window.location.href,
+        ua: navigator.userAgent
+      }, finalProps);
+
+      var data = JSON.stringify(payload);
+
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon('/api/track', new Blob([data], { type: 'application/json' }));
+      } else {
+        fetch('/api/track', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: data,
+          keepalive: true
+        }).catch(function(e) { console.warn('Ошибка отправки:', e); });
       }
+    } catch (e) {
+      console.warn('Ошибка аналитики:', e);
     }
   };
 
@@ -79,12 +95,15 @@
     };
 
     var originalGameOver = gameOver;
-    gameOver = function() {
-      var isRecord = S.score > S.highScore;
-      var snakeLen = (S.snake && S.snake.length) || 0;
-      var durationSec = gameStartTime ? Math.round((Date.now() - gameStartTime) / 1000) : 0;
+    gameOver = function(reason) {
+      var explicitReason = typeof reason === 'string' ? reason.trim().toLowerCase() : '';
+      var storedReason = typeof S.deathReason === 'string' ? S.deathReason.trim().toLowerCase() : '';
+      var globalReason = typeof window.deathReason === 'string' ? window.deathReason.trim().toLowerCase() : '';
+      var deathReason = explicitReason || storedReason || globalReason || 'unclassified';
 
-      var deathReason = S.deathReason || window.deathReason || 'unknown';
+      var isRecord = S.score > S.highScore;
+      var snakeLen = (S.snake && S.snake.cells && S.snake.cells.length) || 0;
+      var durationSec = gameStartTime ? Math.round((Date.now() - gameStartTime) / 1000) : 0;
 
       trackEvent('GameOver', {
         score: S.score,
@@ -268,7 +287,7 @@
 
       if (target.id === 'btn-settings') {
         trackEvent('SettingsOpened');
-        
+
         var gameScreen = document.getElementById('game-screen');
         if (gameScreen && !gameScreen.classList.contains('hidden')) {
           trackEvent('SettingsOpenedDuringGame');
@@ -341,7 +360,7 @@
 
     trackEvent('GameLoaded', { load_time_ms: pageLoadTime });
 
-    console.log(' Аналитика Umami: перехват активирован');
+    console.log('Аналитика: перехват активирован');
   }
 
   var sessionStart = Date.now();
@@ -371,5 +390,5 @@
 
   hookGameEvents();
 
-  console.log('Аналитика Umami инициализирована');
+  console.log('Аналитика инициализирована');
 })();
