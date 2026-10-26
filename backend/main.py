@@ -38,7 +38,12 @@ BLOCKED_COUNTRIES = {
     'KZ', 'LT', 'LV', 'GB', 'ES', 'IT', 'NL', 'KR', 'TR', 'BR', 'CZ', 'HU',
     'RO', 'GR', 'IL', 'VN', 'ID', 'CH', 'AT', 'BE', 'RS', 'HR', 'MD', 'EE',
     'IE', 'DK', 'TH', 'PH', 'PT', 'PK', 'SA', 'AE', 'MX', 'IS', 'BA', 'BD',
-    'LK', 'MY', 'LA', 'MN', 'UZ', 'KG', 'AZ', 'GE', 'AM', 'TJ', 'TM', 'IR'
+    'LK', 'MY', 'LA', 'MN', 'UZ', 'KG', 'AZ', 'GE', 'AM', 'TJ', 'TM', 'IR',
+    'DZ', 'AO', 'BJ', 'BW', 'BF', 'BI', 'CV', 'CM', 'CF', 'TD', 'KM', 'CG',
+    'CD', 'CI', 'DJ', 'EG', 'GQ', 'ER', 'SZ', 'ET', 'GA', 'GM', 'GH', 'GN',
+    'GW', 'KE', 'LS', 'LR', 'LY', 'MG', 'MW', 'ML', 'MR', 'MU', 'MA', 'MZ',
+    'NA', 'NE', 'NG', 'RW', 'ST', 'SN', 'SC', 'SL', 'SO', 'ZA', 'SS', 'SD',
+    'TZ', 'TG', 'TN', 'UG', 'ZM', 'ZW', 'EH', 'RE', 'YT', 'SH'
 }
 
 WHITE_COUNTRIES = {'RU'}
@@ -265,12 +270,10 @@ def block_countries():
         return
 
     country = _get_country(ip)
-    
-    # Сначала проверяем белый список
+
     if country and country in WHITE_COUNTRIES:
         return
-        
-    # Если страны нет в белом списке, проверяем черный
+
     if country and country in BLOCKED_COUNTRIES:
         app.logger.warning(f"Заблокирован доступ из страны: {country} | IP: {ip}")
         abort(403)
