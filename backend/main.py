@@ -43,7 +43,8 @@ BLOCKED_COUNTRIES = {
     'CD', 'CI', 'DJ', 'EG', 'GQ', 'ER', 'SZ', 'ET', 'GA', 'GM', 'GH', 'GN',
     'GW', 'KE', 'LS', 'LR', 'LY', 'MG', 'MW', 'ML', 'MR', 'MU', 'MA', 'MZ',
     'NA', 'NE', 'NG', 'RW', 'ST', 'SN', 'SC', 'SL', 'SO', 'ZA', 'SS', 'SD',
-    'TZ', 'TG', 'TN', 'UG', 'ZM', 'ZW', 'EH', 'RE', 'YT', 'SH'
+    'TZ', 'TG', 'TN', 'UG', 'ZM', 'ZW', 'EH', 'RE', 'YT', 'SH', 'CU', 'AR',
+    'VE', 'KR', 'KP'
 }
 
 WHITE_COUNTRIES = {'RU'}
@@ -118,6 +119,7 @@ DEFAULT_FORBIDDEN_TEXT = (
 
 GEO_API_TIMEOUT = 2
 GEO_CACHE_TTL = 3600
+GEO_ERROR_TTL = 300
 
 handler = RotatingFileHandler(LOG_PATH, maxBytes=1000000, backupCount=3, encoding='utf-8')
 handler.setLevel(logging.INFO)
@@ -237,11 +239,17 @@ def _is_private_ip(ip):
 
 
 def _get_country(ip):
+    if not ip or _is_private_ip(ip):
+        return "XX"
     now = time.time()
+
     with _geo_lock:
         cached = _geo_cache.get(ip)
         if cached and cached[1] > now:
             return cached[0]
+
+    country = None
+
     try:
         res = _geo_session.get(
             f'http://ip-api.com/json/{ip}?fields=countryCode',
@@ -249,12 +257,29 @@ def _get_country(ip):
         )
         if res.status_code == 200:
             country = (res.json().get('countryCode') or '').upper()
-            with _geo_lock:
-                _geo_cache[ip] = (country, now + GEO_CACHE_TTL)
-            return country
-    except Exception as e:
-        app.logger.error(f"Ошибка проверки IP {ip}: {e}")
-    return None
+    except requests.exceptions.ConnectionError as e:
+        app.logger.info(f"DNS/Сеть: Не удалось достучаться до ip-api.com для {ip} ({e})")
+    except requests.exceptions.Timeout:
+        app.logger.info(f"Таймаут при запросе к ip-api.com для {ip}")
+    except requests.exceptions.RequestException as e:
+        app.logger.info(f"Ошибка запроса к ip-api.com для {ip}: {e}")
+
+    if not country:
+        try:
+            res = _geo_session.get(
+                f'https://get.geojs.io/v1/ip/country/{ip}.json',
+                timeout=GEO_API_TIMEOUT,
+            )
+            if res.status_code == 200:
+                country = (res.json().get('country') or '').upper()
+        except requests.exceptions.RequestException:
+            pass
+
+    with _geo_lock:
+        ttl = GEO_CACHE_TTL if country else GEO_ERROR_TTL
+        _geo_cache[ip] = (country, now + ttl)
+
+    return country
 
 
 @app.before_request
@@ -287,7 +312,7 @@ def log_request():
 @app.after_request
 def log_response(response):
     duration = time.time() - getattr(request, 'start_time', time.time())
-    
+
     if request.path not in ('/favicon.ico', '/api/track') and not request.path.endswith(('.css', '.js')):
         real_ip = _get_real_ip()
         country = _get_country(real_ip) or "XX"
@@ -396,7 +421,6 @@ def api_track():
         ))
         conn.commit()
 
-        # Выводим в лог только важные игровые события
         if event in ('GameStarted', 'GameOver'):
             real_ip = _get_real_ip()
             country = _get_country(real_ip) or "XX"
