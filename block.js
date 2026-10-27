@@ -11,7 +11,8 @@
         'CD', 'CI', 'DJ', 'EG', 'GQ', 'ER', 'SZ', 'ET', 'GA', 'GM', 'GH', 'GN', 
         'GW', 'KE', 'LS', 'LR', 'LY', 'MG', 'MW', 'ML', 'MR', 'MU', 'MA', 'MZ', 
         'NA', 'NE', 'NG', 'RW', 'ST', 'SN', 'SC', 'SL', 'SO', 'ZA', 'SS', 'SD', 
-        'TZ', 'TG', 'TN', 'UG', 'ZM', 'ZW', 'EH', 'RE', 'YT', 'SH'
+        'TZ', 'TG', 'TN', 'UG', 'ZM', 'ZW', 'EH', 'RE', 'YT', 'SH', 'BG', 'CU',
+        'AR', 'VE', 'KR', 'KP'
     ]);
 
     const translations = {
@@ -43,6 +44,7 @@
         'NL': { title: "Toegang beperkt", message: "Helaas is de game niet beschikbaar in jouw regio" },
         'BE': { title: "Toegang beperkt", message: "Helaas is de game niet beschikbaar in jouw regio" },
         'KR': { title: "접근 제한됨", message: "죄송합니다. 이 게임은 귀하의 지역에서 이용할 수 없습니다" },
+        'KP': { title: "접근 제한됨", message: "죄송합니다. 이 게임은 귀하의 지역에서 이용할 수 없습니다" },
         'TR': { title: "Erişim Kısıtlandı", message: "Ne yazık ki, oyun bölgenizde mevcut değil" },
         'BR': { title: "Acesso Restrito", message: "Infelizmente, o jogo não está disponível na sua região" },
         'PT': { title: "Acesso restrito", message: "Infelizmente, o jogo não está disponível na sua região" },
@@ -130,7 +132,11 @@
         'UG': { title: "Access Restricted", message: "Unfortunately, the game is not available in your region" },
         'ZM': { title: "Access Restricted", message: "Unfortunately, the game is not available in your region" },
         'ZW': { title: "Access Restricted", message: "Unfortunately, the game is not available in your region" },
-        'SH': { title: "Access Restricted", message: "Unfortunately, the game is not available in your region" }
+        'SH': { title: "Access Restricted", message: "Unfortunately, the game is not available in your region" },
+        'BG': { title: "Достъпът е ограничен", message: "За съжаление играта не е налична във вашия регион" },
+        'CU': { title: "Access Restricted", message: "Unfortunately, the game is not available in your region" },
+        'AR': { title: "Acceso Restringido", message: "Lamentablemente, el juego no está disponible en tu región" },
+        'VE': { title: "Acceso Restringido", message: "Lamentablemente, el juego no está disponible en tu región" }
     };
 
     const defaultText = {
