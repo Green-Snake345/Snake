@@ -1,25 +1,27 @@
-from flask import Flask, send_from_directory, abort, request, make_response, jsonify, session
+from flask import Flask, send_from_directory, abort, request, make_response, jsonify
 import logging
 from logging.handlers import RotatingFileHandler
-from datetime import timedelta
 import os
 import time
 import json
 import sqlite3
 import ipaddress
-import hmac
 import threading
-from waitress import serve
 import requests
-from werkzeug.middleware.proxy_fix import ProxyFix
+from waitress import serve
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-LOG_PATH = os.path.join(BASE_DIR, 'snake.log')
-DB_PATH = os.path.join(BASE_DIR, 'analytics.db')
-ADMIN_TOKEN = os.environ.get('ADMIN_TOKEN', '')
-SESSION_SECRET = os.environ.get('SESSION_SECRET', '')
 
-ALLOWED_FILES = {'index.html', 'index.js', 'style.css', 'favicon.ico', 'track.js', 'analytics.js', 'block.js', 'admin.html', 'admin.css', 'admin.js'}
+if os.path.exists('/data') and os.access('/data', os.W_OK):
+    DATA_DIR = '/data'
+else:
+    DATA_DIR = BASE_DIR
+
+os.makedirs(DATA_DIR, exist_ok=True)
+LOG_PATH = os.path.join(DATA_DIR, 'snake.log')
+DB_PATH = os.path.join(DATA_DIR, 'analytics.db')
+
+ALLOWED_FILES = {'index.html', 'index.js', 'style.css', 'favicon.ico', 'track.js', 'analytics.js', 'block.js'}
 CACHE_TIME = {
     'index.html': 0,
     'index.js': 3600,
@@ -28,9 +30,6 @@ CACHE_TIME = {
     'track.js': 3600,
     'analytics.js': 3600,
     'block.js': 3600,
-    'admin.html': 0,
-    'admin.css': 3600,
-    'admin.js': 0,
 }
 
 BLOCKED_COUNTRIES = {
@@ -44,7 +43,7 @@ BLOCKED_COUNTRIES = {
     'GW', 'KE', 'LS', 'LR', 'LY', 'MG', 'MW', 'ML', 'MR', 'MU', 'MA', 'MZ',
     'NA', 'NE', 'NG', 'RW', 'ST', 'SN', 'SC', 'SL', 'SO', 'ZA', 'SS', 'SD',
     'TZ', 'TG', 'TN', 'UG', 'ZM', 'ZW', 'EH', 'RE', 'YT', 'SH', 'CU', 'AR',
-    'VE', 'KR', 'KP'
+    'VE', 'KP'
 }
 
 WHITE_COUNTRIES = {'RU'}
@@ -110,6 +109,8 @@ FORBIDDEN_TRANSLATIONS = {
     'TJ': ('Дастрасӣ маҳдуд аст', 'Мутаассифона, бозӣ дар минтақаи шумо дастрас нест'),
     'TM': ('Giriş çäklendirilen', 'Gynansak-da, oýun sebitiňizde elýeterli däl'),
     'IR': ('دسترسی محدود شده است', 'متأسفانه، بازی در منطقه شما در دسترس نیست'),
+    'VE': ('Acceso Restringido', 'Lamentablemente, el juego no está disponible en tu región'),
+    'KP': ('접근 제한됨', '죄송합니다. 이 게임은 귀하의 지역에서 이용할 수 없습니다'),
 }
 
 DEFAULT_FORBIDDEN_TEXT = (
@@ -126,19 +127,14 @@ handler.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s | %(levelname)s | %(message)s')
 handler.setFormatter(formatter)
 
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+console_handler.setFormatter(formatter)
+
 app = Flask(__name__)
-app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
-app.secret_key = SESSION_SECRET or None
-app.config.update(
-    SESSION_COOKIE_NAME='snake_admin_session',
-    SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SECURE=True,
-    SESSION_COOKIE_SAMESITE='Lax',
-    PERMANENT_SESSION_LIFETIME=timedelta(days=3650),
-)
 app.logger.addHandler(handler)
+app.logger.addHandler(console_handler)
 app.logger.setLevel(logging.INFO)
-app.config['MAX_CONTENT_LENGTH'] = 64 * 1024
 
 _geo_session = requests.Session()
 _geo_cache = {}
@@ -155,7 +151,6 @@ def _get_real_ip():
 def _column_exists(conn, table, column):
     cur = conn.execute(f"PRAGMA table_info({table})")
     return any(row[1] == column for row in cur.fetchall())
-
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
@@ -208,7 +203,13 @@ def init_db():
     conn.close()
 
 
-init_db()
+try:
+    init_db()
+    print("База данных инициализирована успешно")
+except Exception as e:
+    print(f"Ошибка инициализации БД: {e}")
+    import traceback
+    traceback.print_exc()
 
 
 def db():
@@ -287,7 +288,7 @@ def block_countries():
     if request.path == '/health' or request.method == 'OPTIONS':
         return
 
-    if request.path != '/' and not request.path.startswith('/api/') and request.path != '/admin':
+    if request.path != '/' and not request.path.startswith('/api/') :
         return
 
     ip = _get_real_ip()
@@ -306,7 +307,7 @@ def block_countries():
 
 @app.before_request
 def log_request():
-    request.start_time = time.time()
+    setattr(request, 'start_time', time.time())
 
 
 @app.after_request
@@ -353,18 +354,15 @@ def index():
     return _apply_cache_headers(response, 'index.html')
 
 
-@app.route('/admin')
-def admin():
-    response = make_response(send_from_directory(BASE_DIR, 'admin.html'))
-    return _apply_cache_headers(response, 'admin.html')
-
-
 @app.route('/health')
 def health():
     response = make_response(jsonify({'status': 'Окей', 'service': 'Змейка'}), 200)
     response.headers['Cache-Control'] = 'no-store'
     return response
 
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(BASE_DIR, 'favicon.ico', mimetype='image/x-icon')
 
 @app.route('/api/track', methods=['POST', 'OPTIONS'])
 def api_track():
@@ -434,171 +432,7 @@ def api_track():
     finally:
         if conn:
             conn.close()
-
-
-@app.route('/api/admin/login', methods=['POST'])
-def api_admin_login():
-    if not ADMIN_TOKEN:
-        abort(404)
-    if not SESSION_SECRET:
-        return jsonify({'error': 'session_unavailable'}), 503
-
-    payload = request.get_json(silent=True) or {}
-    provided_token = payload.get('token')
-    if not isinstance(provided_token, str) or not hmac.compare_digest(provided_token, ADMIN_TOKEN):
-        return jsonify({'error': 'unauthorized'}), 401
-
-    session.clear()
-    session['admin_authenticated'] = True
-    session.permanent = True
-    return jsonify({'ok': True})
-
-
-@app.route('/api/admin/logout', methods=['POST'])
-def api_admin_logout():
-    if SESSION_SECRET:
-        session.clear()
-    return jsonify({'ok': True})
-
-
-@app.route('/api/stats', methods=['GET'])
-def api_stats():
-    if not ADMIN_TOKEN:
-        abort(404)
-    auth = request.headers.get('Authorization', '')
-    has_valid_bearer = hmac.compare_digest(auth, f'Bearer {ADMIN_TOKEN}')
-    has_valid_session = bool(SESSION_SECRET) and session.get('admin_authenticated') is True
-    if not has_valid_bearer and not has_valid_session:
-        abort(401)
-
-    range_param = request.args.get('range', 'all')
-    date_filter = ""
-    if range_param == 'today':
-        date_filter = "AND created_at >= date('now', 'start of day')"
-    elif range_param == 'week':
-        date_filter = "AND created_at >= date('now', '-7 days')"
-
-    conn = None
-    try:
-        conn = db()
-
-        totals = [dict(r) for r in conn.execute(f"""
-            SELECT event, COUNT(*) AS count
-            FROM events
-            WHERE 1=1 {date_filter}
-            GROUP BY event
-            ORDER BY count DESC
-        """).fetchall()]
-
-        by_day = [dict(r) for r in conn.execute(f"""
-            SELECT DATE(created_at) AS day, COUNT(*) AS count
-            FROM events
-            WHERE event = 'GameStarted' {date_filter}
-            GROUP BY DATE(created_at)
-            ORDER BY day DESC
-            LIMIT 30
-        """).fetchall()]
-
-        sessions = conn.execute(f"""
-            SELECT COUNT(DISTINCT session_id) AS total
-            FROM events
-            WHERE session_id IS NOT NULL {date_filter}
-        """).fetchone()['total']
-
-        scores = dict(conn.execute(f"""
-            SELECT
-                COUNT(*)      AS games,
-                MAX(score)    AS best,
-                AVG(score)    AS avg,
-                SUM(duration) AS total_seconds
-            FROM events
-            WHERE event = 'GameOver' AND score IS NOT NULL {date_filter}
-        """).fetchone())
-
-        top_scores = [dict(r) for r in conn.execute(f"""
-            SELECT score, session_id, created_at
-            FROM events
-            WHERE event = 'GameOver' AND score IS NOT NULL {date_filter}
-            ORDER BY score DESC
-            LIMIT 20
-        """).fetchall()]
-
-        errors = [dict(r) for r in conn.execute(f"""
-            SELECT message, context, COUNT(*) AS count
-            FROM events
-            WHERE event = 'GameError' {date_filter}
-            GROUP BY message, context
-            ORDER BY count DESC
-            LIMIT 20
-        """).fetchall()]
-
-        platforms = [dict(r) for r in conn.execute(f"""
-            SELECT platform, COUNT(DISTINCT session_id) AS sessions
-            FROM events
-            WHERE platform IS NOT NULL {date_filter}
-            GROUP BY platform
-        """).fetchall()]
-
-        combos = dict(conn.execute(f"""
-            SELECT MAX(combo) AS best, AVG(combo) AS avg, COUNT(*) AS games
-            FROM events
-            WHERE event = 'GameOver' AND combo IS NOT NULL {date_filter}
-        """).fetchone())
-
-        eaten_stats = dict(conn.execute(f"""
-            SELECT MAX(eaten) AS best, AVG(eaten) AS avg, SUM(eaten) AS total
-            FROM events
-            WHERE event = 'GameOver' AND eaten IS NOT NULL {date_filter}
-        """).fetchone())
-
-        shop = dict(conn.execute(f"""
-            SELECT COUNT(*) AS purchases, SUM(spent) AS total_spent, AVG(spent) AS avg_spent
-            FROM events
-            WHERE event = 'SkinPurchased' AND spent IS NOT NULL {date_filter}
-        """).fetchone())
-
-        skins = [dict(r) for r in conn.execute(f"""
-            SELECT skin_id, COUNT(*) AS count
-            FROM events
-            WHERE event IN ('SkinSelected', 'SkinEquipped') AND skin_id IS NOT NULL {date_filter}
-            GROUP BY skin_id
-            ORDER BY count DESC
-            LIMIT 10
-        """).fetchall()]
-
-        death_reasons = [dict(r) for r in conn.execute(f"""
-            SELECT reason, COUNT(*) AS count
-            FROM events
-            WHERE event = 'DeathReason' AND reason IS NOT NULL {date_filter}
-            GROUP BY reason
-            ORDER BY count DESC
-            LIMIT 10
-        """).fetchall()]
-
-        conn.close()
-
-        return jsonify({
-            'totals': totals,
-            'byDay': by_day,
-            'sessions': sessions,
-            'scores': scores,
-            'topScores': top_scores,
-            'errors': errors,
-            'platforms': platforms,
-            'combos': combos,
-            'eaten': eaten_stats,
-            'shop': shop,
-            'skins': skins,
-            'deathReasons': death_reasons,
-        })
-    except Exception as e:
-        app.logger.exception(f"stats error: {e}")
-        return jsonify({'error': 'internal'}), 500
-    finally:
-        if conn:
-            conn.close()
-
-
+        
 @app.route('/<path:filename>')
 def static_files(filename):
     if '..' in filename or '/' in filename or '\\' in filename:
@@ -609,11 +443,6 @@ def static_files(filename):
         abort(404)
     response = make_response(send_from_directory(BASE_DIR, filename))
     return _apply_cache_headers(response, filename)
-
-
-@app.errorhandler(401)
-def unauthorized(error):
-    return jsonify({'error': 'unauthorized'}), 401
 
 
 @app.errorhandler(403)
@@ -659,7 +488,8 @@ def internal_error(error):
     app.logger.exception("Внутренняя ошибка сервера")
     return "Ошибка сервера", 500
 
-
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', '5000'))
+    port = int(os.environ.get('PORT', 8000))
+    print(f"Запуск сервера на порту {port}", flush=True)
+
     serve(app, host='0.0.0.0', port=port, threads=6, connection_limit=200, channel_timeout=30)
