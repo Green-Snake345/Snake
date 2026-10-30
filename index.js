@@ -948,6 +948,9 @@ function saveCoins() {
 
 function addCoins(amount, reason) {
   if (amount <= 0) return;
+
+  console.warn(`[Монеты] +${amount} 💰 | Причина: ${reason || 'Не указана'} | Всего: ${S.totalCoins + amount}`);
+  
   S.coins += amount;
   S.totalCoins += amount;
   S.sessionCoins += amount;
