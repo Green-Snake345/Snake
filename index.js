@@ -280,21 +280,40 @@ function initAudio() {
 }
 
 function beep(f, d, t, v) {
-  if (!audioCtx || S.volume <= 0) return;
+  if (!audioCtx) {
+    console.warn('AudioContext не инициализирован — звук пропущен');
+    return;
+  }
+
+  if (S.volume <= 0) {
+    return;
+  }
+
+  if (f <= 0 || d <= 0) {
+    console.warn(`Некорректные параметры: частота=${f}, длительность=${d}`);
+    return;
+  }
 
   if (audioCtx.state === 'suspended') {
-    audioCtx.resume();
+    audioCtx.resume().catch(function(e) {
+      console.warn('Ошибка возобновления AudioContext:', e.message);
+    });
   }
-  var o = audioCtx.createOscillator();
-  var g = audioCtx.createGain();
-  o.type = t || 'square';
-  o.frequency.setValueAtTime(f, audioCtx.currentTime);
-  g.gain.setValueAtTime(S.volume * 0.25 * (v || 1), audioCtx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + d);
-  o.connect(g);
-  g.connect(audioCtx.destination);
-  o.start();
-  o.stop(audioCtx.currentTime + d);
+
+  try {
+    var o = audioCtx.createOscillator();
+    var g = audioCtx.createGain();
+    o.type = t || 'square';
+    o.frequency.setValueAtTime(f, audioCtx.currentTime);
+    g.gain.setValueAtTime(S.volume * 0.25 * (v || 1), audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + d);
+    o.connect(g);
+    g.connect(audioCtx.destination);
+    o.start();
+    o.stop(audioCtx.currentTime + d);
+  } catch (e) {
+    console.warn(`Ошибка воспроизведения (f=${f}, d=${d}, t=${t}):`, e.message);
+  }
 }
 
 function haptic(pattern) {
@@ -948,7 +967,7 @@ function saveCoins() {
 
 function addCoins(amount, reason) {
   if (amount <= 0) return;
-
+  
   console.warn(`[Монеты] +${amount} 💰 | Причина: ${reason || 'Не указана'} | Всего: ${S.totalCoins + amount}`);
   
   S.coins += amount;
@@ -960,19 +979,48 @@ function addCoins(amount, reason) {
 }
 
 function updateCoinsUI() {
-  if (ui.coinsValue) ui.coinsValue.textContent = S.coins;
-  if (ui.hudCoins) ui.hudCoins.textContent = S.coins;
-  if (ui.shopCoins) ui.shopCoins.textContent = S.coins;
-  if (ui.aboutCoins) ui.aboutCoins.textContent = S.totalCoins;
+  const updates = [];
+
+  if (ui.coinsValue) {
+    ui.coinsValue.textContent = S.coins;
+    updates.push(`coinsValue: ${S.coins}`);
+  }
+  if (ui.hudCoins) {
+    ui.hudCoins.textContent = S.coins;
+    updates.push(`hudCoins: ${S.coins}`);
+  }
+  if (ui.shopCoins) {
+    ui.shopCoins.textContent = S.coins;
+    updates.push(`shopCoins: ${S.coins}`);
+  }
+  if (ui.aboutCoins) {
+    ui.aboutCoins.textContent = S.totalCoins;
+    updates.push(`aboutCoins: ${S.totalCoins}`);
+  }
+
+  if (updates.length > 0) {
+    console.warn(`Обновление монет: ${updates.join(' | ')}`);
+  }
 }
 
 function loadOwnedSkins() {
   var raw = storeGet('snake-pro-owned-skins');
-  if (!raw) return;
+
+  if (!raw) {
+    console.warn('Данные не найдены в хранилище — используется стандартный набор');
+    return;
+  }
   try {
     var list = JSON.parse(raw);
-    if (Array.isArray(list) && list.length) S.ownedSkins = list;
-  } catch (e) {}
+    if (Array.isArray(list) && list.length) {
+      S.ownedSkins = list;
+      console.warn(`Загружено ${list.length} скинов: ${list.join(', ')}`);
+    } else {
+      console.warn('Данные в хранилище пусты или не являются массивом');
+    }
+  } catch (e) {
+    console.warn('Ошибка парсинга данных:', e.message, '| raw:', raw);
+  }
 }
 
 function saveOwnedSkins() {
@@ -985,11 +1033,22 @@ function saveOwnedSkins() {
 
 function loadPurchasedSkins() {
   var raw = storeGet('snake-pro-purchased-skins');
-  if (!raw) return;
+
+  if (!raw) {
+    console.warn('[Купленные скины] Данные не найдены в хранилище — список покупок пуст');
+    return;
+  }
   try {
     var list = JSON.parse(raw);
-    if (Array.isArray(list)) S.purchasedSkins = list;
-  } catch (e) {}
+    if (Array.isArray(list)) {
+      S.purchasedSkins = list;
+      console.warn(`[Купленные скины] Загружено ${list.length} скинов: ${list.join(', ') || 'пусто'}`);
+    } else {
+      console.warn('[Купленные скины] Данные в хранилище не являются массивом:', raw);
+    }
+  } catch (e) {
+    console.warn('[Купленные скины] Ошибка парсинга данных:', e.message, '| raw:', raw);
+  }
 }
 
 function savePurchasedSkins() {
@@ -1105,15 +1164,35 @@ function renderShop() {
 }
 
 function updateSkinOptionsActive() {
-  if (!ui.skinOptions) return;
+  if (!ui.skinOptions) {
+    console.warn('[Скины] ui.skinOptions не найден — обновление пропущено');
+    return;
+  }
+
+  var updatedCount = 0;
   ui.skinOptions.forEach(function(opt) {
     var id = opt.getAttribute('data-id');
+
+    if (!id) {
+      console.warn('[Скины] Опция скина без data-id:', opt);
+      return;
+    }
+
     var owned = S.ownedSkins.indexOf(id) !== -1;
     opt.classList.toggle('locked', !owned);
     opt.classList.toggle('active', S.snakeSkinId === id);
+
     var lockIcon = opt.querySelector('.lock-icon');
-    if (lockIcon) lockIcon.style.display = owned ? 'none' : 'block';
+    if (lockIcon) {
+      lockIcon.style.display = owned ? 'none' : 'block';
+    } else {
+      console.warn(`[Скины] .lock-icon не найден в опции скина: ${id}`);
+    }
+
+    updatedCount++;
   });
+
+  console.warn(`Обновлено ${updatedCount} опций | Активный: ${S.snakeSkinId}`);
 }
 
 var QUEST_TEMPLATES = [
@@ -1149,16 +1228,27 @@ var QUEST_TEMPLATES = [
 function loadDailyQuests() {
   var today = new Date().toISOString().slice(0, 10);
   var raw = storeGet('snake-pro-daily-quests');
+
   if (raw) {
     try {
       var data = JSON.parse(raw);
-      if (data.date === today) {
+      if (data && data.date === today) {
         S.dailyQuests = data.quests || [];
         S.dailyQuestsDate = today;
+        console.warn(`[Квесты] Загружены квесты на сегодня (${today}): ${S.dailyQuests.length} шт.`);
         return;
+      } else if (data && data.date) {
+        console.warn(`[Квесты] Квесты устарели (было: ${data.date}, сегодня: ${today}) — перегенерация`);
+      } else {
+        console.warn('[Квесты] Данные в хранилище имеют некорректную структуру:', raw);
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('[Квесты] Ошибка парсинга данных:', e.message, '| raw:', raw);
+    }
+  } else {
+    console.warn('[Квесты] Данные не найдены в хранилище — первая генерация');
   }
+
   generateDailyQuests(today);
 }
 
@@ -1537,20 +1627,30 @@ function resetSettings() {
 
 function loadStats() {
   var raw = storeGet('snake-pro-stats');
-  if (!raw) return;
+
+  if (!raw) {
+    console.warn('Данные не найдены в хранилище — используются нулевые значения');
+    return;
+  }
+
   try {
     var s = JSON.parse(raw);
     S.highScore   = s.highScore || 0;
     S.gamesPlayed = s.games || 0;
     S.totalEaten  = s.eaten || 0;
+
     if (ui.msHighscore) ui.msHighscore.textContent = S.highScore;
     if (ui.msGames)     ui.msGames.textContent = S.gamesPlayed;
     if (ui.msEaten)     ui.msEaten.textContent = S.totalEaten;
     if (ui.highScore)   ui.highScore.textContent = S.highScore;
-    if (ui.aboutGames)   ui.aboutGames.textContent = S.gamesPlayed;
-    if (ui.aboutEaten)   ui.aboutEaten.textContent = S.totalEaten;
-    if (ui.aboutBest)    ui.aboutBest.textContent = S.highScore;
-  } catch (e) {}
+    if (ui.aboutGames)  ui.aboutGames.textContent = S.gamesPlayed;
+    if (ui.aboutEaten)  ui.aboutEaten.textContent = S.totalEaten;
+    if (ui.aboutBest)   ui.aboutBest.textContent = S.highScore;
+
+    console.warn(`Загружено | Рекорд: ${S.highScore} | Игр: ${S.gamesPlayed} | Съедено: ${S.totalEaten}`);
+  } catch (e) {
+    console.warn('Ошибка парсинга данных:', e.message, '| raw:', raw);
+  }
 }
 
 function saveStats() {
@@ -1573,12 +1673,26 @@ function saveStats() {
 
 function loadLeaderboard() {
   var raw = storeGet('snake-pro-leaderboard');
-  if (!raw) return [];
+
+  if (!raw) {
+    console.warn('Данные не найдены в хранилище');
+    return [];
+  }
+
   try {
     var list = JSON.parse(raw);
+
+    if (!Array.isArray(list)) {
+      console.warn('Данные в хранилище не являются массивом:', raw);
+      return [];
+    }
+
     list.sort(function(a, b) { return b.score - a.score; });
+    var bestScore = list.length ? list[0].score : 0;
+    console.warn(`Загружено ${list.length} записей | Лучший счёт: ${bestScore}`);
     return list;
   } catch (e) {
+    console.warn('Ошибка парсинга данных:', e.message, '| raw:', raw);
     return [];
   }
 }
