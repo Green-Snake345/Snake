@@ -2443,20 +2443,24 @@ function levelUp() {
 }
 
 function startGame() {
-  resetGame();
-  S.isRunning = true;
-  S.sessionStartTime = now();
-  S.sessionCoins = 0;
-
-  claimDailyReward();
-  lastTime = performance.now();
-  requestAnimationFrame(loop);
-  updateQuestProgress('games', 1);
-
-  runCountdown();
+  try {
+    resetGame();
+    S.isRunning = true;
+    S.sessionStartTime = now();
+    S.sessionCoins = 0;
+    claimDailyReward();
+    lastTime = performance.now();
+    requestAnimationFrame(loop);
+    updateQuestProgress('games', 1);
+    runCountdown();
+  } catch (e) {
+    console.error('Ошибка при запуске игры:', e);
+    showNotification('Ошибка', 'Не удалось начать игру', '⚠️');
+  }
 }
 
 function stopGame() {
+  console.warn('stopGame вызван — игра остановлена');
   hideCountdown();
   S.isRunning = false;
 }
@@ -2540,6 +2544,11 @@ function togglePause() {
   if (countdown.active) return;
   if (!S.isRunning) return;
   S.isPaused = !S.isPaused;
+  console.warn('togglePause:', S.isPaused ? 'пауза' : 'продолжение', {
+    score: S.score,
+    snakeLength: S.snake?.length,
+    head: S.snake?.[0]
+  });
   if (screens.pause) {
     if (S.isPaused) screens.pause.classList.remove('hidden');
     else            screens.pause.classList.add('hidden');
