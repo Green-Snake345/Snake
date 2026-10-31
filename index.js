@@ -1,17 +1,5 @@
-Вот исправленный код `index.js`.
-
-**Что было сделано:**
-1.  **Добавлена отсутствующая функция `loadOwnedSkins()`**: В оригинале она вызывалась в `init()`, но не была объявлена, что ломало запуск игры.
-2.  **Исправлен синтаксис в `renderShop()`**: В конце функции были лишние скобки и нарушена логика замыкания обработчиков событий.
-3.  **Убрано «молчаливое» проглатывание ошибок**:
-    *   Во всех функциях работы с `localStorage` (`storeGet`, `storeSet`) добавлены явные `console.error` при сбоях.
-    *   В функции `initAudio` и других критических местах добавлен вывод ошибок в консоль, если что-то пошло не так.
-    *   Добавлена глобальная обработка ошибок (`window.onerror` и `unhandledrejection`), чтобы любые непредвиденные баги сразу выводились в консоль браузера красным цветом, а не игнорировались.
-
-```javascript
 'use strict';
 
-// --- ГЛОБАЛЬНЫЙ ОБРАБОТЧИК ОШИБОК (Чтобы ошибки не молчали) ---
 window.onerror = function(message, source, lineno, colno, error) {
   console.error('Глобальная ошибка JS:', message, '\nФайл:', source, '\nСтрока:', lineno, '\nОшибка:', error);
 };
@@ -977,11 +965,9 @@ function savePurchasedSkins() {
   }
 }
 
-// --- ИСПРАВЛЕНИЕ 1: ДОБАВЛЕНА ОТСУТСТВУЮЩАЯ ФУНКЦИЯ ---
 function loadOwnedSkins() {
   var raw = storeGet('snake-pro-owned-skins');
   if (!raw) {
-    // Если сохранений нет, используем дефолтный набор
     S.ownedSkins = ['classic', 'neon', 'violet', 'golden', 'scarlet', 'shadow'];
     return;
   }
@@ -1006,7 +992,6 @@ function saveOwnedSkins() {
   }
 }
 
-// --- ИСПРАВЛЕНИЕ 2: ИСПРАВЛЕН СИНТАКСИС RENDER SHOP ---
 function renderShop() {
   if (!ui.shopItems) return;
   ui.shopItems.innerHTML = '';
@@ -2764,7 +2749,7 @@ function init() {
   loadStats();
   loadCoins();
   loadPurchasedSkins();
-  loadOwnedSkins(); // Теперь эта функция существует
+  loadOwnedSkins();
   loadDailyQuests();
   setupSkinPalette();
   updateSkinOptionsActive();
@@ -3376,4 +3361,3 @@ function runCountdown() {
 
   startGamepadPolling();
 })();
-```
