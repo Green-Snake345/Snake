@@ -43,8 +43,7 @@ body:
         - Яндекс Браузер
         - Firefox
         - Safari
-        - Opera
-        - DuckDuckGo
+        - Другой
     validations:
       required: false
 
@@ -54,8 +53,8 @@ body:
       label: Устройство
       options:
         - Компьютер
-        - Ноутбук
         - Телефон
         - Планшет
+        - Ноутбук
     validations:
       required: false
