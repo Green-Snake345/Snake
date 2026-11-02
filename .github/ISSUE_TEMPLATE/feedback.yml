@@ -1,0 +1,61 @@
+name: 📝 Обратная связь
+description: Сообщить о баге или предложить идею для игры «Змейка»
+title: "[Обратная связь]: "
+labels: []
+body:
+  - type: dropdown
+    id: type
+    attributes:
+      label: Тип обращения
+      options:
+        - 🐛 Баг (ошибка в игре)
+        - 💡 Предложение (новая идея)
+        - ❓ Вопрос
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Описание
+      description: Подробно опишите проблему или вашу идею
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Как воспроизвести (если это баг)
+      description: По шагам: что вы делали, когда произошла ошибка
+      placeholder: |
+        1. Запустил игру
+        2. Взял синий буст
+        3. Врезался в стену
+    validations:
+      required: false
+
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Браузер
+      options:
+        - Chrome
+        - Яндекс Браузер
+        - Firefox
+        - Safari
+        - Opera
+        - DuckDuckGo
+    validations:
+      required: false
+
+  - type: dropdown
+    id: device
+    attributes:
+      label: Устройство
+      options:
+        - Компьютер
+        - Ноутбук
+        - Телефон
+        - Планшет
+    validations:
+      required: false
