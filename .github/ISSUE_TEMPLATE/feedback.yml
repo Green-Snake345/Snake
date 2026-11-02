@@ -1,6 +1,6 @@
 name: Обратная связь
 description: Баг или идея для игры
-title: ""
+title: "Обратная связь"
 labels: []
 body:
   - type: dropdown
