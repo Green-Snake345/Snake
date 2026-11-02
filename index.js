@@ -42,7 +42,7 @@ function storeSet(key, value) {
     window.localStorage.setItem(key, String(value));
     return true;
   } catch (error) {
-    console.error('CRITICAL: Не удалось сохранить "' + key + '" (возможно, переполнено хранилище):', error);
+    console.error('CRITICAL: Не удалось сохранить "' + key + '":', error);
     return false;
   }
 }
