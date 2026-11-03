@@ -16,44 +16,6 @@ jobs:
         with:
           node-version: '20'
       
-      - name: Create Electron app
-        shell: pwsh
-        run: |
-          mkdir electron-app
-          cd electron-app
-          
-          $packageJson = @'
-          {
-            "name": "snake-game",
-            "version": "1.0.0",
-            "main": "main.js",
-            "scripts": { "build": "electron-builder" },
-            "devDependencies": {
-              "electron": "^28.0.0",
-              "electron-builder": "^24.13.3"
-            },
-            "build": {
-              "appId": "com.snake.game",
-              "productName": "SnakeGame",
-              "directories": { "output": "dist" },
-              "files": ["main.js"],
-              "win": { "target": ["nsis", "portable"] }
-            }
-          }
-          '@
-          $packageJson | Out-File -FilePath "package.json" -Encoding utf8
-          
-          $mainJs = @'
-          const { app, BrowserWindow } = require('electron');
-          function createWindow() {
-            const win = new BrowserWindow({ width: 1200, height: 800 });
-            win.loadURL('https://green-snake345.github.io/Snake/');
-          }
-          app.whenReady().then(createWindow);
-          app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
-          '@
-          $mainJs | Out-File -FilePath "main.js" -Encoding utf8
-      
       - name: Install dependencies
         working-directory: ./electron-app
         run: npm install
@@ -79,43 +41,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      
-      - name: Create Electron app with Python
-        run: |
-          mkdir -p electron-app
-          python3 -c "
-          import json
-          pkg = {
-              'name': 'snake-game',
-              'version': '1.0.0',
-              'main': 'main.js',
-              'scripts': {'build': 'electron-builder'},
-              'devDependencies': {'electron': '^28.0.0', 'electron-builder': '^24.13.3'},
-              'build': {
-                  'appId': 'com.snake.game',
-                  'productName': 'SnakeGame',
-                  'directories': {'output': 'dist'},
-                  'files': ['main.js'],
-                  'linux': {'target': ['AppImage', 'deb'], 'category': 'Game'}
-              }
-          }
-          with open('electron-app/package.json', 'w') as f:
-              json.dump(pkg, f, indent=2)
-          print('package.json created')
-          "
-          python3 -c "
-          code = '''const { app, BrowserWindow } = require('electron');
-          function createWindow() {
-            const win = new BrowserWindow({ width: 1200, height: 800 });
-            win.loadURL('https://green-snake345.github.io/Snake/');
-          }
-          app.whenReady().then(createWindow);
-          app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });'''
-          with open('electron-app/main.js', 'w') as f:
-              f.write(code)
-          print('main.js created')
-          "
-          ls -la electron-app/
       
       - name: Install dependencies
         working-directory: ./electron-app
