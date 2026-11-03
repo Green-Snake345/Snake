@@ -13,7 +13,7 @@ jobs:
 
     steps:
       - name: Setup Node.js 18
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
 
@@ -61,7 +61,8 @@ jobs:
           fi
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Snake-${{ matrix.os }}
-          path: Snake-*.zip
+          path: Snake-${{ matrix.os == 'windows-latest' && 'Windows' || 'Linux' }}.zip
+          if-no-files-found: warn
