@@ -80,41 +80,16 @@ jobs:
         with:
           node-version: '20'
       
-      - name: Create Electron app
+      - name: Create package.json
         run: |
-          mkdir -p electron-app && cd electron-app
-          node -e "
-            const fs = require('fs');
-            const pkg = {
-              name: 'snake-game',
-              version: '1.0.0',
-              main: 'main.js',
-              scripts: { build: 'electron-builder' },
-              devDependencies: { electron: '^28.0.0', 'electron-builder': '^24.13.3' },
-              build: {
-                appId: 'com.snake.game',
-                productName: 'SnakeGame',
-                directories: { output: 'dist' },
-                files: ['main.js'],
-                linux: { target: ['AppImage', 'deb'], category: 'Game' }
-              }
-            };
-            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
-            console.log('package.json created');
-          "
-          node -e "
-            const fs = require('fs');
-            const code = \`const { app, BrowserWindow } = require('electron');
-            function createWindow() {
-              const win = new BrowserWindow({ width: 1200, height: 800 });
-              win.loadURL('https://green-snake345.github.io/Snake/');
-            }
-            app.whenReady().then(createWindow);
-            app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });\`;
-            fs.writeFileSync('main.js', code);
-            console.log('main.js created');
-          "
-          ls -la
+          mkdir -p electron-app
+          echo 'eyJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoic25ha2UtZ2FtZSIsInZlcnNpb24iOiIxLjAuMCIsIm1haW4iOiJtYWluLmpzIiwic2NyaXB0cyI6eyJidWlsZCI6ImVsZWN0cm9uLWJ1aWxkZXIifSwiZGV2RGVwZW5kZW5jaWVzIjp7ImVsZWN0cm9uIjoiXjI4LjAuMCIsImVsZWN0cm9uLWJ1aWxkZXIiOiJeMjQuMTMuMyJ9LCJidWlsZCI6eyJhcHBJZCI6ImNvbS5zbmFrZS5nYW1lIiwicHJvZHVjdE5hbWUiOiJTbmFrZUdhbWUiLCJkaXJlY3RvcmllcyI6eyJvdXRwdXQiOiJkaXN0In0sImZpbGVzIjpbIm1haW4uanMiXSwibGludXgiOnsidGFyZ2V0IjpbIkFwcEltYWdlIiwiZGViIl0sImNhdGVnb3J5IjoiR2FtZSJ9fX0' | base64 -d > electron-app/package.json
+          cat electron-app/package.json
+      
+      - name: Create main.js
+        run: |
+          echo 'Y29uc3QgeyBhcHAsIEJyb3dzZXJXaW5kb3cgfSA9IHJlcXVpcmUoJ2VsZWN0cm9uJyk7CmZ1bmN0aW9uIGNyZWF0ZVdpbmRvdygpIHsKICBjb25zdCB3aW4gPSBuZXcgQnJvd3NlcldpbmRvdyh7IHdpZHRoOiAxMjAwLCBoZWlnaHQ6IDgwMCB9KTsKICB3aW4ubG9hZFVSTCgnaHR0cHM6Ly9ncmVlbi1zbmFrZTM0NS5naXRodWIuaW8vU25ha2UvJyk7Cn0KYXBwLndoZW5SZWFkeSgpLnRoZW4oY3JlYXRlV2luZG93KTsKYXBwLm9uKCd3aW5kb3ctYWxsLWNsb3NlZCcsICgpID0+IHsgaWYgKHByb2Nlc3MucGxhdGZvcm0gIT09ICdkYXJ3aW4nKSBhcHAucXVpdCgpOyB9KTs=' | base64 -d > electron-app/main.js
+          cat electron-app/main.js
       
       - name: Install dependencies
         working-directory: ./electron-app
