@@ -1,4 +1,4 @@
-name: Nativefier Build for All Platforms
+name: Nativefier Build - Final Attempt
 
 on:
   workflow_dispatch:
@@ -12,50 +12,79 @@ jobs:
         os: [windows-latest, ubuntu-latest]
 
     steps:
-      - name: Setup Node.js 18
-        uses: actions/setup-node@v4
+      - name: Setup Node.js 16
+        uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '16'
 
-      - name: Install Nativefier
-        run: npm install -g nativefier@47.3.0
+      - name: Install Nativefier (stable version)
+        run: npm install -g nativefier@46.1.0
 
       - name: Install Linux Dependencies
         if: matrix.os == 'ubuntu-latest'
-        run: sudo apt-get update && sudo apt-get install -y libgtk-3-0 libnss3 libxss1 libasound2
-
-      - name: Build App
         run: |
-          nativefier --name "SnakeGame" \
-                     --icon https://green-snake345.github.io/Snake/icon-192.png \
-                     --single-instance \
-                     https://green-snake345.github.io/Snake/
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            libgtk-3-0 \
+            libnss3 \
+            libxss1 \
+            libasound2 \
+            libatk-bridge2.0-0 \
+            libx11-xcb1 \
+            libxcomposite1 \
+            libxdamage1 \
+            libxrandr2 \
+            libgbm1 \
+            libpango-1.0-0 \
+            libcairo2
+
+      - name: Build App with detailed logging
+        run: |
+          echo "Starting Nativefier build..."
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+          echo "Nativefier version: $(nativefier --version)"
           
-          echo "=== Созданные файлы ==="
+          nativefier \
+            --name "SnakeGame" \
+            --icon "https://green-snake345.github.io/Snake/icon-192.png" \
+            --single-instance \
+            --electron-version 25.9.8 \
+            --verbose \
+            https://green-snake345.github.io/Snake/
+          
+          echo "=== Build complete. Listing files ==="
           ls -la || dir
 
-      - name: Zip Output (Windows)
+      - name: Find and package output (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          $folder = Get-ChildItem -Directory -Filter "SnakeGame*" | Select-Object -First 1
-          if ($folder) {
-            Compress-Archive -Path $folder.FullName -DestinationPath "Snake-Windows.zip"
-            echo "Упаковано: $($folder.Name)"
-          } else {
-            echo "Папка не найдена!"
+          echo "Searching for SnakeGame folder..."
+          Get-ChildItem -Directory | Where-Object { $_.Name -like "SnakeGame*" } | ForEach-Object {
+            echo "Found: $($_.FullName)"
+            Compress-Archive -Path $_.FullName -DestinationPath "Snake-Windows.zip" -Force
+            echo "Packaged successfully"
+          }
+          if (-not (Test-Path "Snake-Windows.zip")) {
+            echo "ERROR: No output folder found!"
             Get-ChildItem
             exit 1
           }
 
-      - name: Zip Output (Linux)
+      - name: Find and package output (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          folder=$(ls -d SnakeGame* 2>/dev/null | head -1)
-          if [ -n "$folder" ]; then
-            zip -r "Snake-Linux.zip" "$folder"
-            echo "Упаковано: $folder"
-          else
-            echo "Папка не найдена!"
+          echo "Searching for SnakeGame folder..."
+          for dir in SnakeGame*; do
+            if [ -d "$dir" ]; then
+              echo "Found: $dir"
+              zip -r "Snake-Linux.zip" "$dir"
+              echo "Packaged successfully"
+              break
+            fi
+          done
+          if [ ! -f "Snake-Linux.zip" ]; then
+            echo "ERROR: No output folder found!"
             ls -la
             exit 1
           fi
@@ -64,5 +93,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Snake-${{ matrix.os }}
-          path: Snake-${{ matrix.os == 'windows-latest' && 'Windows' || 'Linux' }}.zip
-          if-no-files-found: warn
+          path: |
+            Snake-Windows.zip
+            Snake-Linux.zip
+          if-no-files-found: error
