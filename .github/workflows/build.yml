@@ -4,12 +4,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-    
-    runs-on: ${{ matrix.os }}
+  build-windows:
+    runs-on: windows-latest
     
     steps:
       - name: Checkout code
@@ -20,101 +16,121 @@ jobs:
         with:
           node-version: '20'
       
-      - name: Create Electron app structure
-        shell: bash
+      - name: Create Electron app
+        shell: pwsh
         run: |
-          mkdir -p electron-app
+          mkdir electron-app
           cd electron-app
           
-          cat > package.json << 'EOF'
+          $packageJson = @'
           {
             "name": "snake-game",
             "version": "1.0.0",
-            "description": "Snake Game",
             "main": "main.js",
             "scripts": {
-              "start": "electron .",
               "build": "electron-builder"
             },
             "devDependencies": {
               "electron": "^28.0.0",
-              "electron-builder": "^24.0.0"
+              "electron-builder": "^24.13.3"
             },
             "build": {
               "appId": "com.snake.game",
               "productName": "SnakeGame",
-              "directories": {
-                "output": "dist"
-              },
-              "files": [
-                "main.js",
-                "index.html"
-              ],
-              "linux": {
-                "target": ["AppImage", "deb"],
-                "category": "Game"
-              },
+              "directories": { "output": "dist" },
+              "files": ["main.js"],
               "win": {
                 "target": ["nsis", "portable"]
               }
             }
           }
-          EOF
+          '@
+          $packageJson | Out-File -FilePath "package.json" -Encoding utf8
           
-          cat > main.js << 'EOF'
+          $mainJs = @'
           const { app, BrowserWindow } = require('electron');
-          
           function createWindow() {
-            const win = new BrowserWindow({
-              width: 1200,
-              height: 800,
-              webPreferences: {
-                nodeIntegration: false
-              }
-            });
-            
+            const win = new BrowserWindow({ width: 1200, height: 800 });
             win.loadURL('https://green-snake345.github.io/Snake/');
           }
-          
           app.whenReady().then(createWindow);
-          
-          app.on('window-all-closed', () => {
-            if (process.platform !== 'darwin') app.quit();
-          });
-          EOF
-          
-          echo "Electron app structure created"
+          app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+          '@
+          $mainJs | Out-File -FilePath "main.js" -Encoding utf8
       
       - name: Install dependencies
         working-directory: ./electron-app
         run: npm install
       
-      - name: Build for Linux
-        if: matrix.os == 'ubuntu-latest'
+      - name: Build Windows
         working-directory: ./electron-app
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-0 libnss3 libxss1 libasound2
-          npm run build -- --linux
-          ls -la dist/
+        run: npm run build -- --win
       
-      - name: Build for Windows
-        if: matrix.os == 'windows-latest'
-        working-directory: ./electron-app
-        run: |
-          npm run build -- --win
-          Get-ChildItem dist/
-      
-      - name: Upload Linux artifacts
-        if: matrix.os == 'ubuntu-latest'
+      - name: Upload Windows
         uses: actions/upload-artifact@v4
         with:
-          name: Linux
-          path: electron-app/dist/*.AppImage
-      
-      - name: Upload Windows artifacts
-        if: matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: Windows
+          name: Snake-Windows
           path: electron-app/dist/*.exe
+
+  build-linux:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Create Electron app
+        run: |
+          mkdir electron-app && cd electron-app
+          
+          cat > package.json << 'PKGEOF'
+          {
+            "name": "snake-game",
+            "version": "1.0.0",
+            "main": "main.js",
+            "scripts": { "build": "electron-builder" },
+            "devDependencies": {
+              "electron": "^28.0.0",
+              "electron-builder": "^24.13.3"
+            },
+            "build": {
+              "appId": "com.snake.game",
+              "productName": "SnakeGame",
+              "directories": { "output": "dist" },
+              "files": ["main.js"],
+              "linux": {
+                "target": ["AppImage", "deb"],
+                "category": "Game"
+              }
+            }
+          }
+          PKGEOF
+          
+          cat > main.js << 'MAINEOF'
+          const { app, BrowserWindow } = require('electron');
+          function createWindow() {
+            const win = new BrowserWindow({ width: 1200, height: 800 });
+            win.loadURL('https://green-snake345.github.io/Snake/');
+          }
+          app.whenReady().then(createWindow);
+          app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+          MAINEOF
+      
+      - name: Install dependencies
+        working-directory: ./electron-app
+        run: npm install
+      
+      - name: Build Linux
+        working-directory: ./electron-app
+        run: npm run build -- --linux
+      
+      - name: Upload Linux
+        uses: actions/upload-artifact@v4
+        with:
+          name: Snake-Linux
+          path: electron-app/dist/*.AppImage
