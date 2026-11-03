@@ -1,4 +1,4 @@
-name: Nativefier Build - Windows and Linux
+name: Nativefier Build - Final Debug
 
 on:
   workflow_dispatch:
@@ -15,24 +15,31 @@ jobs:
           apt-get update
           apt-get install -y zip libgtk-3-0 libnss3 libxss1 libasound2 libatk-bridge2.0-0 libx11-xcb1 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libpango-1.0-0 libcairo2
       
-      - name: Install Nativefier
-        run: npm install -g nativefier
-      
-      - name: Check versions
+      - name: Check Node version
         run: |
-          node --version
-          npm --version
-          nativefier --version
+          echo "Node: $(node --version)"
+          echo "NPM: $(npm --version)"
       
-      - name: Build Linux App
+      - name: List available Nativefier versions
+        run: npm view nativefier versions --json
+      
+      - name: Install Nativefier (latest)
+        run: |
+          npm install -g nativefier 2>&1 || echo "INSTALL FAILED"
+          nativefier --version 2>&1 || echo "VERSION CHECK FAILED"
+      
+      - name: Build Linux App with full logging
         run: |
           nativefier \
             --name "SnakeGame" \
             --icon "https://green-snake345.github.io/Snake/icon-192.png" \
             --single-instance \
             --verbose \
-            https://green-snake345.github.io/Snake/
+            https://green-snake345.github.io/Snake/ 2>&1 | tee build.log
           
+          echo "=== Build log ==="
+          cat build.log
+          echo "=== Files ==="
           ls -la
       
       - name: Package Linux
@@ -57,25 +64,27 @@ jobs:
     runs-on: windows-latest
     
     steps:
-      - name: Download and install Node.js 18
+      - name: Download Node.js 18
         shell: pwsh
         run: |
           Write-Host "Downloading Node.js 18..."
           Invoke-WebRequest -Uri "https://nodejs.org/dist/v18.20.4/node-v18.20.4-x64.msi" -OutFile "$env:TEMP\node.msi"
-          Write-Host "Installing Node.js 18..."
+          Write-Host "Installing..."
           Start-Process msiexec.exe -ArgumentList "/i", "$env:TEMP\node.msi", "/quiet", "/norestart" -Wait -NoNewWindow
           $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-          Write-Host "Node version: $(node --version)"
-          Write-Host "NPM version: $(npm --version)"
+          Write-Host "Node: $(node --version)"
+          Write-Host "NPM: $(npm --version)"
       
-      - name: Install Nativefier
+      - name: Install Nativefier with logging
         shell: pwsh
         run: |
           $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-          npm install -g nativefier
-          Write-Host "Nativefier version: $(nativefier --version)"
+          npm install -g nativefier 2>&1 | Tee-Object -Variable installLog
+          Write-Host "Install log: $installLog"
+          nativefier --version 2>&1 | Tee-Object -Variable versionLog
+          Write-Host "Version: $versionLog"
       
-      - name: Build Windows App
+      - name: Build Windows App with full logging
         shell: pwsh
         run: |
           $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
@@ -84,8 +93,9 @@ jobs:
             --icon "https://green-snake345.github.io/Snake/icon-192.png" `
             --single-instance `
             --verbose `
-            https://green-snake345.github.io/Snake/
-          
+            https://green-snake345.github.io/Snake/ 2>&1 | Tee-Object -Variable buildLog
+          Write-Host "=== Build log ==="
+          Write-Host $buildLog
           Write-Host "=== Files ==="
           Get-ChildItem
       
