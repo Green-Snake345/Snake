@@ -1,65 +1,41 @@
-name: Nativefier Build via Docker
+name: Nativefier Build with nvm
 
 on:
   workflow_dispatch:
 
 jobs:
-  build-windows:
-    runs-on: windows-latest
-    container:
-      image: node:20-bookworm
-    
-    steps:
-      - name: Install system dependencies
-        run: apt-get update && apt-get install -y zip wget libgtk-3-0 libnss3 libxss1 libasound2
-      
-      - name: Install Nativefier
-        run: npm install -g nativefier@47.3.0
-      
-      - name: Build Windows App
-        run: |
-          echo "Node version: $(node --version)"
-          nativefier --version
-          
-          nativefier \
-            --name "SnakeGame" \
-            --icon "https://green-snake345.github.io/Snake/icon-192.png" \
-            --single-instance \
-            --electron-version 28.3.3 \
-            --platform win32 \
-            --arch x64 \
-            https://green-snake345.github.io/Snake/
-          
-          echo "=== Files ==="
-          ls -la
-      
-      - name: Package
-        run: |
-          folder=$(ls -d SnakeGame* | head -1)
-          zip -r "Snake-Windows.zip" "$folder"
-      
-      - name: Upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: Snake-Windows
-          path: Snake-Windows.zip
-
   build-linux:
     runs-on: ubuntu-latest
-    container:
-      image: node:20-bookworm
     
     steps:
-      - name: Install system dependencies
-        run: apt-get update && apt-get install -y zip wget libgtk-3-0 libnss3 libxss1 libasound2 libatk-bridge2.0-0 libx11-xcb1 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libpango-1.0-0 libcairo2
+      - name: Install nvm and Node.js 20
+        run: |
+          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          nvm install 20
+          nvm use 20
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
       
       - name: Install Nativefier
-        run: npm install -g nativefier@47.3.0
+        run: |
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          nvm use 20
+          npm install -g nativefier@47.3.0
+          nativefier --version
+      
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zip wget libgtk-3-0 libnss3 libxss1 libasound2 libatk-bridge2.0-0 libx11-xcb1 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libpango-1.0-0 libcairo2
       
       - name: Build Linux App
         run: |
-          echo "Node version: $(node --version)"
-          nativefier --version
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          nvm use 20
           
           nativefier \
             --name "SnakeGame" \
@@ -70,16 +46,78 @@ jobs:
             --arch x64 \
             https://green-snake345.github.io/Snake/
           
-          echo "=== Files ==="
+          echo "=== Files created ==="
           ls -la
       
-      - name: Package
+      - name: Package Linux
         run: |
-          folder=$(ls -d SnakeGame* | head -1)
-          zip -r "Snake-Linux.zip" "$folder"
+          folder=$(ls -d SnakeGame* 2>/dev/null | head -1)
+          if [ -n "$folder" ]; then
+            zip -r "Snake-Linux.zip" "$folder"
+            echo "Success: $folder"
+          else
+            echo "ERROR: No folder found"
+            ls -la
+            exit 1
+          fi
       
-      - name: Upload
+      - name: Upload Linux Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Snake-Linux
           path: Snake-Linux.zip
+
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Install nvm and Node.js 20
+        shell: pwsh
+        run: |
+          nvm install 20
+          nvm use 20
+          Write-Host "Node version: $(node --version)"
+          Write-Host "NPM version: $(npm --version)"
+      
+      - name: Install Nativefier
+        shell: pwsh
+        run: |
+          nvm use 20
+          npm install -g nativefier@47.3.0
+          nativefier --version
+      
+      - name: Build Windows App
+        shell: pwsh
+        run: |
+          nvm use 20
+          
+          nativefier `
+            --name "SnakeGame" `
+            --icon "https://green-snake345.github.io/Snake/icon-192.png" `
+            --single-instance `
+            --electron-version 28.3.3 `
+            --platform win32 `
+            --arch x64 `
+            https://green-snake345.github.io/Snake/
+          
+          Write-Host "=== Files created ==="
+          Get-ChildItem
+      
+      - name: Package Windows
+        shell: pwsh
+        run: |
+          $folder = Get-ChildItem -Directory -Filter "SnakeGame*" | Select-Object -First 1
+          if ($folder) {
+            Compress-Archive -Path $folder.FullName -DestinationPath "Snake-Windows.zip"
+            Write-Host "Success: $($folder.Name)"
+          } else {
+            Write-Host "ERROR: No folder found"
+            Get-ChildItem
+            exit 1
+          }
+      
+      - name: Upload Windows Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Snake-Windows
+          path: Snake-Windows.zip
