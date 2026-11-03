@@ -1,119 +1,120 @@
-name: Nativefier Build - Final Debug
+name: Electron Builder - Windows and Linux
 
 on:
   workflow_dispatch:
 
 jobs:
-  build-linux:
-    runs-on: ubuntu-latest
-    container:
-      image: node:18-bookworm
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    
+    runs-on: ${{ matrix.os }}
     
     steps:
-      - name: Install system dependencies
-        run: |
-          apt-get update
-          apt-get install -y zip libgtk-3-0 libnss3 libxss1 libasound2 libatk-bridge2.0-0 libx11-xcb1 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libpango-1.0-0 libcairo2
+      - name: Checkout code
+        uses: actions/checkout@v4
       
-      - name: Check Node version
-        run: |
-          echo "Node: $(node --version)"
-          echo "NPM: $(npm --version)"
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
       
-      - name: List available Nativefier versions
-        run: npm view nativefier versions --json
-      
-      - name: Install Nativefier (latest)
+      - name: Create Electron app structure
+        shell: bash
         run: |
-          npm install -g nativefier 2>&1 || echo "INSTALL FAILED"
-          nativefier --version 2>&1 || echo "VERSION CHECK FAILED"
-      
-      - name: Build Linux App with full logging
-        run: |
-          nativefier \
-            --name "SnakeGame" \
-            --icon "https://green-snake345.github.io/Snake/icon-192.png" \
-            --single-instance \
-            --verbose \
-            https://green-snake345.github.io/Snake/ 2>&1 | tee build.log
+          mkdir -p electron-app
+          cd electron-app
           
-          echo "=== Build log ==="
-          cat build.log
-          echo "=== Files ==="
-          ls -la
-      
-      - name: Package Linux
-        run: |
-          folder=$(ls -d SnakeGame* 2>/dev/null | head -1)
-          if [ -n "$folder" ]; then
-            zip -r "Snake-Linux.zip" "$folder"
-            echo "Success: $folder"
-          else
-            echo "ERROR: No folder found"
-            ls -la
-            exit 1
-          fi
-      
-      - name: Upload Linux Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Snake-Linux
-          path: Snake-Linux.zip
-
-  build-windows:
-    runs-on: windows-latest
-    
-    steps:
-      - name: Download Node.js 18
-        shell: pwsh
-        run: |
-          Write-Host "Downloading Node.js 18..."
-          Invoke-WebRequest -Uri "https://nodejs.org/dist/v18.20.4/node-v18.20.4-x64.msi" -OutFile "$env:TEMP\node.msi"
-          Write-Host "Installing..."
-          Start-Process msiexec.exe -ArgumentList "/i", "$env:TEMP\node.msi", "/quiet", "/norestart" -Wait -NoNewWindow
-          $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-          Write-Host "Node: $(node --version)"
-          Write-Host "NPM: $(npm --version)"
-      
-      - name: Install Nativefier with logging
-        shell: pwsh
-        run: |
-          $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-          npm install -g nativefier 2>&1 | Tee-Object -Variable installLog
-          Write-Host "Install log: $installLog"
-          nativefier --version 2>&1 | Tee-Object -Variable versionLog
-          Write-Host "Version: $versionLog"
-      
-      - name: Build Windows App with full logging
-        shell: pwsh
-        run: |
-          $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-          nativefier `
-            --name "SnakeGame" `
-            --icon "https://green-snake345.github.io/Snake/icon-192.png" `
-            --single-instance `
-            --verbose `
-            https://green-snake345.github.io/Snake/ 2>&1 | Tee-Object -Variable buildLog
-          Write-Host "=== Build log ==="
-          Write-Host $buildLog
-          Write-Host "=== Files ==="
-          Get-ChildItem
-      
-      - name: Package Windows
-        shell: pwsh
-        run: |
-          $folder = Get-ChildItem -Directory -Filter "SnakeGame*" | Select-Object -First 1
-          if ($folder) {
-            Compress-Archive -Path $folder.FullName -DestinationPath "Snake-Windows.zip" -Force
-            Write-Host "Success: $($folder.Name)"
-          } else {
-            Write-Host "ERROR: No folder found"
-            Get-ChildItem
-            exit 1
+          cat > package.json << 'EOF'
+          {
+            "name": "snake-game",
+            "version": "1.0.0",
+            "description": "Snake Game",
+            "main": "main.js",
+            "scripts": {
+              "start": "electron .",
+              "build": "electron-builder"
+            },
+            "devDependencies": {
+              "electron": "^28.0.0",
+              "electron-builder": "^24.0.0"
+            },
+            "build": {
+              "appId": "com.snake.game",
+              "productName": "SnakeGame",
+              "directories": {
+                "output": "dist"
+              },
+              "files": [
+                "main.js",
+                "index.html"
+              ],
+              "linux": {
+                "target": ["AppImage", "deb"],
+                "category": "Game"
+              },
+              "win": {
+                "target": ["nsis", "portable"]
+              }
+            }
           }
+          EOF
+          
+          cat > main.js << 'EOF'
+          const { app, BrowserWindow } = require('electron');
+          
+          function createWindow() {
+            const win = new BrowserWindow({
+              width: 1200,
+              height: 800,
+              webPreferences: {
+                nodeIntegration: false
+              }
+            });
+            
+            win.loadURL('https://green-snake345.github.io/Snake/');
+          }
+          
+          app.whenReady().then(createWindow);
+          
+          app.on('window-all-closed', () => {
+            if (process.platform !== 'darwin') app.quit();
+          });
+          EOF
+          
+          echo "Electron app structure created"
       
-      - name: Upload Windows Artifact
+      - name: Install dependencies
+        working-directory: ./electron-app
+        run: npm install
+      
+      - name: Build for Linux
+        if: matrix.os == 'ubuntu-latest'
+        working-directory: ./electron-app
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-0 libnss3 libxss1 libasound2
+          npm run build -- --linux
+          ls -la dist/
+      
+      - name: Build for Windows
+        if: matrix.os == 'windows-latest'
+        working-directory: ./electron-app
+        run: |
+          npm run build -- --win
+          Get-ChildItem dist/
+      
+      - name: Upload Linux artifacts
+        if: matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: Snake-Windows
-          path: Snake-Windows.zip
+          name: Linux
+          path: electron-app/dist/*.AppImage
+      
+      - name: Upload Windows artifacts
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Windows
+          path: electron-app/dist/*.exe
