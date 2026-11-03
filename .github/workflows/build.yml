@@ -1,34 +1,71 @@
-name: Nativefier Build - Final Attempt
+name: Nativefier Build - Debug Version
 
 on:
   workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest, ubuntu-latest]
-
+  build-windows:
+    runs-on: windows-latest
+    
     steps:
-      - name: Setup Node.js 16
-        uses: actions/setup-node@v3
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
         with:
-          node-version: '16'
-
-      - name: Install Nativefier (stable version)
-        run: npm install -g nativefier@46.1.0
-
-      - name: Install Linux Dependencies
-        if: matrix.os == 'ubuntu-latest'
+          node-version: '20'
+      
+      - name: Install Nativefier
+        run: npm install -g nativefier@47.3.0
+      
+      - name: Build Windows App
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y \
-            libgtk-3-0 \
-            libnss3 \
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+          nativefier --version
+          
+          nativefier `
+            --name "SnakeGame" `
+            --icon "https://green-snake345.github.io/Snake/icon-192.png" `
+            --single-instance `
+            --electron-version 28.3.3 `
+            https://green-snake345.github.io/Snake/
+          
+          echo "=== Files created ==="
+          Get-ChildItem
+      
+      - name: Package Windows
+        run: |
+          $folder = Get-ChildItem -Directory -Filter "SnakeGame*" | Select-Object -First 1
+          if ($folder) {
+            Compress-Archive -Path $folder.FullName -DestinationPath "Snake-Windows.zip"
+            echo "Success: $($folder.Name)"
+          } else {
+            echo "ERROR: Folder not found"
+            exit 1
+          }
+      
+      - name: Upload Windows Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Snake-Windows
+          path: Snake-Windows.zip
+
+  build-linux:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Update system packages
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq \
+            libgtk-3-dev \
+            libnss3-dev \
             libxss1 \
-            libasound2 \
+            libasound2-dev \
             libatk-bridge2.0-0 \
             libx11-xcb1 \
             libxcomposite1 \
@@ -36,64 +73,42 @@ jobs:
             libxrandr2 \
             libgbm1 \
             libpango-1.0-0 \
-            libcairo2
-
-      - name: Build App with detailed logging
+            libcairo2 \
+            zip
+      
+      - name: Install Nativefier
+        run: npm install -g nativefier@47.3.0
+      
+      - name: Build Linux App
         run: |
-          echo "Starting Nativefier build..."
           echo "Node version: $(node --version)"
           echo "NPM version: $(npm --version)"
-          echo "Nativefier version: $(nativefier --version)"
+          nativefier --version
           
           nativefier \
             --name "SnakeGame" \
             --icon "https://green-snake345.github.io/Snake/icon-192.png" \
             --single-instance \
-            --electron-version 25.9.8 \
-            --verbose \
+            --electron-version 28.3.3 \
             https://green-snake345.github.io/Snake/
           
-          echo "=== Build complete. Listing files ==="
-          ls -la || dir
-
-      - name: Find and package output (Windows)
-        if: matrix.os == 'windows-latest'
+          echo "=== Files created ==="
+          ls -la
+      
+      - name: Package Linux
         run: |
-          echo "Searching for SnakeGame folder..."
-          Get-ChildItem -Directory | Where-Object { $_.Name -like "SnakeGame*" } | ForEach-Object {
-            echo "Found: $($_.FullName)"
-            Compress-Archive -Path $_.FullName -DestinationPath "Snake-Windows.zip" -Force
-            echo "Packaged successfully"
-          }
-          if (-not (Test-Path "Snake-Windows.zip")) {
-            echo "ERROR: No output folder found!"
-            Get-ChildItem
-            exit 1
-          }
-
-      - name: Find and package output (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          echo "Searching for SnakeGame folder..."
-          for dir in SnakeGame*; do
-            if [ -d "$dir" ]; then
-              echo "Found: $dir"
-              zip -r "Snake-Linux.zip" "$dir"
-              echo "Packaged successfully"
-              break
-            fi
-          done
-          if [ ! -f "Snake-Linux.zip" ]; then
-            echo "ERROR: No output folder found!"
+          folder=$(find . -maxdepth 1 -type d -name "SnakeGame*" | head -1)
+          if [ -n "$folder" ]; then
+            zip -r "Snake-Linux.zip" "$folder"
+            echo "Success: $folder"
+          else
+            echo "ERROR: Folder not found"
             ls -la
             exit 1
           fi
-
-      - name: Upload Artifact
+      
+      - name: Upload Linux Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Snake-${{ matrix.os }}
-          path: |
-            Snake-Windows.zip
-            Snake-Linux.zip
-          if-no-files-found: error
+          name: Snake-Linux
+          path: Snake-Linux.zip
