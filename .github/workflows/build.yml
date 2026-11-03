@@ -1,4 +1,4 @@
-name: Nativefier Build with nvm
+name: Nativefier Build - Fixed Version
 
 on:
   workflow_dispatch:
@@ -18,12 +18,22 @@ jobs:
           echo "Node version: $(node --version)"
           echo "NPM version: $(npm --version)"
       
-      - name: Install Nativefier
+      - name: Check available Nativefier versions
         run: |
           export NVM_DIR="$HOME/.nvm"
           [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
           nvm use 20
-          npm install -g nativefier@47.3.0
+          echo "=== Available Nativefier versions ==="
+          npm view nativefier versions --json
+          echo "=== Latest version ==="
+          npm view nativefier dist-tags.latest
+      
+      - name: Install Nativefier (latest)
+        run: |
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          nvm use 20
+          npm install -g nativefier
           nativefier --version
       
       - name: Install system dependencies
@@ -41,9 +51,6 @@ jobs:
             --name "SnakeGame" \
             --icon "https://green-snake345.github.io/Snake/icon-192.png" \
             --single-instance \
-            --electron-version 28.3.3 \
-            --platform linux \
-            --arch x64 \
             https://green-snake345.github.io/Snake/
           
           echo "=== Files created ==="
@@ -79,11 +86,11 @@ jobs:
           Write-Host "Node version: $(node --version)"
           Write-Host "NPM version: $(npm --version)"
       
-      - name: Install Nativefier
+      - name: Install Nativefier (latest)
         shell: pwsh
         run: |
           nvm use 20
-          npm install -g nativefier@47.3.0
+          npm install -g nativefier
           nativefier --version
       
       - name: Build Windows App
@@ -95,9 +102,6 @@ jobs:
             --name "SnakeGame" `
             --icon "https://green-snake345.github.io/Snake/icon-192.png" `
             --single-instance `
-            --electron-version 28.3.3 `
-            --platform win32 `
-            --arch x64 `
             https://green-snake345.github.io/Snake/
           
           Write-Host "=== Files created ==="
