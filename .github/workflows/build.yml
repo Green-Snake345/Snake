@@ -49,7 +49,7 @@ jobs:
             libgtk-3-0 \
             libnss3 \
             libxss1 \
-            libasound2 \
+            libasound2t64 \
             libatk-bridge2.0-0 \
             libx11-xcb1 \
             libxcomposite1 \
