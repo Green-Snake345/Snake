@@ -7,36 +7,34 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
+        os: [windows-latest, ubuntu-latest]
 
     steps:
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Node.js 18
+        uses: actions/setup-node@v3
         with:
           node-version: '18'
 
       - name: Install Nativefier
-        run: npm install -g nativefier
+        run: npm install -g nativefier@47.3.0
 
       - name: Install Linux Dependencies
         if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-0 libnss3 libxss1 libasound2 libatk-bridge2.0-0 libx11-xcb1
+        run: sudo apt-get update && sudo apt-get install -y libgtk-3-0 libnss3 libxss1 libasound2
 
       - name: Build App
         run: |
           nativefier --name "SnakeGame" \
                      --icon https://green-snake345.github.io/Snake/icon-192.png \
                      --single-instance \
-                     --electron-version 28.0.0 \
                      https://green-snake345.github.io/Snake/
           
-          echo "=== Список созданных файлов ==="
-          ls -la
+          echo "=== Созданные файлы ==="
+          ls -la || dir
 
-      - name: Find and Zip Output (Windows)
+      - name: Zip Output (Windows)
         if: matrix.os == 'windows-latest'
         run: |
           $folder = Get-ChildItem -Directory -Filter "SnakeGame*" | Select-Object -First 1
@@ -45,35 +43,25 @@ jobs:
             echo "Упаковано: $($folder.Name)"
           } else {
             echo "Папка не найдена!"
+            Get-ChildItem
             exit 1
           }
 
-      - name: Find and Zip Output (macOS)
-        if: matrix.os == 'macos-latest'
-        run: |
-          folder=$(ls -d SnakeGame* | head -1)
-          if [ -n "$folder" ]; then
-            zip -r "Snake-macOS.zip" "$folder"
-            echo "Упаковано: $folder"
-          else
-            echo "Папка не найдена!"
-            exit 1
-          fi
-
-      - name: Find and Zip Output (Linux)
+      - name: Zip Output (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          folder=$(ls -d SnakeGame* | head -1)
+          folder=$(ls -d SnakeGame* 2>/dev/null | head -1)
           if [ -n "$folder" ]; then
             zip -r "Snake-Linux.zip" "$folder"
             echo "Упаковано: $folder"
           else
             echo "Папка не найдена!"
+            ls -la
             exit 1
           fi
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: Snake-${{ matrix.os }}
           path: Snake-*.zip
