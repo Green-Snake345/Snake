@@ -3446,7 +3446,7 @@ function runCountdown() {
         var lastPlay = storeGet('snake-pro-last-play-time');
         if (lastPlay) {
             var hoursSince = (Date.now() - Number(lastPlay)) / 3600000;
-            if (hoursSince > 0) {
+            if (hoursSince > 24) {
                 setTimeout(function() {
                     sendReminder('🐍 Змейка скучает', 'Твои ежедневные задания обновлены. Зайди и забери награду!');
                 }, 5000);
