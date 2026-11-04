@@ -16,7 +16,6 @@ function createWindow() {
   });
 
   win.loadURL('https://green-snake345.github.io/Snake/');
-
   win.on('page-title-updated', (e) => e.preventDefault());
 
   ipcMain.on('app-quit', () => app.quit());
