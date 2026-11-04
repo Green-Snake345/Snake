@@ -2551,6 +2551,7 @@ function bindButtons() {
     if (window.electronAPI && window.electronAPI.isElectron) {
       window.electronAPI.quit();
     } else {
+      
       window.close();
 
       try {
