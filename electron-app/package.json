@@ -1,24 +1,38 @@
 {
   "name": "snake-game",
   "version": "1.0.1",
+  "description": "Классическая Змейка",
+  "author": "Green-Snake345",
   "main": "main.js",
   "scripts": {
-    "build": "electron-builder"
+    "start": "electron .",
+    "build:win": "electron-builder --win --x64",
+    "build:linux": "electron-builder --linux --x64"
   },
   "devDependencies": {
     "electron": "^28.0.0",
     "electron-builder": "^24.13.3"
   },
   "build": {
-    "appId": "com.snake.game",
-    "productName": "SnakeGame",
+    "appId": "com.greensnake.snake",
+    "productName": "Змейка",
     "directories": {
-      "output": "dist"
+      "output": "dist",
+      "buildResources": "build"
     },
-    "files": ["main.js"],
+    "files": [
+      "main.js",
+      "preload.js",
+      "build/**/*"
+    ],
+    "win": {
+      "target": ["zip"],
+      "icon": "build/icon.png"
+    },
     "linux": {
-      "target": ["AppImage", "deb"],
-      "category": "Game"
+      "target": ["AppImage"],
+      "category": "Game",
+      "icon": "build/icon.png"
     }
   }
 }
