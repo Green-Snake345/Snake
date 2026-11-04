@@ -18,10 +18,8 @@ function createWindow() {
   win.loadURL('https://green-snake345.github.io/Snake/');
   win.on('page-title-updated', (e) => e.preventDefault());
 
-  // Обработчик для кнопки "Выход"
   ipcMain.on('app-quit', () => app.quit());
   
-  // Обработчик для клавиши "F"
   ipcMain.on('toggle-fullscreen', () => win.setFullScreen(!win.isFullScreen()));
 }
 
