@@ -28,7 +28,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Snake-Windows
-          path: electron-app/dist/*.exe
+          path: electron-app/dist/*.zip # <--- ИСПРАВЛЕНО НА ZIP
 
   build-linux:
     runs-on: ubuntu-latest
