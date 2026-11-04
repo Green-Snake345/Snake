@@ -3037,19 +3037,23 @@ function runCountdown() {
     list.appendChild(item);
   }
 
-  document.addEventListener('fullscreenchange', updateFullscreenButton);
-  document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
-  window.addEventListener('keydown', function(e) {
-    if (isTypingTarget(e.target)) return;
-    if (e.key && e.key.toLowerCase() === 'f' && !e.ctrlKey && !e.altKey && !e.metaKey) {
-      e.preventDefault();
-      if (window.electronAPI && window.electronAPI.isElectron) {
-        window.electronAPI.toggleFullscreen();
-      } else {
-        toggleFullscreen();
+    document.addEventListener('fullscreenchange', updateFullscreenButton);
+    document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
+    window.addEventListener('keydown', function(e) {
+      if (isTypingTarget(e.target)) return;
+      if (e.key && e.key.toLowerCase() === 'f' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        if (window.electronAPI && window.electronAPI.isElectron) {
+          window.electronAPI.toggleFullscreen();
+        } else {
+          toggleFullscreen();
+        }
       }
-    }
-  });
+    });
+
+    addButton();
+    addKeyboardHint();
+  })();
 
 (function addQuickActions() {
   var shareButton = null;
