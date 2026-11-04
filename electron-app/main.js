@@ -9,7 +9,7 @@ function createWindow() {
     icon: path.join(__dirname, 'build/icon.png'),
     autoHideMenuBar: true,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, 'preload.js'), // <--- Важно!
       contextIsolation: true,
       nodeIntegration: false,
     },
@@ -18,7 +18,10 @@ function createWindow() {
   win.loadURL('https://green-snake345.github.io/Snake/');
   win.on('page-title-updated', (e) => e.preventDefault());
 
+  // Обработчик для кнопки "Выход"
   ipcMain.on('app-quit', () => app.quit());
+  
+  // Обработчик для клавиши "F"
   ipcMain.on('toggle-fullscreen', () => win.setFullScreen(!win.isFullScreen()));
 }
 
