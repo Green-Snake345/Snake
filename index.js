@@ -42,7 +42,7 @@ function storeSet(key, value) {
     window.localStorage.setItem(key, String(value));
     return true;
   } catch (error) {
-    console.error('CRITICAL: Не удалось сохранить "' + key + '":', error);
+    console.error('CRITICAL: Не удалось сохранить "' + key + '" (возможно, переполнено хранилище):', error);
     return false;
   }
 }
@@ -2548,25 +2548,29 @@ function bindButtons() {
   if (ui.exitYes) ui.exitYes.addEventListener('click', function() {
     S.isRunning = false;
 
-    window.close();
-
-    try {
-      if (window.opener) {
-        window.opener = null;
-        window.close();
-      }
-    } catch (e) {}
-
-    try {
-      window.open('', '_self', '');
+    if (window.electronAPI && window.electronAPI.isElectron) {
+      window.electronAPI.quit();
+    } else {
       window.close();
-    } catch (e) {}
 
-    setTimeout(function() {
-      if (!window.closed) {
-        showGoodbyeScreen();
-      }
-    }, 250);
+      try {
+        if (window.opener) {
+          window.opener = null;
+          window.close();
+        }
+      } catch (e) {}
+
+      try {
+        window.open('', '_self', '');
+        window.close();
+      } catch (e) {}
+
+      setTimeout(function() {
+        if (!window.closed) {
+          showGoodbyeScreen();
+        }
+      }, 250);
+    }
   });
   if (ui.exitNo) ui.exitNo.addEventListener('click', function() { showScreen('mainMenu'); });
 
@@ -3039,13 +3043,13 @@ function runCountdown() {
     if (isTypingTarget(e.target)) return;
     if (e.key && e.key.toLowerCase() === 'f' && !e.ctrlKey && !e.altKey && !e.metaKey) {
       e.preventDefault();
-      toggleFullscreen();
+      if (window.electronAPI && window.electronAPI.isElectron) {
+        window.electronAPI.toggleFullscreen();
+      } else {
+        toggleFullscreen();
+      }
     }
   });
-
-  addButton();
-  addKeyboardHint();
-})();
 
 (function addQuickActions() {
   var shareButton = null;
@@ -3375,83 +3379,51 @@ function runCountdown() {
 })();
 
 (function addLocalNotifications() {
-    const STORAGE_KEY = 'snake-pro-last-notification';
+  const STORAGE_KEY = 'snake-pro-last-notification';
 
-    function requestPermission() {
-        if (!('Notification' in window)) {
-            showNotification('Уведомления не поддерживаются', 'Ваш браузер не поддерживает уведомления', '🔔');
-            return;
-        }
-        if (Notification.permission === 'granted') {
-            showNotification('Уведомления уже включены', 'Вы будете получать напоминания', '✅');
-            return;
-        }
-        if (Notification.permission === 'denied') {
-            showNotification('Уведомления заблокированы', 'Разрешите их в настройках браузера (замочек в адресной строке)', '🚫');
-            return;
-        }
-        Notification.requestPermission().then(function(permission) {
-            if (permission === 'granted') {
-                showNotification('Уведомления включены!', 'Теперь вы будете получать напоминания', '🔔');
-            } else {
-                showNotification('Уведомления отклонены', 'Вы не будете получать напоминания', '🚫');
-            }
-        });
-    }
+  function requestPermission() {
+      if ('Notification' in window && Notification.permission === 'default') {
+          Notification.requestPermission().then(function(permission) {
+              console.log('Разрешение на уведомления:', permission);
+          });
+      }
+  }
 
-    function sendReminder(title, body) {
-        if (!('Notification' in window)) return;
-        if (Notification.permission !== 'granted') return;
+  function sendReminder(title, body) {
+      if (!('Notification' in window)) return;
+      if (Notification.permission !== 'granted') return;
 
-        var last = storeGet(STORAGE_KEY);
-        var now = Date.now();
-        if (last && (now - Number(last)) < 86400000) return;
+      var last = storeGet(STORAGE_KEY);
+      var now = Date.now();
+      if (last && (now - Number(last)) < 86400000) return; 
 
-        try {
-            storeSet(STORAGE_KEY, String(now));
-        } catch(e) {}
+      try {
+          storeSet(STORAGE_KEY, String(now));
+      } catch(e) {}
 
-        new Notification(title, {
-            body: body,
-            icon: './icon-192.png',
-            badge: './icon-192.png',
-            tag: 'snake-reminder'
-        });
-    }
+      new Notification(title, {
+          body: body,
+          icon: './icon-192.png',
+          badge: './icon-192.png',
+          tag: 'snake-reminder'
+      });
+  }
 
-    function addNotificationButton() {
-        var settingsScreen = document.getElementById('settings-screen');
-        if (!settingsScreen || document.getElementById('btn-enable-notifications')) return;
+  document.addEventListener('click', function initNotif() {
+          requestPermission();
+          document.removeEventListener('click', initNotif);
+      }, { once: true });
 
-        var btn = document.createElement('button');
-        btn.id = 'btn-enable-notifications';
-        btn.type = 'button';
-        btn.className = 'btn btn-secondary';
-        btn.textContent = '🔔 Включить уведомления';
-        btn.style.marginTop = '10px';
-        btn.style.marginBottom = '10px';
-        btn.addEventListener('click', requestPermission);
-
-        var btnGroup = settingsScreen.querySelector('.btn-group');
-        if (btnGroup) {
-            btnGroup.parentNode.insertBefore(btn, btnGroup);
-        } else {
-            settingsScreen.appendChild(btn);
-        }
-    }
-
-    window.addEventListener('load', function() {
-        addNotificationButton();
-
-        var lastPlay = storeGet('snake-pro-last-play-time');
-        if (lastPlay) {
-            var hoursSince = (Date.now() - Number(lastPlay)) / 3600000;
-            if (hoursSince > 24) {
-                setTimeout(function() {
-                    sendReminder('🐍 Змейка скучает', 'Твои ежедневные задания обновлены. Зайди и забери награду!');
-                }, 5000);
-            }
-        }
-        try { storeSet('snake-pro-last-play-time', String(Date.now())); } catch(e) {}
-    });
-})();
+      window.addEventListener('load', function() {
+          var lastPlay = storeGet('snake-pro-last-play-time');
+          if (lastPlay) {
+              var hoursSince = (Date.now() - Number(lastPlay)) / 3600000;
+              if (hoursSince > 24) {
+                  setTimeout(function() {
+                      sendReminder('🐍 Змейка скучает', 'Твои ежедневные задания обновлены. Зайди и забери награду!');
+                  }, 5000);
+              }
+          }
+          try { storeSet('snake-pro-last-play-time', String(Date.now())); } catch(e) {}
+      });
+  })();
