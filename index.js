@@ -2551,7 +2551,7 @@ function bindButtons() {
     if (window.electronAPI && window.electronAPI.isElectron) {
       window.electronAPI.quit();
     } else {
-      
+    
       window.close();
 
       try {
@@ -3042,18 +3042,19 @@ function runCountdown() {
     document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
     window.addEventListener('keydown', function(e) {
       if (isTypingTarget(e.target)) return;
-      if (((e.key && e.key.toLowerCase() === 'f') || e.code === 'KeyF') && !e.ctrlKey && !e.altKey && !e.metaKey) {
-        e.preventDefault();
-        if (window.electronAPI && window.electronAPI.isElectron) {
-          window.electronAPI.toggleFullscreen();
-        } else {
-          toggleFullscreen();
+      if (((e.key && e.key.toLowerCase() === 'f') || (e.key && e.key.toLowerCase() === 'а') || e.code === 'KeyF') && !e.ctrlKey && !e.altKey && !e.metaKey) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          if (window.electronAPI && window.electronAPI.isElectron) {
+            window.electronAPI.toggleFullscreen();
+          } else {
+            toggleFullscreen();
+          }
         }
-      }
-    });
+      }, true);
 
-    addButton();
-    addKeyboardHint();
+      addButton();
+      addKeyboardHint();
     })();
 
 (function addQuickActions() {
