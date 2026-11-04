@@ -20,6 +20,7 @@ function createWindow() {
   win.on('page-title-updated', (e) => e.preventDefault());
 
   ipcMain.on('app-quit', () => app.quit());
+  ipcMain.on('toggle-fullscreen', () => win.setFullScreen(!win.isFullScreen()));
 }
 
 app.whenReady().then(createWindow);
