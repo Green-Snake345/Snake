@@ -27,9 +27,10 @@ function createWindow() {
 
 app.whenReady().then(() => {
   createWindow();
+  
   setTimeout(() => {
     autoUpdater.checkForUpdates().catch(err => {
-      console.log('Ошибка проверки обновлений:', err);
+      console.log('Ошибка проверки обновлений (возможно, нет интернета):', err);
     });
   }, 3000);
 });
@@ -64,6 +65,10 @@ autoUpdater.on('update-downloaded', () => {
       autoUpdater.quitAndInstall();
     }
   });
+});
+
+autoUpdater.on('error', (err) => {
+  console.log('AutoUpdater error:', err.message);
 });
 
 app.on('window-all-closed', () => {
