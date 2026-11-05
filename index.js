@@ -524,6 +524,12 @@ var THEME_PALETTES = {
         accent: '#ffb7c5', accent2: '#e8a0bf', text: '#fff0f5',
         dim: '#c9a3b0', canvas: '#140a0f',
         background: 'linear-gradient(-45deg, #1a0f14, #2a1822, #3d2430, #1f1218)'
+    },
+    'neon-red': {
+        bgDark: '#0a0000', panel: '#1a0005', card: '#2a0010',
+        accent: '#ff0040', accent2: '#ff0066', text: '#ffffff',
+        dim: '#990033', canvas: '#050000',
+        background: 'linear-gradient(-45deg, #0a0000, #1a0005, #2a0010, #ff004022)'
     }
 };
 
