@@ -2,51 +2,73 @@ name: Electron Builder - Windows and Linux
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'electron-app/**'
 
 jobs:
-  build:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        working-directory: ./electron-app
+        run: npm install
+      
+      - name: Build Windows
+        working-directory: ./electron-app
+        run: npm run build:win
+      
+      - name: Upload Windows
+        uses: actions/upload-artifact@v4
+        with:
+          name: Snake-Windows
+          path: electron-app/dist/*.exe
+
+  build-linux:
     runs-on: ubuntu-latest
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
-
+        uses: actions/checkout@v4
+      
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
-
+          node-version: '20'
+      
+      - name: Install Linux system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-3-0 \
+            libnss3 \
+            libxss1 \
+            libasound2t64 \
+            libatk-bridge2.0-0 \
+            libx11-xcb1 \
+            libxcomposite1 \
+            libxdamage1 \
+            libxrandr2 \
+            libgbm1 \
+            libpango-1.0-0 \
+            libcairo2
+      
       - name: Install dependencies
-        run: |
-          cd electron-app
-          npm install
-
-      - name: Build Windows
-        run: |
-          cd electron-app
-          npm run build:win
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+        working-directory: ./electron-app
+        run: npm install
+      
       - name: Build Linux
-        run: |
-          cd electron-app
-          npm run build:linux
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Windows artifact
-        uses: actions/upload-artifact@v3
+        working-directory: ./electron-app
+        run: npm run build:linux
+      
+      - name: Upload Linux
+        uses: actions/upload-artifact@v4
         with:
-          name: windows-build
-          path: electron-app/dist/*.exe
-
-      - name: Upload Linux artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: linux-build
+          name: Snake-Linux
           path: electron-app/dist/*.AppImage
