@@ -19,6 +19,7 @@
   "build": {
     "appId": "com.greensnake.snake",
     "productName": "Змейка",
+    "publisher": "Green-Snake345",
     "directories": {
       "output": "dist",
       "buildResources": "build"
