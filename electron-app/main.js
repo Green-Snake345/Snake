@@ -9,7 +9,7 @@ function createWindow() {
     icon: path.join(__dirname, 'build/icon.png'),
     autoHideMenuBar: true,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'), // <--- Важно!
+      preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
     },
