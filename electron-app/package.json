@@ -6,8 +6,8 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build:win": "electron-builder --win --x64",
-    "build:linux": "electron-builder --linux --x64"
+    "build:win": "electron-builder --win --x64 --publish never",
+    "build:linux": "electron-builder --linux --x64 --publish never"
   },
   "dependencies": {
     "electron-updater": "^6.2.1"
@@ -29,22 +29,13 @@
       "build/**/*"
     ],
     "win": {
-      "target": [
-        "nsis"
-      ],
+      "target": ["nsis"],
       "icon": "build/icon.png"
     },
     "linux": {
-      "target": [
-        "AppImage"
-      ],
+      "target": ["AppImage"],
       "category": "Game",
       "icon": "build/icon.png"
-    },
-    "publish": {
-      "provider": "github",
-      "owner": "Green-Snake345",
-      "repo": "Snake"
     }
   }
 }
