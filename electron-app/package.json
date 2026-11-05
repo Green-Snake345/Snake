@@ -36,6 +36,11 @@
       "target": ["AppImage"],
       "category": "Game",
       "icon": "build/icon.png"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "Green-Snake345",
+      "repo": "Snake"
     }
   }
 }
