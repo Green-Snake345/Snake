@@ -1,5 +1,8 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
+const { autoUpdater } = require('electron-updater');
+
+autoUpdater.autoDownload = false;
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -19,11 +22,49 @@ function createWindow() {
   win.on('page-title-updated', (e) => e.preventDefault());
 
   ipcMain.on('app-quit', () => app.quit());
-  
   ipcMain.on('toggle-fullscreen', () => win.setFullScreen(!win.isFullScreen()));
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  createWindow();
+  setTimeout(() => {
+    autoUpdater.checkForUpdates().catch(err => {
+      console.log('Ошибка проверки обновлений:', err);
+    });
+  }, 3000);
+});
+
+autoUpdater.on('update-available', (info) => {
+  dialog.showMessageBox({
+    type: 'info',
+    title: 'Доступно обновление',
+    message: `Найдена новая версия ${info.version}!`,
+    detail: 'Хотите скачать и установить обновление?',
+    buttons: ['Скачать', 'Позже'],
+    defaultId: 0,
+    cancelId: 1
+  }).then((result) => {
+    if (result.response === 0) {
+      autoUpdater.downloadUpdate();
+    }
+  });
+});
+
+autoUpdater.on('update-downloaded', () => {
+  dialog.showMessageBox({
+    type: 'info',
+    title: 'Обновление готово',
+    message: 'Обновление скачано и будет установлено после перезапуска.',
+    detail: 'Перезапустить игру сейчас?',
+    buttons: ['Перезапустить', 'Позже'],
+    defaultId: 0,
+    cancelId: 1
+  }).then((result) => {
+    if (result.response === 0) {
+      autoUpdater.quitAndInstall();
+    }
+  });
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
