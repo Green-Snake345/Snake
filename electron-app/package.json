@@ -1,6 +1,6 @@
 {
   "name": "snake-game",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Классическая Змейка",
   "author": "Green-Snake345",
   "main": "main.js",
