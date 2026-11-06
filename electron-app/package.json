@@ -26,7 +26,8 @@
     "files": [
       "main.js",
       "preload.js",
-      "build/**/*"
+      "build/**/*",
+      "manual.txt"
     ],
     "win": {
       "target": ["nsis", "zip"],
