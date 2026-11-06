@@ -19,6 +19,7 @@
   "build": {
     "appId": "com.greensnake.snake",
     "productName": "Змейка",
+    "copyright": "Copyright © 2026 Змейка",
     "directories": {
       "output": "dist",
       "buildResources": "build"
