@@ -66,6 +66,11 @@ function storeSet(key, value) {
 }
 
 function storeRemove(key) {
+  if (window.electronAPI && window.electronAPI.isElectron) {
+    delete localCache[key];
+    window.electronAPI.saveGameData(JSON.stringify(localCache));
+    return true;
+  }
   try {
     window.localStorage.removeItem(key);
     return true;
