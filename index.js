@@ -28,7 +28,20 @@ function el(id) {
   return e;
 }
 
+var localCache = {};
+if (window.electronAPI && window.electronAPI.isElectron) {
+  try {
+    var rawData = window.electronAPI.loadSaveSync();
+    if (rawData) localCache = JSON.parse(rawData);
+  } catch (e) { 
+    console.error('Ошибка чтения сохранений'); 
+  }
+}
+
 function storeGet(key) {
+  if (window.electronAPI && window.electronAPI.isElectron) {
+    return localCache[key] || null;
+  }
   try {
     return window.localStorage.getItem(key);
   } catch (error) {
@@ -38,11 +51,16 @@ function storeGet(key) {
 }
 
 function storeSet(key, value) {
+  if (window.electronAPI && window.electronAPI.isElectron) {
+    localCache[key] = String(value);
+    window.electronAPI.saveGameData(JSON.stringify(localCache)); 
+    return true;
+  }
   try {
     window.localStorage.setItem(key, String(value));
     return true;
   } catch (error) {
-    console.error('CRITICAL: Не удалось сохранить "' + key + '" (возможно, переполнено хранилище):', error);
+    console.error('CRITICAL: Не удалось сохранить "' + key + '":', error);
     return false;
   }
 }
