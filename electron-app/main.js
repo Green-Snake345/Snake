@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const { autoUpdater } = require('electron-updater');
 
 autoUpdater.autoDownload = false;
@@ -23,6 +24,29 @@ function createWindow() {
 
   ipcMain.on('app-quit', () => app.quit());
   ipcMain.on('toggle-fullscreen', () => win.setFullScreen(!win.isFullScreen()));
+
+  const savePath = path.join(app.getPath('userData'), 'savegame.json');
+
+  ipcMain.on('load-save-sync', (event) => {
+    try {
+      if (fs.existsSync(savePath)) {
+        event.returnValue = fs.readFileSync(savePath, 'utf-8');
+      } else {
+        event.returnValue = null;
+      }
+    } catch (e) {
+      console.error('Ошибка чтения сохранения:', e);
+      event.returnValue = null;
+    }
+  });
+
+  ipcMain.on('save-game-data', (event, data) => {
+    try {
+      fs.writeFileSync(savePath, data, 'utf-8');
+    } catch (e) {
+      console.error('Ошибка записи сохранения:', e);
+    }
+  });
 }
 
 app.whenReady().then(() => {
