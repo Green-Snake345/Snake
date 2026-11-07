@@ -21,7 +21,14 @@ os.makedirs(DATA_DIR, exist_ok=True)
 LOG_PATH = os.path.join(DATA_DIR, 'snake.log')
 DB_PATH = os.path.join(DATA_DIR, 'analytics.db')
 
-ALLOWED_FILES = {'index.html', 'index.js', 'style.css', 'favicon.ico', 'track.js', 'analytics.js', 'block.js'}
+ALLOWED_FILES = {
+    'index.html', 'index.js', 'style.css', 'favicon.ico', 
+    'track.js', 'analytics.js', 'block.js',
+    'manifest.json', 'service-worker.js', 'sw-register.js', 'pwa-update.js',
+    'icon-192.png', 'icon-512.png', 'icon-192-maskable.png', 
+    'icon-512-maskable.png', 'icon-monochrome.png'
+}
+
 CACHE_TIME = {
     'index.html': 0,
     'index.js': 3600,
@@ -30,6 +37,15 @@ CACHE_TIME = {
     'track.js': 3600,
     'analytics.js': 3600,
     'block.js': 3600,
+    'manifest.json': 0,
+    'service-worker.js': 0,
+    'sw-register.js': 0,
+    'pwa-update.js': 0,
+    'icon-192.png': 604800,
+    'icon-512.png': 604800,
+    'icon-192-maskable.png': 604800,
+    'icon-512-maskable.png': 604800,
+    'icon-monochrome.png': 604800,
 }
 
 BLOCKED_COUNTRIES = {
@@ -288,7 +304,7 @@ def block_countries():
     if request.path == '/health' or request.method == 'OPTIONS':
         return
 
-    if request.path != '/' and not request.path.startswith('/api/') :
+    if request.path != '/' and not request.path.startswith('/api/'):
         return
 
     ip = _get_real_ip()
@@ -335,7 +351,9 @@ def add_security_headers(response):
         "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;"
         "img-src 'self' data:;"
         "font-src 'self';"
-        "connect-src 'self' https://get.geojs.io;")
+        "connect-src 'self' https://get.geojs.io;"
+        "worker-src 'self' blob:;"
+    )
     return response
 
 
@@ -360,9 +378,11 @@ def health():
     response.headers['Cache-Control'] = 'no-store'
     return response
 
+
 @app.route('/favicon.ico')
 def favicon():
     return send_from_directory(BASE_DIR, 'favicon.ico', mimetype='image/x-icon')
+
 
 @app.route('/api/track', methods=['POST', 'OPTIONS'])
 def api_track():
@@ -432,7 +452,8 @@ def api_track():
     finally:
         if conn:
             conn.close()
-        
+
+
 @app.route('/<path:filename>')
 def static_files(filename):
     if '..' in filename or '/' in filename or '\\' in filename:
@@ -441,7 +462,16 @@ def static_files(filename):
     if filename not in ALLOWED_FILES:
         app.logger.warning(f"Попытка доступа к неразрешённому файлу: {filename}")
         abort(404)
-    response = make_response(send_from_directory(BASE_DIR, filename))
+        
+    mimetype = None
+    if filename.endswith('.json'):
+        mimetype = 'application/json'
+    elif filename.endswith('.png'):
+        mimetype = 'image/png'
+    elif filename == 'service-worker.js':
+        mimetype = 'application/javascript'
+        
+    response = make_response(send_from_directory(BASE_DIR, filename, mimetype=mimetype))
     return _apply_cache_headers(response, filename)
 
 
@@ -487,6 +517,7 @@ def payload_too_large(error):
 def internal_error(error):
     app.logger.exception("Внутренняя ошибка сервера")
     return "Ошибка сервера", 500
+
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8000))
