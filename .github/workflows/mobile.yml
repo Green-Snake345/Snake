@@ -18,24 +18,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Fix manifest.json with Python
-        run: |
-          python3 -c "
-          import json, re
-          with open('manifest.json', 'r') as f:
-              text = f.read()
-          text = re.sub(r'\"\s*:\s*\"', '\": \"', text)
-          text = re.sub(r'\"\s*,', '\",', text)
-          text = re.sub(r'\"\s*\]', '\"]', text)
-          text = re.sub(r'\"\s*\}', '\"]', text)
-          text = re.sub(r'\s+\"', ' \"', text)
-          data = json.loads(text)
-          with open('manifest.json', 'w') as f:
-              json.dump(data, f, indent=2, ensure_ascii=False)
-          print('Fixed manifest.json')
-          "
-          cat manifest.json
-      
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
@@ -89,24 +71,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
-      - name: Fix manifest.json with Python
-        run: |
-          python3 -c "
-          import json, re
-          with open('manifest.json', 'r') as f:
-              text = f.read()
-          text = re.sub(r'\"\s*:\s*\"', '\": \"', text)
-          text = re.sub(r'\"\s*,', '\",', text)
-          text = re.sub(r'\"\s*\]', '\"]', text)
-          text = re.sub(r'\"\s*\}', '\"]', text)
-          text = re.sub(r'\s+\"', ' \"', text)
-          data = json.loads(text)
-          with open('manifest.json', 'w') as f:
-              json.dump(data, f, indent=2, ensure_ascii=False)
-          print('Fixed manifest.json')
-          "
-          cat manifest.json
       
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
