@@ -2,7 +2,7 @@
   "name": "Змейка",
   "short_name": "Змейка",
   "description": "Классическая змейка — бусты, монеты, магазин скинов, мобильное управление",
-  "id": "/snake/",
+  "id": "/Snake/",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
