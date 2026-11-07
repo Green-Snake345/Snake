@@ -1,6 +1,6 @@
 {
   "name": "Змейка",
-  "version": "1.0.8",
+  "version": "1.0.2",
   "short_name": "Змейка",
   "description": "Классическая змейка с бустами, комбо и магазином скинов",
   "start_url": "./index.html",
