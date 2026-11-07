@@ -1,4 +1,4 @@
-name: Build Mobile Apps (Android + iOS)
+name: Build Mobile Apps Android and iOS
 
 on:
   workflow_dispatch:
@@ -28,13 +28,22 @@ jobs:
           npm init -y
           npm install @capacitor/core@latest @capacitor/cli@latest @capacitor/android@latest
       
+      - name: Prepare web assets
+        run: |
+          mkdir -p www
+          cp index.html www/
+          cp index.js www/
+          cp manifest.json www/
+          cp *.css www/ 2>/dev/null || true
+          cp *.png www/ 2>/dev/null || true
+      
       - name: Create Capacitor config
         run: |
           cat > capacitor.config.json << 'EOF'
           {
             "appId": "com.greensnake.snake",
             "appName": "Змейка",
-            "webDir": ".",
+            "webDir": "www",
             "bundledWebRuntime": false
           }
           EOF
@@ -82,13 +91,22 @@ jobs:
           npm init -y
           npm install @capacitor/core@latest @capacitor/cli@latest @capacitor/ios@latest
       
+      - name: Prepare web assets
+        run: |
+          mkdir -p www
+          cp index.html www/
+          cp index.js www/
+          cp manifest.json www/
+          cp *.css www/ 2>/dev/null || true
+          cp *.png www/ 2>/dev/null || true
+      
       - name: Create Capacitor config
         run: |
           cat > capacitor.config.json << 'EOF'
           {
             "appId": "com.greensnake.snake",
             "appName": "Змейка",
-            "webDir": ".",
+            "webDir": "www",
             "bundledWebRuntime": false
           }
           EOF
