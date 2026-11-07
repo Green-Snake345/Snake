@@ -516,58 +516,46 @@ var THEME_PALETTES = {
         background: 'linear-gradient(-45deg, #1f2937, #374151, #4b5563, #2d3748)'
     },
     sakura: {
-        bgDark: '#1c0f14', panel: '#2d181f', card: '#42222d',
-        accent: '#ffb7c5', accent2: '#e899bc', text: '#fff5f8',
-        dim: '#c9a5b2', canvas: '#140a0e',
-        background: 'linear-gradient(-45deg, #1c0f14, #2d181f, #4a2432, #1e1016)'
+        bgDark: '#1a0f14', panel: '#2a1822', card: '#3d2430',
+        accent: '#ffb7c5', accent2: '#e8a0bf', text: '#fff0f5',
+        dim: '#c9a3b0', canvas: '#140a0f',
+        background: 'linear-gradient(-45deg, #1a0f14, #2a1822, #3d2430, #1f1218)'
     },
-    matcha: {
-        bgDark: '#0f1a10', panel: '#18281a', card: '#223a24',
-        accent: '#9acd7a', accent2: '#6b9e4f', text: '#f0fff0',
-        dim: '#9cb39a', canvas: '#081108',
-        background: 'linear-gradient(-45deg, #0f1a10, #18281a, #25402a, #0d180e)'
+    'neon-red': {
+        bgDark: '#0a0000', panel: '#1a0005', card: '#2a0010',
+        accent: '#ff0040', accent2: '#ff0066', text: '#ffffff',
+        dim: '#990033', canvas: '#050000',
+        background: 'linear-gradient(-45deg, #0a0000, #1a0005, #2a0010, #ff004022)'
     },
-    lavender: {
-        bgDark: '#14101f', panel: '#1e1830', card: '#2a2145',
-        accent: '#c4a7f5', accent2: '#9d7bd8', text: '#f5f0ff',
-        dim: '#a99cc4', canvas: '#0e0a18',
-        background: 'linear-gradient(-45deg, #14101f, #1e1830, #2e2450, #171228)'
+    'neon-blue': {
+        bgDark: '#00050a', panel: '#00101a', card: '#001a2a',
+        accent: '#00bfff', accent2: '#00ffff', text: '#ffffff',
+        dim: '#006699', canvas: '#000305',
+        background: 'linear-gradient(-45deg, #00050a, #00101a, #001a2a, #00bfff22)'
     },
-    coffee: {
-        bgDark: '#1a120b', panel: '#2a1d13', card: '#3d2a1c',
-        accent: '#c8956d', accent2: '#8b5a3c', text: '#f5e6d3',
-        dim: '#a89080', canvas: '#120c07',
-        background: 'linear-gradient(-45deg, #1a120b, #2a1d13, #3d2a1c, #1e1510)'
+    'neon-green': {
+        bgDark: '#000a00', panel: '#001a05', card: '#002a10',
+        accent: '#00ff40', accent2: '#40ff80', text: '#ffffff',
+        dim: '#009933', canvas: '#000500',
+        background: 'linear-gradient(-45deg, #000a00, #001a05, #002a10, #00ff4022)'
     },
-    desert: {
-        bgDark: '#1a1208', panel: '#2d1f0f', card: '#3d2c18',
-        accent: '#e8a862', accent2: '#c97d3a', text: '#fff5e0',
-        dim: '#c4a882', canvas: '#120c06',
-        background: 'linear-gradient(-45deg, #1a1208, #2d1f0f, #3d2c18, #1e150a)'
+    'neon-purple': {
+        bgDark: '#08000a', panel: '#14001a', card: '#20002a',
+        accent: '#bf00ff', accent2: '#e040ff', text: '#ffffff',
+        dim: '#660099', canvas: '#050005',
+        background: 'linear-gradient(-45deg, #08000a, #14001a, #20002a, #bf00ff22)'
     },
-    steel: {
-        bgDark: '#0d1117', panel: '#161b22', card: '#21262d',
-        accent: '#58a6ff', accent2: '#8b949e', text: '#e6edf3',
-        dim: '#7d8590', canvas: '#010409',
-        background: 'linear-gradient(-45deg, #0d1117, #161b22, #21262d, #0f141a)'
+    'neon-yellow': {
+        bgDark: '#0a0a00', panel: '#1a1a00', card: '#2a2a00',
+        accent: '#ffff00', accent2: '#ffff66', text: '#ffffff',
+        dim: '#999900', canvas: '#050500',
+        background: 'linear-gradient(-45deg, #0a0a00, #1a1a00, #2a2a00, #ffff0022)'
     },
-    'neon-light': {
-        bgDark: '#f2f5f9', panel: '#ffffff', card: '#e8eef5',
-        accent: '#ff00e4', accent2: '#00f0ff', text: '#0b132b',
-        dim: '#64748b', canvas: '#f8fafc',
-        background: 'linear-gradient(-45deg, #f2f5f9, #ffffff, #e0f7fa, #fce4ec)'
-    },
-    onyx: {
-        bgDark: '#0b0b0d', panel: '#141416', card: '#1e1e21',
-        accent: '#b8b8c0', accent2: '#70707a', text: '#f2f2f5',
-        dim: '#7a7a85', canvas: '#050506',
-        background: 'linear-gradient(-45deg, #0b0b0d, #141416, #1e1e21, #0d0d10)'
-    },
-    'bubble-tea': {
-        bgDark: '#f5e6d3', panel: '#fff5eb', card: '#f0d9c4',
-        accent: '#c9a27a', accent2: '#ff9ec7', text: '#3d2817',
-        dim: '#8b6f47', canvas: '#faebd7',
-        background: 'linear-gradient(-45deg, #f5e6d3, #fff5eb, #f0d9c4, #ffe4e1)'
+    'neon-orange': {
+        bgDark: '#0a0500', panel: '#1a0a00', card: '#2a1000',
+        accent: '#ff8800', accent2: '#ffaa33', text: '#ffffff',
+        dim: '#995500', canvas: '#050300',
+        background: 'linear-gradient(-45deg, #0a0500, #1a0a00, #2a1000, #ff880022)'
     }
 };
 
