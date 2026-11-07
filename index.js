@@ -26,13 +26,21 @@ function el(id) {
   var e = document.getElementById(id);
   if (!e) console.warn('Элемент не найден: ' + id);
   return e;
+
+var canvas = document.getElementById('game');
+var ctx    = canvas.getContext('2d');
+
+function el(id) {
+  var e = document.getElementById(id);
+  if (!e) console.warn('Элемент не найден: ' + id);
+  return e;
 }
 
 function storeGet(key) {
   try {
     return window.localStorage.getItem(key);
   } catch (error) {
-    console.error('CRITICAL: Не удалось прочитать сохранение "' + key + '":', error);
+    console.warn('Не удалось прочитать сохранение "' + key + '":', error);
     return null;
   }
 }
@@ -42,7 +50,7 @@ function storeSet(key, value) {
     window.localStorage.setItem(key, String(value));
     return true;
   } catch (error) {
-    console.error('CRITICAL: Не удалось сохранить "' + key + '" (возможно, переполнено хранилище):', error);
+    console.warn('Не удалось сохранить "' + key + '":', error);
     return false;
   }
 }
@@ -52,7 +60,7 @@ function storeRemove(key) {
     window.localStorage.removeItem(key);
     return true;
   } catch (error) {
-    console.error('CRITICAL: Не удалось удалить сохранение "' + key + '":', error);
+    console.warn('Не удалось удалить сохранение "' + key + '":', error);
     return false;
   }
 }
@@ -120,7 +128,7 @@ var ui = {
   feverOverlay:    el('fever-overlay'),
   msHighscore:     el('ms-highscore'),
   msGames:         el('ms-games-val'),
-  msEaten:         el('ms-eaten-val'),
+  msEaten:         el('ms-eaten'),
   coinsValue:      el('coins-value'),
   hudCoins:        el('hud-coins'),
   aboutGames:      el('about-games'),
@@ -292,7 +300,7 @@ function initAudio() {
       audioCtx.resume();
     }
   } catch (e) {
-    console.error('Ошибка инициализации AudioContext:', e);
+    console.warn('AudioContext не поддерживается:', e);
   }
 }
 
@@ -300,27 +308,23 @@ function beep(f, d, t, v) {
   if (!audioCtx || S.volume <= 0) return;
 
   if (audioCtx.state === 'suspended') {
-    audioCtx.resume().catch(e => console.error('Resume audio failed:', e));
+    audioCtx.resume();
   }
-  try {
-    var o = audioCtx.createOscillator();
-    var g = audioCtx.createGain();
-    o.type = t || 'square';
-    o.frequency.setValueAtTime(f, audioCtx.currentTime);
-    g.gain.setValueAtTime(S.volume * 0.25 * (v || 1), audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + d);
-    o.connect(g);
-    g.connect(audioCtx.destination);
-    o.start();
-    o.stop(audioCtx.currentTime + d);
-  } catch (e) {
-    console.error('Ошибка воспроизведения звука:', e);
-  }
+  var o = audioCtx.createOscillator();
+  var g = audioCtx.createGain();
+  o.type = t || 'square';
+  o.frequency.setValueAtTime(f, audioCtx.currentTime);
+  g.gain.setValueAtTime(S.volume * 0.25 * (v || 1), audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + d);
+  o.connect(g);
+  g.connect(audioCtx.destination);
+  o.start();
+  o.stop(audioCtx.currentTime + d);
 }
 
 function haptic(pattern) {
   if (!S.vibration || !navigator.vibrate) return;
-  try { navigator.vibrate(pattern); } catch (e) { console.warn('Haptic error:', e); }
+  try { navigator.vibrate(pattern); } catch (e) {}
 }
 
 var sfx = {
@@ -520,46 +524,58 @@ var THEME_PALETTES = {
         background: 'linear-gradient(-45deg, #1f2937, #374151, #4b5563, #2d3748)'
     },
     sakura: {
-        bgDark: '#1a0f14', panel: '#2a1822', card: '#3d2430',
-        accent: '#ffb7c5', accent2: '#e8a0bf', text: '#fff0f5',
-        dim: '#c9a3b0', canvas: '#140a0f',
-        background: 'linear-gradient(-45deg, #1a0f14, #2a1822, #3d2430, #1f1218)'
+        bgDark: '#1c0f14', panel: '#2d181f', card: '#42222d',
+        accent: '#ffb7c5', accent2: '#e899bc', text: '#fff5f8',
+        dim: '#c9a5b2', canvas: '#140a0e',
+        background: 'linear-gradient(-45deg, #1c0f14, #2d181f, #4a2432, #1e1016)'
     },
-    'neon-red': {
-        bgDark: '#0a0000', panel: '#1a0005', card: '#2a0010',
-        accent: '#ff0040', accent2: '#ff0066', text: '#ffffff',
-        dim: '#990033', canvas: '#050000',
-        background: 'linear-gradient(-45deg, #0a0000, #1a0005, #2a0010, #ff004022)'
+    matcha: {
+        bgDark: '#0f1a10', panel: '#18281a', card: '#223a24',
+        accent: '#9acd7a', accent2: '#6b9e4f', text: '#f0fff0',
+        dim: '#9cb39a', canvas: '#081108',
+        background: 'linear-gradient(-45deg, #0f1a10, #18281a, #25402a, #0d180e)'
     },
-    'neon-blue': {
-        bgDark: '#00050a', panel: '#00101a', card: '#001a2a',
-        accent: '#00bfff', accent2: '#00ffff', text: '#ffffff',
-        dim: '#006699', canvas: '#000305',
-        background: 'linear-gradient(-45deg, #00050a, #00101a, #001a2a, #00bfff22)'
+    lavender: {
+        bgDark: '#14101f', panel: '#1e1830', card: '#2a2145',
+        accent: '#c4a7f5', accent2: '#9d7bd8', text: '#f5f0ff',
+        dim: '#a99cc4', canvas: '#0e0a18',
+        background: 'linear-gradient(-45deg, #14101f, #1e1830, #2e2450, #171228)'
     },
-    'neon-green': {
-        bgDark: '#000a00', panel: '#001a05', card: '#002a10',
-        accent: '#00ff40', accent2: '#40ff80', text: '#ffffff',
-        dim: '#009933', canvas: '#000500',
-        background: 'linear-gradient(-45deg, #000a00, #001a05, #002a10, #00ff4022)'
+    coffee: {
+        bgDark: '#1a120b', panel: '#2a1d13', card: '#3d2a1c',
+        accent: '#c8956d', accent2: '#8b5a3c', text: '#f5e6d3',
+        dim: '#a89080', canvas: '#120c07',
+        background: 'linear-gradient(-45deg, #1a120b, #2a1d13, #3d2a1c, #1e1510)'
     },
-    'neon-purple': {
-        bgDark: '#08000a', panel: '#14001a', card: '#20002a',
-        accent: '#bf00ff', accent2: '#e040ff', text: '#ffffff',
-        dim: '#660099', canvas: '#050005',
-        background: 'linear-gradient(-45deg, #08000a, #14001a, #20002a, #bf00ff22)'
+    desert: {
+        bgDark: '#1a1208', panel: '#2d1f0f', card: '#3d2c18',
+        accent: '#e8a862', accent2: '#c97d3a', text: '#fff5e0',
+        dim: '#c4a882', canvas: '#120c06',
+        background: 'linear-gradient(-45deg, #1a1208, #2d1f0f, #3d2c18, #1e150a)'
     },
-    'neon-yellow': {
-        bgDark: '#0a0a00', panel: '#1a1a00', card: '#2a2a00',
-        accent: '#ffff00', accent2: '#ffff66', text: '#ffffff',
-        dim: '#999900', canvas: '#050500',
-        background: 'linear-gradient(-45deg, #0a0a00, #1a1a00, #2a2a00, #ffff0022)'
+    steel: {
+        bgDark: '#0d1117', panel: '#161b22', card: '#21262d',
+        accent: '#58a6ff', accent2: '#8b949e', text: '#e6edf3',
+        dim: '#7d8590', canvas: '#010409',
+        background: 'linear-gradient(-45deg, #0d1117, #161b22, #21262d, #0f141a)'
     },
-    'neon-orange': {
-        bgDark: '#0a0500', panel: '#1a0a00', card: '#2a1000',
-        accent: '#ff8800', accent2: '#ffaa33', text: '#ffffff',
-        dim: '#995500', canvas: '#050300',
-        background: 'linear-gradient(-45deg, #0a0500, #1a0a00, #2a1000, #ff880022)'
+    'neon-light': {
+        bgDark: '#f2f5f9', panel: '#ffffff', card: '#e8eef5',
+        accent: '#ff00e4', accent2: '#00f0ff', text: '#0b132b',
+        dim: '#64748b', canvas: '#f8fafc',
+        background: 'linear-gradient(-45deg, #f2f5f9, #ffffff, #e0f7fa, #fce4ec)'
+    },
+    onyx: {
+        bgDark: '#0b0b0d', panel: '#141416', card: '#1e1e21',
+        accent: '#b8b8c0', accent2: '#70707a', text: '#f2f2f5',
+        dim: '#7a7a85', canvas: '#050506',
+        background: 'linear-gradient(-45deg, #0b0b0d, #141416, #1e1e21, #0d0d10)'
+    },
+    'bubble-tea': {
+        bgDark: '#f5e6d3', panel: '#fff5eb', card: '#f0d9c4',
+        accent: '#c9a27a', accent2: '#ff9ec7', text: '#3d2817',
+        dim: '#8b6f47', canvas: '#faebd7',
+        background: 'linear-gradient(-45deg, #f5e6d3, #fff5eb, #f0d9c4, #ffe4e1)'
     }
 };
 
@@ -581,7 +597,7 @@ function applyTheme(t) {
   Object.keys(vars).forEach(function(key) {
     root.style.setProperty(key, vars[key]);
   });
-  root.classList.toggle('theme-light', t === 'light' || t === 'paper' || t === 'arctic' || t === 'spring' || t === 'mint');
+  root.classList.toggle('theme-light', t === 'light' || t === 'paper' || t === 'arctic' || t === 'spring' || t === 'mint' || S.theme === 'neon-light' || S.theme === 'bubble-tea');
   root.dataset.theme = t;
   root.style.background = palette.background;
   root.style.backgroundSize = '400% 400%';
@@ -726,7 +742,7 @@ function createControlSchemeSetting() {
         '<option value="arrows">Только стрелки</option>' +
         '<option value="both">Стрелки и WASD</option>' +
       '</select>' +
-      '<p class="setting-help">Кастомные клавиши из «Управление клавишами» работают всегда</p>';
+      '<p class="setting-help">Кастомные клавиши из «Управление клавишами» работают всегда.</p>';
 
     container.appendChild(setting);
     ui.controlScheme = document.getElementById('control-scheme-select');
@@ -815,11 +831,11 @@ function showGoodbyeScreen() {
     overlay.className = 'menu-screen';
     overlay.innerHTML =
       '<div class="logo"><h1>Пока! 👋</h1></div>' +
-      '<p class="confirm-text">Спасибо за игру в «Змейка»!</p>' +
+      '<p class="confirm-text">Спасибо за игру в «Змейку»!</p>' +
       '<p class="setting-help" style="text-align:center;">' +
-        'Браузер не даёт закрыть вкладку автоматически' +
-        'Нажмите <b>Ctrl&nbsp;+&nbsp;W</b> (Windows / Linux)' +
-        'или <b>Cmd&nbsp;+&nbsp;W</b> (Mac), чтобы закрыть вкладку вручную' +
+        'Браузер не даёт закрыть вкладку автоматически. ' +
+        'Нажмите <b>Ctrl&nbsp;+&nbsp;W</b> (Windows / Linux) ' +
+        'или <b>Cmd&nbsp;+&nbsp;W</b> (Mac), чтобы закрыть вкладку вручную.' +
       '</p>' +
       '<div class="btn-group">' +
         '<button id="btn-goodbye-back" class="btn btn-secondary">← Вернуться в меню</button>' +
@@ -842,29 +858,17 @@ function showGoodbyeScreen() {
 
 function loadAchievements() {
   var raw = storeGet('snake-pro-achievements');
-  if (!raw) {
-    console.info('loadAchievements: в хранилище пусто — новый профиль');
-    return {};
-  }
-  try {
-    var parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      console.warn('loadAchievements: данные не объект, сброс', parsed);
-      return {};
-    }
-    return parsed;
-  } catch (e) {
-    console.error('loadAchievements: ошибка парсинга, ачивки обнулены', e.message, '| raw:', raw);
-    return {};
-  }
+  if (!raw) return {};
+  try { return JSON.parse(raw); } catch (e) { return {}; }
 }
 
 function saveAchievement(key) {
   var ach = loadAchievements();
   ach[key] = true;
-  var ok = storeSet('snake-pro-achievements', JSON.stringify(ach));
-  if (!ok) {
-    console.error('saveAchievement: не удалось сохранить ачивку "' + key + '"');
+  try {
+    storeSet('snake-pro-achievements', JSON.stringify(ach));
+  } catch (e) {
+    console.warn('Не удалось сохранить ачивку:', e);
   }
 }
 
@@ -940,39 +944,28 @@ function checkAchievements() {
 
 function loadCoins() {
   var raw = storeGet('snake-pro-coins');
-  if (!raw) {
-    console.info('loadCoins: в хранилище пусто — 0 монет');
-    return;
-  }
+  if (!raw) return;
   try {
     var d = JSON.parse(raw);
     S.coins = d.coins || 0;
     S.totalCoins = d.total || 0;
-    if (!isFinite(S.coins) || !isFinite(S.totalCoins)) {
-      console.warn('loadCoins: некорректные значения, сброс', d);
-      S.coins = 0; S.totalCoins = 0;
-    }
-  } catch (e) {
-    console.error('loadCoins: ошибка парсинга', e.message, '| raw:', raw);
-  }
+  } catch (e) {}
 }
 
 function saveCoins() {
-  var ok = storeSet('snake-pro-coins', JSON.stringify({
-    coins: S.coins,
-    total: S.totalCoins
-  }));
-  if (!ok) {
-    console.error('saveCoins: сохранение провалилось', { coins: S.coins, total: S.totalCoins });
+  try {
+    storeSet('snake-pro-coins', JSON.stringify({
+      coins: S.coins,
+      total: S.totalCoins
+    }));
+  } catch (e) {
+    console.warn('Не удалось сохранить монеты:', e);
   }
   updateCoinsUI();
 }
 
 function addCoins(amount, reason) {
-  if (!isFinite(amount) || amount <= 0) {
-    console.warn('addCoins: некорректная сумма', { amount: amount, reason: reason });
-    return;
-  }
+  if (amount <= 0) return;
   S.coins += amount;
   S.totalCoins += amount;
   S.sessionCoins += amount;
@@ -988,55 +981,37 @@ function updateCoinsUI() {
   if (ui.aboutCoins) ui.aboutCoins.textContent = S.totalCoins;
 }
 
-function loadPurchasedSkins() {
-  var raw = storeGet('snake-pro-purchased-skins');
-  if (!raw) {
-    console.info('loadPurchasedSkins: в хранилище пусто — покупок нет');
-    return;
-  }
-  try {
-    var list = JSON.parse(raw);
-    if (Array.isArray(list)) {
-      S.purchasedSkins = list;
-    } else {
-      console.warn('loadPurchasedSkins: данные не массив, список покупок пуст', list);
-    }
-  } catch (e) {
-    console.error('loadPurchasedSkins: ошибка парсинга', e.message, '| raw:', raw);
-  }
-}
-
-function savePurchasedSkins() {
-  var ok = storeSet('snake-pro-purchased-skins', JSON.stringify(S.purchasedSkins));
-  if (!ok) {
-    console.error('savePurchasedSkins: сохранение провалилось', S.purchasedSkins);
-  }
-}
-
 function loadOwnedSkins() {
   var raw = storeGet('snake-pro-owned-skins');
-  if (!raw) {
-    S.ownedSkins = ['classic', 'neon', 'violet', 'golden', 'scarlet', 'shadow'];
-    return;
-  }
+  if (!raw) return;
   try {
     var list = JSON.parse(raw);
-    if (Array.isArray(list)) {
-      S.ownedSkins = list;
-    } else {
-      console.warn('loadOwnedSkins: данные не массив, сброс к дефолту');
-      S.ownedSkins = ['classic', 'neon', 'violet', 'golden', 'scarlet', 'shadow'];
-    }
-  } catch (e) {
-    console.error('loadOwnedSkins: ошибка парсинга', e.message);
-    S.ownedSkins = ['classic', 'neon', 'violet', 'golden', 'scarlet', 'shadow'];
-  }
+    if (Array.isArray(list) && list.length) S.ownedSkins = list;
+  } catch (e) {}
 }
 
 function saveOwnedSkins() {
-  var ok = storeSet('snake-pro-owned-skins', JSON.stringify(S.ownedSkins));
-  if (!ok) {
-    console.error('saveOwnedSkins: сохранение провалилось', S.ownedSkins);
+  try {
+    storeSet('snake-pro-owned-skins', JSON.stringify(S.ownedSkins));
+  } catch (e) {
+    console.warn('Не удалось сохранить скины:', e);
+  }
+}
+
+function loadPurchasedSkins() {
+  var raw = storeGet('snake-pro-purchased-skins');
+  if (!raw) return;
+  try {
+    var list = JSON.parse(raw);
+    if (Array.isArray(list)) S.purchasedSkins = list;
+  } catch (e) {}
+}
+
+function savePurchasedSkins() {
+  try {
+    storeSet('snake-pro-purchased-skins', JSON.stringify(S.purchasedSkins));
+  } catch (e) {
+    console.warn('Не удалось сохранить покупки скинов:', e);
   }
 }
 
@@ -1069,7 +1044,7 @@ function renderShop() {
     } else if (skin.price === 0) {
       actionHtml = '<button class="shop-btn free-btn">Бесплатно</button>';
     } else {
-      actionHtml = '<button class="shop-btn buy-btn">Купить за ' + skin.price + '💰</button>';
+      actionHtml = '<button class="shop-btn buy-btn">Купить за ' + skin.price + ' 🪙</button>';
     }
 
     item.innerHTML = dotHtml + '<div class="shop-name">' + skin.name + '</div>' + actionHtml;
@@ -1080,16 +1055,13 @@ function renderShop() {
     item.addEventListener('click', function(e) {
       var id = item.getAttribute('data-id');
       var skin = SKIN_CATALOG.find(function(s) { return s.id === id; });
-      if (!skin) {
-        console.warn('renderShop: скин "' + id + '" отсутствует в SKIN_CATALOG');
-        return;
-      }
+      if (!skin) return;
       var owned = S.ownedSkins.indexOf(id) !== -1;
 
       if (e.target.classList.contains('buy-btn')) {
         if (S.coins < skin.price) {
           sfx.denied();
-          showNotification('Недостаточно монет', 'Нужно ещё ' + (skin.price - S.coins) + ' 🪙', '💸');
+          showNotification('Недостаточно монет', 'Нужно ещё ' + (skin.price - S.coins) + '💰', '💸');
           return;
         }
         S.coins -= skin.price;
@@ -1117,11 +1089,11 @@ function renderShop() {
         S.snakeSkinId = id;
         S.snakeColor = skin.color;
 
-        if (!storeSet('snakeSkinColor', S.snakeColor)) {
-          console.warn('renderShop: не удалось сохранить snakeSkinColor', S.snakeColor);
-        }
-        if (!storeSet('snakeSkinId', S.snakeSkinId)) {
-          console.warn('renderShop: не удалось сохранить snakeSkinId', S.snakeSkinId);
+        try {
+          storeSet('snakeSkinColor', S.snakeColor);
+          storeSet('snakeSkinId', S.snakeSkinId);
+        } catch (e) {
+          console.warn('Не удалось сохранить скин:', e);
         }
         sfx.purchase();
         renderShop();
@@ -1133,11 +1105,11 @@ function renderShop() {
         S.snakeSkinId = id;
         S.snakeColor = skin.color;
 
-        if (!storeSet('snakeSkinColor', S.snakeColor)) {
-          console.warn('renderShop: не удалось сохранить snakeSkinColor', S.snakeColor);
-        }
-        if (!storeSet('snakeSkinId', S.snakeSkinId)) {
-          console.warn('renderShop: не удалось сохранить snakeSkinId', S.snakeSkinId);
+        try {
+          storeSet('snakeSkinColor', S.snakeColor);
+          storeSet('snakeSkinId', S.snakeSkinId);
+        } catch (e) {
+          console.warn('Не удалось сохранить скин:', e);
         }
         sfx.purchase();
         renderShop();
@@ -1221,7 +1193,7 @@ function saveDailyQuests() {
       quests: S.dailyQuests
     }));
   } catch (e) {
-    console.error('Не удалось сохранить квесты:', e);
+    console.warn('Не удалось сохранить квесты:', e);
   }
 }
 
@@ -1278,7 +1250,7 @@ function claimDailyReward() {
   try {
     storeSet('snake-pro-daily-reward', today);
   } catch (e) {
-    console.error('Не удалось сохранить ежедневную награду:', e);
+    console.warn('Не удалось сохранить ежедневную награду:', e);
   }
   showNotification('Ежедневная награда', 'Бонусный щит и 5 💰!', '🎁');
 }
@@ -1460,7 +1432,7 @@ function loadSettings() {
     else applyControlScheme('wasd');
     if (typeof s.volume !== 'undefined' && ui.volume)        { S.volume = s.volume; ui.volume.value = String(s.volume * 100); if (ui.volumeValue) ui.volumeValue.textContent = Math.round(s.volume * 100) + '%'; }
   } catch (e) {
-    console.error('Не удалось загрузить настройки', e);
+    console.warn('Не удалось загрузить настройки', e);
   }
 
   var skinColor = storeGet('snakeSkinColor');
@@ -1497,7 +1469,7 @@ function saveSettings() {
   try {
     storeSet('snake-pro-settings', JSON.stringify(s));
   } catch (e) {
-    console.error('Не удалось сохранить настройки:', e);
+    console.warn('Не удалось сохранить настройки:', e);
   }
   S.difficulty = s.difficulty; S.grid = s.grid; S.theme = s.theme;
   S.showGrid = s.showGrid; S.showTrail = s.showTrail;
@@ -1520,7 +1492,7 @@ function saveSettings() {
   try {
     storeSet('snakeSkinColor', s.snakeColor);
   } catch (e) {
-    console.error('Не удалось сохранить цвет змейки:', e);
+    console.warn('Не удалось сохранить цвет змейки:', e);
   }
   applyTheme(S.theme);
   resizeCanvas();
@@ -1602,7 +1574,7 @@ function saveStats() {
       highScore: S.highScore, games: S.gamesPlayed, eaten: S.totalEaten
     }));
   } catch (e) {
-    console.error('Не удалось сохранить статистику:', e);
+    console.warn('Не удалось сохранить статистику:', e);
   }
   if (ui.msHighscore) ui.msHighscore.textContent = S.highScore;
   if (ui.msGames)     ui.msGames.textContent = S.gamesPlayed;
@@ -1635,7 +1607,7 @@ function saveLeaderboard(score) {
   try {
     storeSet('snake-pro-leaderboard', JSON.stringify(list));
   } catch (e) {
-    console.error('Не удалось сохранить таблицу лидеров:', e);
+    console.warn('Не удалось сохранить таблицу лидеров:', e);
   }
 }
 
@@ -2584,30 +2556,25 @@ function bindButtons() {
   if (ui.exitYes) ui.exitYes.addEventListener('click', function() {
     S.isRunning = false;
 
-    if (window.electronAPI && window.electronAPI.isElectron) {
-      window.electronAPI.quit();
-    } else {
-    
-      window.close();
+    window.close();
 
-      try {
-        if (window.opener) {
-          window.opener = null;
-          window.close();
-        }
-      } catch (e) {}
-
-      try {
-        window.open('', '_self', '');
+    try {
+      if (window.opener) {
+        window.opener = null;
         window.close();
-      } catch (e) {}
+      }
+    } catch (e) {}
 
-      setTimeout(function() {
-        if (!window.closed) {
-          showGoodbyeScreen();
-        }
-      }, 250);
-    }
+    try {
+      window.open('', '_self', '');
+      window.close();
+    } catch (e) {}
+
+    setTimeout(function() {
+      if (!window.closed) {
+        showGoodbyeScreen();
+      }
+    }, 250);
   });
   if (ui.exitNo) ui.exitNo.addEventListener('click', function() { showScreen('mainMenu'); });
 
@@ -2745,7 +2712,7 @@ function bindButtons() {
       try {
         storeSet('snakeSkinColor', S.snakeColor);
       } catch (e) {
-        console.error('Не удалось сохранить цвет змейки:', e);
+        console.warn('Не удалось сохранить цвет змейки:', e);
       }
       if (ui.skinOptions) {
         ui.skinOptions.forEach(function(o) { o.classList.remove('active'); });
@@ -3074,24 +3041,19 @@ function runCountdown() {
     list.appendChild(item);
   }
 
-    document.addEventListener('fullscreenchange', updateFullscreenButton);
-    document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
-    window.addEventListener('keydown', function(e) {
-      if (isTypingTarget(e.target)) return;
-      if (((e.key && e.key.toLowerCase() === 'f') || (e.key && e.key.toLowerCase() === 'а') || e.code === 'KeyF') && !e.ctrlKey && !e.altKey && !e.metaKey) {
-          e.preventDefault();
-          e.stopImmediatePropagation();
-          if (window.electronAPI && window.electronAPI.isElectron) {
-            window.electronAPI.toggleFullscreen();
-          } else {
-            toggleFullscreen();
-          }
-        }
-      }, true);
+  document.addEventListener('fullscreenchange', updateFullscreenButton);
+  document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
+  window.addEventListener('keydown', function(e) {
+    if (isTypingTarget(e.target)) return;
+    if (e.key && e.key.toLowerCase() === 'f' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      e.preventDefault();
+      toggleFullscreen();
+    }
+  });
 
-      addButton();
-      addKeyboardHint();
-    })();
+  addButton();
+  addKeyboardHint();
+})();
 
 (function addQuickActions() {
   var shareButton = null;
@@ -3236,7 +3198,7 @@ function runCountdown() {
       S.hasSavedGame = true;
       updateContinueButton();
     } catch (e) {
-      console.error('Не удалось сохранить чекпоинт:', e);
+      console.warn('Не удалось сохранить чекпоинт:', e);
     }
   }
 
@@ -3419,53 +3381,3 @@ function runCountdown() {
 
   startGamepadPolling();
 })();
-
-(function addLocalNotifications() {
-  const STORAGE_KEY = 'snake-pro-last-notification';
-
-  function requestPermission() {
-      if ('Notification' in window && Notification.permission === 'default') {
-          Notification.requestPermission().then(function(permission) {
-              console.log('Разрешение на уведомления:', permission);
-          });
-      }
-  }
-
-  function sendReminder(title, body) {
-      if (!('Notification' in window)) return;
-      if (Notification.permission !== 'granted') return;
-
-      var last = storeGet(STORAGE_KEY);
-      var now = Date.now();
-      if (last && (now - Number(last)) < 86400000) return; 
-
-      try {
-          storeSet(STORAGE_KEY, String(now));
-      } catch(e) {}
-
-      new Notification(title, {
-          body: body,
-          icon: './icon-192.png',
-          badge: './icon-192.png',
-          tag: 'snake-reminder'
-      });
-  }
-
-  document.addEventListener('click', function initNotif() {
-          requestPermission();
-          document.removeEventListener('click', initNotif);
-      }, { once: true });
-
-      window.addEventListener('load', function() {
-          var lastPlay = storeGet('snake-pro-last-play-time');
-          if (lastPlay) {
-              var hoursSince = (Date.now() - Number(lastPlay)) / 3600000;
-              if (hoursSince > 24) {
-                  setTimeout(function() {
-                      sendReminder('🐍 Змейка скучает', 'Твои ежедневные задания обновлены. Зайди и забери награду!');
-                  }, 5000);
-              }
-          }
-          try { storeSet('snake-pro-last-play-time', String(Date.now())); } catch(e) {}
-      });
-  })();
