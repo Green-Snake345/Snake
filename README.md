@@ -28,10 +28,8 @@
 ## ▶️ Играть  
 🎮 **[green-snake345.github.io/Snake](https://green-snake345.github.io/Snake/)**
 
-Или установите как приложение на телефон или ПК — и играйте без интернета!
-
 ## 🛠 Технологии
-HTML5 Canvas • JavaScript • CSS • Electron
+HTML5 Canvas • JavaScript • CSS
 
 ---
 *Создано с ❤️ для любителей классических аркад*
