@@ -14,10 +14,27 @@ on:
 jobs:
   build-android:
     runs-on: ubuntu-latest
-    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      
+      - name: Fix manifest.json (remove spaces)
+        run: |
+          sed -i 's/"name "/\"name\"/g' manifest.json
+          sed -i 's/"short_name "/\"short_name\"/g' manifest.json
+          sed -i 's/"description "/\"description\"/g' manifest.json
+          sed -i 's/"start_url "/\"start_url\"/g' manifest.json
+          sed -i 's/"display "/\"display\"/g' manifest.json
+          sed -i 's/"background_color "/\"background_color\"/g' manifest.json
+          sed -i 's/"theme_color "/\"theme_color\"/g' manifest.json
+          sed -i 's/"orientation "/\"orientation\"/g' manifest.json
+          sed -i 's/"icons "/\"icons\"/g' manifest.json
+          sed -i 's/"src "/\"src\"/g' manifest.json
+          sed -i 's/"sizes "/\"sizes\"/g' manifest.json
+          sed -i 's/"type "/\"type\"/g' manifest.json
+          sed -i 's/"/ "/g' manifest.json
+          sed -i 's/, /,/g' manifest.json
+          cat manifest.json
       
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -27,13 +44,24 @@ jobs:
       - name: Install Capacitor
         run: |
           npm init -y
-          npm install @capacitor/core @capacitor/cli @capacitor/android
+          npm install @capacitor/core@latest @capacitor/cli@latest @capacitor/android@latest
       
-      - name: Init Capacitor
-        run: npx cap init "Змейка" "com.greensnake.snake" --web-dir=.
+      - name: Create Capacitor config
+        run: |
+          cat > capacitor.config.json << 'EOF'
+          {
+            "appId": "com.greensnake.snake",
+            "appName": "Змейка",
+            "webDir": ".",
+            "bundledWebRuntime": false
+          }
+          EOF
       
       - name: Add Android platform
         run: npx cap add android
+      
+      - name: Copy web assets
+        run: npx cap copy android
       
       - name: Sync
         run: npx cap sync android
@@ -58,10 +86,27 @@ jobs:
 
   build-ios:
     runs-on: macos-latest
-    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      
+      - name: Fix manifest.json (remove spaces)
+        run: |
+          sed -i '' 's/"name "/\"name\"/g' manifest.json
+          sed -i '' 's/"short_name "/\"short_name\"/g' manifest.json
+          sed -i '' 's/"description "/\"description\"/g' manifest.json
+          sed -i '' 's/"start_url "/\"start_url\"/g' manifest.json
+          sed -i '' 's/"display "/\"display\"/g' manifest.json
+          sed -i '' 's/"background_color "/\"background_color\"/g' manifest.json
+          sed -i '' 's/"theme_color "/\"theme_color\"/g' manifest.json
+          sed -i '' 's/"orientation "/\"orientation\"/g' manifest.json
+          sed -i '' 's/"icons "/\"icons\"/g' manifest.json
+          sed -i '' 's/"src "/\"src\"/g' manifest.json
+          sed -i '' 's/"sizes "/\"sizes\"/g' manifest.json
+          sed -i '' 's/"type "/\"type\"/g' manifest.json
+          sed -i '' 's/"/ "/g' manifest.json
+          sed -i '' 's/, /,/g' manifest.json
+          cat manifest.json
       
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -71,24 +116,35 @@ jobs:
       - name: Install Capacitor
         run: |
           npm init -y
-          npm install @capacitor/core @capacitor/cli @capacitor/ios
+          npm install @capacitor/core@latest @capacitor/cli@latest @capacitor/ios@latest
       
-      - name: Init Capacitor
-        run: npx cap init "Змейка" "com.greensnake.snake" --web-dir=.
+      - name: Create Capacitor config
+        run: |
+          cat > capacitor.config.json << 'EOF'
+          {
+            "appId": "com.greensnake.snake",
+            "appName": "Змейка",
+            "webDir": ".",
+            "bundledWebRuntime": false
+          }
+          EOF
       
       - name: Add iOS platform
         run: npx cap add ios
       
+      - name: Copy web assets
+        run: npx cap copy ios
+      
       - name: Sync
         run: npx cap sync ios
       
-      - name: Build iOS (unsigned)
+      - name: Build iOS Archive
         run: |
           cd ios
           xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -destination 'generic/platform=iOS' -archivePath build/App.xcarchive archive CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
       
-      - name: Upload IPA
+      - name: Upload iOS Archive
         uses: actions/upload-artifact@v4
         with:
-          name: Snake-iOS-IPA
+          name: Snake-iOS-Archive
           path: ios/build/App.xcarchive
