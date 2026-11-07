@@ -28,20 +28,7 @@ function el(id) {
   return e;
 }
 
-var localCache = {};
-if (window.electronAPI && window.electronAPI.isElectron) {
-  try {
-    var rawData = window.electronAPI.loadSaveSync();
-    if (rawData) localCache = JSON.parse(rawData);
-  } catch (e) { 
-    console.error('Ошибка чтения сохранений'); 
-  }
-}
-
 function storeGet(key) {
-  if (window.electronAPI && window.electronAPI.isElectron) {
-    return localCache[key] || null;
-  }
   try {
     return window.localStorage.getItem(key);
   } catch (error) {
@@ -51,26 +38,16 @@ function storeGet(key) {
 }
 
 function storeSet(key, value) {
-  if (window.electronAPI && window.electronAPI.isElectron) {
-    localCache[key] = String(value);
-    window.electronAPI.saveGameData(JSON.stringify(localCache)); 
-    return true;
-  }
   try {
     window.localStorage.setItem(key, String(value));
     return true;
   } catch (error) {
-    console.error('CRITICAL: Не удалось сохранить "' + key + '":', error);
+    console.error('CRITICAL: Не удалось сохранить "' + key + '" (возможно, переполнено хранилище):', error);
     return false;
   }
 }
 
 function storeRemove(key) {
-  if (window.electronAPI && window.electronAPI.isElectron) {
-    delete localCache[key];
-    window.electronAPI.saveGameData(JSON.stringify(localCache));
-    return true;
-  }
   try {
     window.localStorage.removeItem(key);
     return true;
@@ -559,7 +536,7 @@ var THEME_PALETTES = {
         accent: '#00bfff', accent2: '#00ffff', text: '#ffffff',
         dim: '#006699', canvas: '#000305',
         background: 'linear-gradient(-45deg, #00050a, #00101a, #001a2a, #00bfff22)'
-    }
+    },
     'neon-green': {
         bgDark: '#000a00', panel: '#001a05', card: '#002a10',
         accent: '#00ff40', accent2: '#40ff80', text: '#ffffff',
