@@ -25,9 +25,7 @@ ALLOWED_FILES = {
     'index.html', 'index.js', 'style.css', 'favicon.ico', 
     'track.js', 'analytics.js', 'block.js',
     'manifest.json', 'service-worker.js', 'sw-register.js', 'pwa-update.js',
-    'icon-192.png', 'icon-512.png', 'icon-192-maskable.png', 
-    'icon-512-maskable.png', 'icon-monochrome.png'
-}
+    'icon-192.png', 'icon-512.png'}
 
 CACHE_TIME = {
     'index.html': 0,
@@ -42,11 +40,7 @@ CACHE_TIME = {
     'sw-register.js': 0,
     'pwa-update.js': 0,
     'icon-192.png': 604800,
-    'icon-512.png': 604800,
-    'icon-192-maskable.png': 604800,
-    'icon-512-maskable.png': 604800,
-    'icon-monochrome.png': 604800,
-}
+    'icon-512.png': 604800}
 
 BLOCKED_COUNTRIES = {
     'UA', 'US', 'FI', 'CN', 'JP', 'DE', 'ME', 'NO', 'SE', 'FR', 'BY', 'PL',
