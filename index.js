@@ -553,6 +553,36 @@ var THEME_PALETTES = {
         accent: '#ff0040', accent2: '#ff0066', text: '#ffffff',
         dim: '#990033', canvas: '#050000',
         background: 'linear-gradient(-45deg, #0a0000, #1a0005, #2a0010, #ff004022)'
+    },
+    'neon-blue': {
+        bgDark: '#00050a', panel: '#00101a', card: '#001a2a',
+        accent: '#00bfff', accent2: '#00ffff', text: '#ffffff',
+        dim: '#006699', canvas: '#000305',
+        background: 'linear-gradient(-45deg, #00050a, #00101a, #001a2a, #00bfff22)'
+    }
+    'neon-green': {
+        bgDark: '#000a00', panel: '#001a05', card: '#002a10',
+        accent: '#00ff40', accent2: '#40ff80', text: '#ffffff',
+        dim: '#009933', canvas: '#000500',
+        background: 'linear-gradient(-45deg, #000a00, #001a05, #002a10, #00ff4022)'
+    },
+    'neon-purple': {
+        bgDark: '#08000a', panel: '#14001a', card: '#20002a',
+        accent: '#bf00ff', accent2: '#e040ff', text: '#ffffff',
+        dim: '#660099', canvas: '#050005',
+        background: 'linear-gradient(-45deg, #08000a, #14001a, #20002a, #bf00ff22)'
+    },
+    'neon-yellow': {
+        bgDark: '#0a0a00', panel: '#1a1a00', card: '#2a2a00',
+        accent: '#ffff00', accent2: '#ffff66', text: '#ffffff',
+        dim: '#999900', canvas: '#050500',
+        background: 'linear-gradient(-45deg, #0a0a00, #1a1a00, #2a2a00, #ffff0022)'
+    },
+    'neon-orange': {
+        bgDark: '#0a0500', panel: '#1a0a00', card: '#2a1000',
+        accent: '#ff8800', accent2: '#ffaa33', text: '#ffffff',
+        dim: '#995500', canvas: '#050300',
+        background: 'linear-gradient(-45deg, #0a0500, #1a0a00, #2a1000, #ff880022)'
     }
 };
 
