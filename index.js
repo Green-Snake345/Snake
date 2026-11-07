@@ -1,5 +1,20 @@
 'use strict';
 
+window.onerror = function(message, source, lineno, colno, error) {
+  console.error('Глобальная ошибка JS:', message, '\nФайл:', source, '\nСтрока:', lineno, '\nОшибка:', error);
+
+  var n = document.createElement('div');
+  n.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);' +
+    'background:#ff4444;color:white;padding:12px 20px;border-radius:8px;' +
+    'z-index:99999;font-family:monospace;font-size:14px;max-width:90%;' +
+    'box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+  n.innerHTML = '⚠️ Ошибка в игре: ' + message + 
+    '<br><small>Скриншот этой ошибки поможет разработчику</small>';
+  document.body.appendChild(n);
+
+  setTimeout(function() { if (n.parentNode) n.remove(); }, 8000);
+};
+
 window.onunhandledrejection = function(event) {
   console.error('Необработанное исключение Promise:', event.reason);
 };
