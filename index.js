@@ -559,6 +559,7 @@ var THEME_PALETTES = {
     }
 };
 
+// ✅ ПАТЧ 1: убраны несуществующие темы, добавлены themeColorMeta и colorScheme
 function applyTheme(t) {
   if (!THEME_PALETTES[t]) t = 'dark';
   var palette = THEME_PALETTES[t];
@@ -577,11 +578,21 @@ function applyTheme(t) {
   Object.keys(vars).forEach(function(key) {
     root.style.setProperty(key, vars[key]);
   });
-  root.classList.toggle('theme-light', t === 'light' || t === 'paper' || t === 'arctic' || t === 'spring' || t === 'mint' || S.theme === 'neon-light' || S.theme === 'bubble-tea');
+  root.classList.toggle('theme-light',
+    t === 'light' || t === 'paper' || t === 'arctic' ||
+    t === 'spring' || t === 'mint');
   root.dataset.theme = t;
   root.style.background = palette.background;
   root.style.backgroundSize = '400% 400%';
   root.style.animation = 'gradientShift 15s ease infinite';
+
+  // PWA: статус-бар Android + нативные контролы (select/range/scrollbar)
+  var meta = document.getElementById('themeColorMeta');
+  if (meta) meta.content = palette.accent;
+
+  var lightThemes = ['light', 'paper', 'arctic', 'spring', 'mint'];
+  document.documentElement.style.colorScheme =
+    lightThemes.indexOf(t) !== -1 ? 'light' : 'dark';
 }
 
 function applyMobileSize(size) {
@@ -1347,6 +1358,7 @@ function showScreen(name) {
   }
 }
 
+// ✅ ПАТЧ 4: защита от удалённых тем в localStorage
 function loadSettings() {
   var raw = storeGet('snake-pro-settings');
   if (!raw) return;
@@ -1362,7 +1374,12 @@ function loadSettings() {
         S.grid = 16;
       }
     }
-    if (s.theme && ui.theme)           { ui.theme.value = s.theme; S.theme = s.theme; applyTheme(S.theme); }
+    if (s.theme && ui.theme) {
+      var safeTheme = THEME_PALETTES[s.theme] ? s.theme : 'dark';
+      ui.theme.value = safeTheme;
+      S.theme = safeTheme;
+      applyTheme(S.theme);
+    }
     if (typeof s.showGrid !== 'undefined' && ui.gridToggle)  { ui.gridToggle.checked = s.showGrid; S.showGrid = s.showGrid; }
     if (typeof s.showTrail !== 'undefined' && ui.trailToggle){ ui.trailToggle.checked = s.showTrail; S.showTrail = s.showTrail; }
     if (typeof s.baseSpeed !== 'undefined' && ui.speedSlider){ ui.speedSlider.value = String(s.baseSpeed); S.baseSpeed = s.baseSpeed; if (ui.speedValue) ui.speedValue.textContent = s.baseSpeed + '/10'; }
@@ -2635,6 +2652,11 @@ function bindButtons() {
   if (ui.controlScheme) ui.controlScheme.addEventListener('change', function() {
     applyControlScheme(ui.controlScheme.value);
   });
+  // ✅ ПАТЧ 2: смена темы на лету
+  if (ui.theme) ui.theme.addEventListener('change', function() {
+    S.theme = ui.theme.value;
+    applyTheme(S.theme);
+  });
 
   if (ui.pauseBtn) ui.pauseBtn.addEventListener('click', togglePause);
   if (ui.mobilePause) ui.mobilePause.addEventListener('click', togglePause);
@@ -2733,6 +2755,7 @@ function handleVisibilityChange() {
   }
 }
 
+// ✅ ПАТЧ 3: скрытие кнопки «Выйти» в standalone-PWA
 function init() {
   createControlSchemeSetting();
   bindButtons();
@@ -2770,6 +2793,12 @@ function init() {
   applyPowerupFrequency(S.powerupFrequency);
   applyControlScheme(S.controlScheme || 'wasd');
   resizeCanvas();
+
+  // PWA: в установленном приложении window.close() не работает — прячем кнопку
+  if (window.matchMedia('(display-mode: standalone)').matches) {
+    if (ui.exit) ui.exit.hidden = true;
+    if (screens.exitConfirm) screens.exitConfirm.remove();
+  }
 }
 
 init();
