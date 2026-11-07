@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Mobile Apps (Android + iOS)
 
 on:
   workflow_dispatch:
@@ -9,6 +9,7 @@ on:
       - 'index.js'
       - 'manifest.json'
       - '*.css'
+      - '*.png'
 
 jobs:
   build-android:
@@ -23,16 +24,71 @@ jobs:
         with:
           node-version: '20'
       
-      - name: Install PWABuilder CLI
-        run: npm install -g @pwabuilder/cli
-      
-      - name: Build Android APK
+      - name: Install Capacitor
         run: |
-          mkdir -p build
-          pwabuilder build https://green-snake345.github.io/Snake/ -p android -o build/
+          npm init -y
+          npm install @capacitor/core @capacitor/cli @capacitor/android
+      
+      - name: Init Capacitor
+        run: npx cap init "Змейка" "com.greensnake.snake" --web-dir=.
+      
+      - name: Add Android platform
+        run: npx cap add android
+      
+      - name: Sync
+        run: npx cap sync android
+      
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      
+      - name: Build APK
+        run: |
+          cd android
+          chmod +x ./gradlew
+          ./gradlew assembleRelease
       
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Snake-Android-APK
-          path: build/*.apk
+          path: android/app/build/outputs/apk/release/*.apk
+
+  build-ios:
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install Capacitor
+        run: |
+          npm init -y
+          npm install @capacitor/core @capacitor/cli @capacitor/ios
+      
+      - name: Init Capacitor
+        run: npx cap init "Змейка" "com.greensnake.snake" --web-dir=.
+      
+      - name: Add iOS platform
+        run: npx cap add ios
+      
+      - name: Sync
+        run: npx cap sync ios
+      
+      - name: Build iOS (unsigned)
+        run: |
+          cd ios
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -destination 'generic/platform=iOS' -archivePath build/App.xcarchive archive CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+      
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Snake-iOS-IPA
+          path: ios/build/App.xcarchive
