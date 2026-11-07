@@ -26,14 +26,6 @@ function el(id) {
   var e = document.getElementById(id);
   if (!e) console.warn('Элемент не найден: ' + id);
   return e;
-
-var canvas = document.getElementById('game');
-var ctx    = canvas.getContext('2d');
-
-function el(id) {
-  var e = document.getElementById(id);
-  if (!e) console.warn('Элемент не найден: ' + id);
-  return e;
 }
 
 function storeGet(key) {
