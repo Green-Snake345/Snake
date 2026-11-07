@@ -18,28 +18,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Fix manifest.json (remove spaces)
+      - name: Fix manifest.json with Python
         run: |
-          sed -i 's/"name "/\"name\"/g' manifest.json
-          sed -i 's/"short_name "/\"short_name\"/g' manifest.json
-          sed -i 's/"description "/\"description\"/g' manifest.json
-          sed -i 's/"start_url "/\"start_url\"/g' manifest.json
-          sed -i 's/"display "/\"display\"/g' manifest.json
-          sed -i 's/"background_color "/\"background_color\"/g' manifest.json
-          sed -i 's/"theme_color "/\"theme_color\"/g' manifest.json
-          sed -i 's/"orientation "/\"orientation\"/g' manifest.json
-          sed -i 's/"icons "/\"icons\"/g' manifest.json
-          sed -i 's/"src "/\"src\"/g' manifest.json
-          sed -i 's/"sizes "/\"sizes\"/g' manifest.json
-          sed -i 's/"type "/\"type\"/g' manifest.json
-          sed -i 's/"/ "/g' manifest.json
-          sed -i 's/, /,/g' manifest.json
+          python3 -c "
+          import json, re
+          with open('manifest.json', 'r') as f:
+              text = f.read()
+          text = re.sub(r'\"\s*:\s*\"', '\": \"', text)
+          text = re.sub(r'\"\s*,', '\",', text)
+          text = re.sub(r'\"\s*\]', '\"]', text)
+          text = re.sub(r'\"\s*\}', '\"]', text)
+          text = re.sub(r'\s+\"', ' \"', text)
+          data = json.loads(text)
+          with open('manifest.json', 'w') as f:
+              json.dump(data, f, indent=2, ensure_ascii=False)
+          print('Fixed manifest.json')
+          "
           cat manifest.json
       
-      - name: Setup Node.js
+      - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
       
       - name: Install Capacitor
         run: |
@@ -90,28 +90,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Fix manifest.json (remove spaces)
+      - name: Fix manifest.json with Python
         run: |
-          sed -i '' 's/"name "/\"name\"/g' manifest.json
-          sed -i '' 's/"short_name "/\"short_name\"/g' manifest.json
-          sed -i '' 's/"description "/\"description\"/g' manifest.json
-          sed -i '' 's/"start_url "/\"start_url\"/g' manifest.json
-          sed -i '' 's/"display "/\"display\"/g' manifest.json
-          sed -i '' 's/"background_color "/\"background_color\"/g' manifest.json
-          sed -i '' 's/"theme_color "/\"theme_color\"/g' manifest.json
-          sed -i '' 's/"orientation "/\"orientation\"/g' manifest.json
-          sed -i '' 's/"icons "/\"icons\"/g' manifest.json
-          sed -i '' 's/"src "/\"src\"/g' manifest.json
-          sed -i '' 's/"sizes "/\"sizes\"/g' manifest.json
-          sed -i '' 's/"type "/\"type\"/g' manifest.json
-          sed -i '' 's/"/ "/g' manifest.json
-          sed -i '' 's/, /,/g' manifest.json
+          python3 -c "
+          import json, re
+          with open('manifest.json', 'r') as f:
+              text = f.read()
+          text = re.sub(r'\"\s*:\s*\"', '\": \"', text)
+          text = re.sub(r'\"\s*,', '\",', text)
+          text = re.sub(r'\"\s*\]', '\"]', text)
+          text = re.sub(r'\"\s*\}', '\"]', text)
+          text = re.sub(r'\s+\"', ' \"', text)
+          data = json.loads(text)
+          with open('manifest.json', 'w') as f:
+              json.dump(data, f, indent=2, ensure_ascii=False)
+          print('Fixed manifest.json')
+          "
           cat manifest.json
       
-      - name: Setup Node.js
+      - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
       
       - name: Install Capacitor
         run: |
