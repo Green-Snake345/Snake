@@ -41,8 +41,8 @@ function storeSet(key, value) {
   try {
     window.localStorage.setItem(key, String(value));
     return true;
-  } catch (error) {
-    console.warn('Не удалось сохранить "' + key + '":', error);
+  } catch (e) {
+    console.warn('Не удалось сохранить "' + key + '":', e);
     return false;
   }
 }
@@ -51,8 +51,8 @@ function storeRemove(key) {
   try {
     window.localStorage.removeItem(key);
     return true;
-  } catch (error) {
-    console.warn('Не удалось удалить сохранение "' + key + '":', error);
+  } catch (e) {
+    console.warn('Не удалось удалить сохранение "' + key + '":', e);
     return false;
   }
 }
@@ -559,7 +559,6 @@ var THEME_PALETTES = {
     }
 };
 
-// ✅ ПАТЧ 1: убраны несуществующие темы, добавлены themeColorMeta и colorScheme
 function applyTheme(t) {
   if (!THEME_PALETTES[t]) t = 'dark';
   var palette = THEME_PALETTES[t];
@@ -2650,7 +2649,6 @@ function bindButtons() {
   if (ui.controlScheme) ui.controlScheme.addEventListener('change', function() {
     applyControlScheme(ui.controlScheme.value);
   });
-  // ✅ ПАТЧ 2: смена темы на лету
   if (ui.theme) ui.theme.addEventListener('change', function() {
     S.theme = ui.theme.value;
     applyTheme(S.theme);
@@ -2753,7 +2751,6 @@ function handleVisibilityChange() {
   }
 }
 
-// ✅ ПАТЧ 3: скрытие кнопки «Выйти» в standalone-PWA
 function init() {
   createControlSchemeSetting();
   bindButtons();
@@ -2792,7 +2789,6 @@ function init() {
   applyControlScheme(S.controlScheme || 'wasd');
   resizeCanvas();
 
-  // PWA: в установленном приложении window.close() не работает — прячем кнопку
   if (window.matchMedia('(display-mode: standalone)').matches) {
     if (ui.exit) ui.exit.hidden = true;
     if (screens.exitConfirm) screens.exitConfirm.remove();
