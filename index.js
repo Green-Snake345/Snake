@@ -823,9 +823,9 @@ function showGoodbyeScreen() {
       '<div class="logo"><h1>Пока! 👋</h1></div>' +
       '<p class="confirm-text">Спасибо за игру в «Змейку»!</p>' +
       '<p class="setting-help" style="text-align:center;">' +
-        'Браузер не даёт закрыть вкладку автоматически. ' +
-        'Нажмите <b>Ctrl&nbsp;+&nbsp;W</b> (Windows / Linux) ' +
-        'или <b>Cmd&nbsp;+&nbsp;W</b> (Mac), чтобы закрыть вкладку вручную.' +
+        'Браузер не даёт закрыть вкладку автоматически' +
+        'Нажмите <b>Ctrl&nbsp;+&nbsp;W</b> (Windows / Linux)' +
+        'или <b>Cmd&nbsp;+&nbsp;W</b> (Mac), чтобы закрыть вкладку вручную' +
       '</p>' +
       '<div class="btn-group">' +
         '<button id="btn-goodbye-back" class="btn btn-secondary">← Вернуться в меню</button>' +
