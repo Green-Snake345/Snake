@@ -3390,3 +3390,53 @@ function runCountdown() {
 
   startGamepadPolling();
 })();
+
+(function addLocalNotifications() {
+  const STORAGE_KEY = 'snake-pro-last-notification';
+
+  function requestPermission() {
+      if ('Notification' in window && Notification.permission === 'default') {
+          Notification.requestPermission().then(function(permission) {
+              console.log('Разрешение на уведомления:', permission);
+          });
+      }
+  }
+
+  function sendReminder(title, body) {
+      if (!('Notification' in window)) return;
+      if (Notification.permission !== 'granted') return;
+
+      var last = storeGet(STORAGE_KEY);
+      var now = Date.now();
+      if (last && (now - Number(last)) < 86400000) return; 
+
+      try {
+          storeSet(STORAGE_KEY, String(now));
+      } catch(e) {}
+
+      new Notification(title, {
+          body: body,
+          icon: './icon-192.png',
+          badge: './icon-192.png',
+          tag: 'snake-reminder'
+      });
+  }
+
+  document.addEventListener('click', function initNotif() {
+          requestPermission();
+          document.removeEventListener('click', initNotif);
+      }, { once: true });
+
+      window.addEventListener('load', function() {
+          var lastPlay = storeGet('snake-pro-last-play-time');
+          if (lastPlay) {
+              var hoursSince = (Date.now() - Number(lastPlay)) / 3600000;
+              if (hoursSince > 24) {
+                  setTimeout(function() {
+                      sendReminder('🐍 Змейка скучает', 'Твои ежедневные задания обновлены. Зайди и забери награду!');
+                  }, 5000);
+              }
+          }
+          try { storeSet('snake-pro-last-play-time', String(Date.now())); } catch(e) {}
+      });
+  })();
