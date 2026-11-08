@@ -31,8 +31,8 @@ function el(id) {
 function storeGet(key) {
   try {
     return window.localStorage.getItem(key);
-  } catch (error) {
-    console.warn('Не удалось прочитать сохранение "' + key + '":', error);
+  } catch (e) {
+    console.warn('Не удалось прочитать сохранение "' + key + '":', e);
     return null;
   }
 }
