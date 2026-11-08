@@ -586,7 +586,6 @@ function applyTheme(t) {
   root.style.backgroundSize = '400% 400%';
   root.style.animation = 'gradientShift 15s ease infinite';
 
-  // PWA: статус-бар Android + нативные контролы (select/range/scrollbar)
   var meta = document.getElementById('themeColorMeta');
   if (meta) meta.content = palette.accent;
 
@@ -1225,7 +1224,7 @@ function renderQuests() {
       '<div class="quest-text">' + (done ? '✅ ' : '') + q.text + '</div>' +
       '<div class="quest-progress">' +
         '<div class="quest-bar"><div class="quest-fill" style="width:' + pct + '%"></div></div>' +
-        '<span class="quest-reward">' + (done ? '✓' : q.progress + '/' + q.target) + ' · ' + q.reward + ' 🪙</span>' +
+        '<span class="quest-reward">' + (done ? '✓' : q.progress + '/' + q.target) + ' · ' + q.reward + '💰</span>' +
       '</div>';
     ui.questsList.appendChild(item);
   });
@@ -1358,7 +1357,6 @@ function showScreen(name) {
   }
 }
 
-// ✅ ПАТЧ 4: защита от удалённых тем в localStorage
 function loadSettings() {
   var raw = storeGet('snake-pro-settings');
   if (!raw) return;
