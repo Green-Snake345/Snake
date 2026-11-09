@@ -26,7 +26,10 @@
         ua: navigator.userAgent
       }, finalProps);
 
-      // ПРОСТО ЛОГИРУЕМ В КОНСОЛЬ, НЕ ОТПРАВЛЯЕМ НА СЕРВЕР
+      if (typeof window.umami !== 'undefined') {
+        window.umami.track(name, finalProps);
+      }
+
       console.log('📊 [Analytics]', payload.event, payload);
     } catch (e) {
       console.warn('Ошибка аналитики:', e);
