@@ -1,8 +1,6 @@
 'use strict';
 
 (function() {
-  var API_URL = 'https://zmieika--GSnake.replit.app/api/track';
-
   var sessionId = sessionStorage.getItem('snake_session_id');
   if (!sessionId) {
     sessionId = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
@@ -28,18 +26,8 @@
         ua: navigator.userAgent
       }, finalProps);
 
-      var data = JSON.stringify(payload);
-
-      if (navigator.sendBeacon) {
-        navigator.sendBeacon(API_URL, new Blob([data], { type: 'application/json' }));
-      } else {
-        fetch(API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: data,
-          keepalive: true
-        }).catch(function(e) { console.warn('Ошибка отправки:', e); });
-      }
+      // ПРОСТО ЛОГИРУЕМ В КОНСОЛЬ, НЕ ОТПРАВЛЯЕМ НА СЕРВЕР
+      console.log('📊 [Analytics]', payload.event, payload);
     } catch (e) {
       console.warn('Ошибка аналитики:', e);
     }
