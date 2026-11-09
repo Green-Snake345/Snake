@@ -1,7 +1,6 @@
 'use strict';
 
 (function() {
-  
   var API_URL = 'https://zmieika--GSnake.replit.app/api/track';
 
   var sessionId = sessionStorage.getItem('snake_session_id');
@@ -31,7 +30,6 @@
 
       var data = JSON.stringify(payload);
 
-      // Отправка идёт на полный адрес твоего сервера Replit
       if (navigator.sendBeacon) {
         navigator.sendBeacon(API_URL, new Blob([data], { type: 'application/json' }));
       } else {
