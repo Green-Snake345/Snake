@@ -8,7 +8,6 @@ import sqlite3
 import ipaddress
 import threading
 import requests
-import ipaddress
 from waitress import serve
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
