@@ -1,6 +1,8 @@
 'use strict';
 
 (function() {
+  // Ссылка на твой сервер в Replit уже вставлена сюда
+  var API_URL = 'https://zmieika--GSnake.replit.app/api/track';
 
   var sessionId = sessionStorage.getItem('snake_session_id');
   if (!sessionId) {
@@ -29,10 +31,11 @@
 
       var data = JSON.stringify(payload);
 
+      // Отправка идёт на полный адрес твоего сервера Replit
       if (navigator.sendBeacon) {
-        navigator.sendBeacon('/api/track', new Blob([data], { type: 'application/json' }));
+        navigator.sendBeacon(API_URL, new Blob([data], { type: 'application/json' }));
       } else {
-        fetch('/api/track', {
+        fetch(API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: data,
