@@ -330,6 +330,15 @@ def log_response(response):
 
 
 @app.after_request
+def add_cors_headers(response):
+    origin = request.headers.get('Origin')
+    if origin in ['https://green-snake345.github.io', 'http://localhost:8000', 'http://127.0.0.1:8000']:
+        response.headers['Access-Control-Allow-Origin'] = origin
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+    return response
+
+@app.after_request
 def add_security_headers(response):
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
