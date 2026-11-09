@@ -3425,12 +3425,7 @@ function runCountdown() {
           }
           window.focus();
 
-          try { 
-              localStorage.removeItem('snake-pro-game-state'); 
-              localStorage.removeItem('snake-game-state');
-          } catch(e) {}
-
-          window.location.href = '/Snake/';
+          window.location.href = window.location.pathname;
 
           notification.close();
       };
