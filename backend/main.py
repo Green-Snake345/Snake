@@ -8,6 +8,7 @@ import sqlite3
 import ipaddress
 import threading
 import requests
+import ipaddress
 from waitress import serve
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -297,22 +298,16 @@ def _get_country(ip):
 def block_countries():
     if request.path == '/health' or request.method == 'OPTIONS':
         return
-
     if request.path != '/' and not request.path.startswith('/api/'):
         return
-
     ip = _get_real_ip()
     if not ip or _is_private_ip(ip):
         return
-
     country = _get_country(ip)
-
-    if country and country in WHITE_COUNTRIES:
+    if country == 'RU':
         return
-
-    if country and country in BLOCKED_COUNTRIES:
-        app.logger.warning(f"Заблокирован доступ из страны: {country} | IP: {ip}")
-        abort(403)
+    app.logger.warning(f"Доступ запрещён: {country} | IP: {ip}")
+    abort(403)
 
 
 @app.before_request
