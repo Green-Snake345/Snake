@@ -3386,6 +3386,8 @@ function runCountdown() {
 })();
 
 (function addLocalNotifications() {
+  startGamepadPolling();
+
   const STORAGE_KEY = 'snake-pro-last-notification';
 
   function requestPermission() {
@@ -3423,7 +3425,12 @@ function runCountdown() {
           }
           window.focus();
 
-          window.location.reload();
+          try { 
+              localStorage.removeItem('snake-pro-game-state'); 
+              localStorage.removeItem('snake-game-state');
+          } catch(e) {}
+
+          window.location.href = '/Snake/';
 
           notification.close();
       };
