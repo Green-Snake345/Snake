@@ -3423,7 +3423,7 @@ function runCountdown() {
           }
           window.focus();
 
-          window.location.href = window.location.pathname;
+          window.location.reload();
 
           notification.close();
       };
@@ -3446,4 +3446,4 @@ function runCountdown() {
           }
           try { storeSet('snake-pro-last-play-time', String(Date.now())); } catch(e) {}
       });
-  })();
+})();
