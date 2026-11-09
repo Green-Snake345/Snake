@@ -3408,12 +3408,25 @@ function runCountdown() {
           storeSet(STORAGE_KEY, String(now));
       } catch(e) {}
 
-      new Notification(title, {
+      var notification = new Notification(title, {
           body: body,
           icon: './icon-192.png',
           badge: './icon-192.png',
           tag: 'snake-reminder'
       });
+
+      notification.onclick = function(event) {
+          event.preventDefault();
+
+          if (window.parent) {
+              window.parent.focus();
+          }
+          window.focus();
+
+          window.location.href = window.location.pathname;
+
+          notification.close();
+      };
   }
 
   document.addEventListener('click', function initNotif() {
