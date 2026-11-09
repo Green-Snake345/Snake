@@ -59,7 +59,7 @@
     if (!tg || !tg.openTelegramLink) return;
     
     const text = `🐍 Я набрал ${score} очков и достиг ${level} уровня в Неоновой Змейке! Попробуй побить мой рекорд!`;
-    const url = 'https://t.me/GreenSnake345GameBot';
+    const url = 'https://t.me/energy_tg_support_bot';
     
     tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`);
     
