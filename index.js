@@ -3386,8 +3386,6 @@ function runCountdown() {
 })();
 
 (function addLocalNotifications() {
-  startGamepadPolling();
-
   const STORAGE_KEY = 'snake-pro-last-notification';
 
   function requestPermission() {
@@ -3425,7 +3423,7 @@ function runCountdown() {
           }
           window.focus();
 
-          window.location.href = window.location.pathname;
+          window.location.href = '/Snake/';
 
           notification.close();
       };
