@@ -296,7 +296,7 @@ def _get_country(ip):
 
 @app.before_request
 def block_countries():
-    if request.path == '/health' or request.method == 'OPTIONS':
+    if request.method == 'OPTIONS':
         return
     if request.path != '/' and not request.path.startswith('/api/'):
         return
@@ -304,10 +304,9 @@ def block_countries():
     if not ip or _is_private_ip(ip):
         return
     country = _get_country(ip)
-    if country == 'RU':
-        return
-    app.logger.warning(f"Доступ запрещён: {country} | IP: {ip}")
-    abort(403)
+    if country != 'RU':
+        app.logger.warning(f"🚫 ДОСТУП ЗАПРЕЩЁН: {country} | IP: {ip}")
+        abort(403)
 
 
 @app.before_request
@@ -331,11 +330,13 @@ def log_response(response):
 
 @app.after_request
 def add_cors_headers(response):
-    origin = request.headers.get('Origin')
-    if origin in ['https://green-snake345.github.io', 'http://localhost:8000', 'http://127.0.0.1:8000']:
+    origin = request.headers.get('Origin', '')
+    allowed_origins = ['https://green-snake345.github.io', 'http://localhost:8000', 'http://127.0.0.1:8000']
+    if origin in allowed_origins:
         response.headers['Access-Control-Allow-Origin'] = origin
         response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
         response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        response.headers['Access-Control-Max-Age'] = '86400'
     return response
 
 @app.after_request
