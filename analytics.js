@@ -1,7 +1,7 @@
 'use strict';
 
 (function() {
-  // Ссылка на твой сервер в Replit уже вставлена сюда
+  
   var API_URL = 'https://zmieika--GSnake.replit.app/api/track';
 
   var sessionId = sessionStorage.getItem('snake_session_id');
