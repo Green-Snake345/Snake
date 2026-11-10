@@ -15,7 +15,7 @@
     transition: opacity 0.5s ease;
 }
 
-#loading-screen .loading-text {
+.loading-text {
     margin-bottom: 20px;
     font-size: 18px;
     letter-spacing: 2px;
@@ -23,7 +23,7 @@
     opacity: 0.8;
 }
 
-#loading-screen .progress-container {
+.loading-bar-track {
     width: 280px;
     height: 8px;
     background: #222;
@@ -32,9 +32,9 @@
     box-shadow: 0 0 10px rgba(46, 204, 113, 0.2);
 }
 
-#loading-screen .progress-fill {
+.loading-bar-fill {
     height: 100%;
-    width: 0%;
+    width: 0% !important;
     background: linear-gradient(90deg, #2ecc71, #27ae60);
     border-radius: 4px;
     transition: width 0.1s linear;
