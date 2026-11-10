@@ -3,30 +3,23 @@
     var progress = 0;
     var interval = null;
     var finished = false;
-    var MIN_SHOW_TIME = 1200;
-    var startTime = Date.now();
+    var MIN_SHOW_TIME = 3000;
+    var startTime = null;
 
     function updateProgress() {
         if (finished) return;
-        progress += 1;
+        if (!startTime) startTime = Date.now();
+        
+        var elapsed = Date.now() - startTime;
+        progress = Math.min(100, (elapsed / MIN_SHOW_TIME) * 100);
+        
+        if (fill) fill.style.width = progress + '%';
+        
         if (progress >= 100) {
-            progress = 100;
-            if (fill) fill.style.width = '100%';
             finished = true;
             clearInterval(interval);
-            checkAndHide();
-            return;
+            setTimeout(hideLoader, 300);
         }
-        if (fill) fill.style.width = progress + '%';
-    }
-
-    function checkAndHide() {
-        var elapsed = Date.now() - startTime;
-        if (elapsed < MIN_SHOW_TIME) {
-            setTimeout(checkAndHide, MIN_SHOW_TIME - elapsed);
-            return;
-        }
-        hideLoader();
     }
 
     function hideLoader() {
@@ -42,7 +35,7 @@
     window.addEventListener('load', function() {
         fill = document.querySelector('.loading-bar-fill');
         if (fill) {
-            interval = setInterval(updateProgress, 12);
+            interval = setInterval(updateProgress, 50);
         }
     });
 })();
