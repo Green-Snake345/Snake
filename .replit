@@ -1,0 +1,29 @@
+run = "python3 main.py"
+language = "python3"
+modules = ["python-3.11"]
+
+[[ports]]
+localPort = 3000
+externalPort = 3000
+
+[[ports]]
+localPort = 8000
+externalPort = 80
+
+[nix]
+packages = ["cacert", "libxcrypt"]
+
+[deployment]
+deploymentTarget = "cloudrun"
+run = "python3 main.py"
+
+[workflows]
+
+[[workflows.workflow]]
+name = "Start Server"
+mode = "sequential"
+author = 38181108
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python3 main.py"
