@@ -1,12 +1,15 @@
 const CACHE_NAME = 'snake-v23';
+
 const FILES_TO_CACHE = [
   './index.html',
   './style.css',
+  './pwa-toast.css',
+  './pwa-update.js',
+  './pwa-toast.js',
   './index.js',
   './block.js',
   './analytics.js',
   './track.js',
-  './sw-register.js',
   './manifest.json',
   './favicon.ico',
   './icon-192.png',
@@ -33,4 +36,10 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then(r => r || fetch(event.request))
   );
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
