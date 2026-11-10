@@ -110,8 +110,8 @@
           }
         });
       });
-    } catch (err) {
-      console.error('[pwa-update] Ошибка регистрации SW', err);
+    } catch (e) {
+      console.error('[pwa-update] Ошибка регистрации SW', e);
     }
   }
 
