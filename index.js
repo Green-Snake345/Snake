@@ -3423,7 +3423,8 @@ function runCountdown() {
           }
           window.focus();
 
-          window.location.href = '/Snake/';
+          var targetUrl = window.location.origin + (window.location.hostname.includes('github.io') ? '/Snake/' : '/');
+          window.location.href = targetUrl;
 
           notification.close();
       };
