@@ -9,6 +9,7 @@
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <title>Змейка</title>
     <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="pwa-toast.css">
     <script defer src="https://cloud.umami.is/script.js" data-website-id="ef869392-6032-419f-a819-5d05801f5f42"></script>
 </head>
 
@@ -479,6 +480,12 @@
     <script src="index.js"></script>
     <script src="analytics.js"></script>
     <script src="track.js"></script>
+    <script src="pwa-update.js"></script>
+    <script src="pwa-toast.js"></script>
+    <div id="pwa-toast" class="pwa-toast hidden">
+        <span class="pwa-toast__text">Доступна новая версия игры</span>
+        <button id="pwa-update-btn" class="pwa-toast__btn">Обновить</button>
+    </div>
 </body>
 
 </html>
