@@ -3,17 +3,30 @@
     var progress = 0;
     var interval = null;
     var finished = false;
+    var MIN_SHOW_TIME = 1200;
+    var startTime = Date.now();
 
     function updateProgress() {
         if (finished) return;
-        progress += 2;
+        progress += 1;
         if (progress >= 100) {
             progress = 100;
+            if (fill) fill.style.width = progress + '%';
             finished = true;
             clearInterval(interval);
-            setTimeout(hideLoader, 300);
+            checkAndHide();
+            return;
         }
         if (fill) fill.style.width = progress + '%';
+    }
+
+    function checkAndHide() {
+        var elapsed = Date.now() - startTime;
+        if (elapsed < MIN_SHOW_TIME) {
+            setTimeout(checkAndHide, MIN_SHOW_TIME - elapsed);
+            return;
+        }
+        hideLoader();
     }
 
     function hideLoader() {
@@ -29,7 +42,7 @@
     window.addEventListener('load', function() {
         fill = document.querySelector('.progress-fill');
         if (fill) {
-            interval = setInterval(updateProgress, 40);
+            interval = setInterval(updateProgress, 12);
         }
     });
 })();
