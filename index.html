@@ -22,13 +22,21 @@
     <link rel="preconnect" href="https://cloud.umami.is" crossorigin />
     <script defer src="https://cloud.umami.is/script.js" data-website-id="ef869392-6032-419f-a819-5d05801f5f42"></script>
     <link rel="stylesheet" href="./style.css" />
+    <link rel="stylesheet" href="./loading.css" />
 </head>
 
 <body>
+    <div id="loading-screen">
+        <p class="loading-text">Загрузка змейки...</p>
+        <div class="progress-container">
+            <div class="progress-fill"></div>
+        </div>
+    </div>
+
     <div id="main-menu" class="menu-screen active">
         <div class="logo">
             <h1>Змейка</h1>
-            <p class="version">v1.0.5<span></span></p>
+            <p class="version">v1.0.6<span></span></p>
             <p class="tagline">Собирай бусты. Расти. Не врежься.</p>
         </div>
 
@@ -433,6 +441,7 @@
     <script src="./analytics.js" defer></script>
     <script src="./track.js" defer></script>
     <script src="./sw-register.js" defer></script>
+    <script src="./loading.js"></script>
 </body>
 
 </html>
