@@ -9,12 +9,12 @@
     function updateProgress() {
         if (finished) return;
         if (!startTime) startTime = Date.now();
-        
+
         var elapsed = Date.now() - startTime;
         progress = Math.min(100, (elapsed / MIN_SHOW_TIME) * 100);
-        
+
         if (fill) fill.style.width = progress + '%';
-        
+
         if (progress >= 100) {
             finished = true;
             clearInterval(interval);
@@ -33,7 +33,7 @@
     }
 
     window.addEventListener('load', function() {
-        fill = document.querySelector('.loading-bar-fill');
+        fill = document.querySelector('#loading-screen .loading-bar-fill');
         if (fill) {
             interval = setInterval(updateProgress, 50);
         }
