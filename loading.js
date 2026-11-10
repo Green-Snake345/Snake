@@ -11,7 +11,7 @@
         progress += 1;
         if (progress >= 100) {
             progress = 100;
-            if (fill) fill.style.width = progress + '%';
+            if (fill) fill.style.width = '100%';
             finished = true;
             clearInterval(interval);
             checkAndHide();
@@ -40,7 +40,7 @@
     }
 
     window.addEventListener('load', function() {
-        fill = document.querySelector('.progress-fill');
+        fill = document.querySelector('.loading-bar-fill');
         if (fill) {
             interval = setInterval(updateProgress, 12);
         }
