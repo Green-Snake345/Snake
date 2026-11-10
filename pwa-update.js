@@ -17,7 +17,9 @@
     waitingWorker: null,
     reloading: false,
     pendingReload: false,
+    applying: false,
     intervalId: null,
+    fallbackTimerId: null,
     initialized: false,
     options: { ...DEFAULTS },
   };
@@ -30,11 +32,9 @@
     state.options = { ...DEFAULTS, ...options };
 
     if (!('serviceWorker' in navigator)) {
-      log('Service Worker не поддерживается');
       return api;
     }
     if (state.initialized) {
-      log('Уже инициализирован');
       return api;
     }
     state.initialized = true;
@@ -46,10 +46,11 @@
     }
 
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      log('controllerchange');
       if (state.reloading) return;
 
-      if (state.options.autoReload && state.options.canReload()) {
+      clearFallbackTimer();
+
+      if (state.applying || (state.options.autoReload && state.options.canReload())) {
         doReload();
       } else {
         state.pendingReload = true;
@@ -85,7 +86,6 @@
         updateViaCache: 'none',
       });
       state.registration = reg;
-      log('SW зарегистрирован', reg.scope);
 
       if (reg.waiting && navigator.serviceWorker.controller) {
         state.waitingWorker = reg.waiting;
@@ -96,14 +96,12 @@
       reg.addEventListener('updatefound', () => {
         const newWorker = reg.installing;
         if (!newWorker) return;
-        log('updatefound, новый SW устанавливается');
 
         newWorker.addEventListener('statechange', () => {
           if (
             newWorker.state === 'installed' &&
             navigator.serviceWorker.controller
           ) {
-            log('Новый SW установлен и ждёт активации');
             state.waitingWorker = newWorker;
             state.options.onUpdateAvailable?.(newWorker);
             state.options.onUpdateReady?.();
@@ -111,7 +109,7 @@
         });
       });
     } catch (e) {
-      console.error('[pwa-update] Ошибка регистрации SW', e);
+      console.error('[pwa-update]', e);
     }
   }
 
@@ -121,37 +119,41 @@
       await state.registration.update();
       return true;
     } catch (err) {
-      log('Ошибка проверки обновления', err);
       return false;
     }
   }
 
+  function clearFallbackTimer() {
+    if (state.fallbackTimerId !== null) {
+      clearTimeout(state.fallbackTimerId);
+      state.fallbackTimerId = null;
+    }
+  }
+
   function applyUpdate() {
+    if (state.reloading || state.applying) return false;
+
     const worker = state.waitingWorker || state.registration?.waiting;
+
     if (!worker) {
       if (state.pendingReload) doReload();
       return false;
     }
 
+    state.applying = true;
     state.options.onUpdateApplied?.();
-
-    navigator.serviceWorker.addEventListener(
-      'controllerchange',
-      () => doReload(),
-      { once: true }
-    );
 
     try {
       worker.postMessage({ type: 'SKIP_WAITING' });
-    } catch {}
+    } catch (e) {}
 
-    if (typeof worker.skipWaiting === 'function') {
-      worker.skipWaiting();
-    }
-
-    setTimeout(() => {
-      if (!state.reloading) doReload();
-    }, 3000);
+    clearFallbackTimer();
+    state.fallbackTimerId = setTimeout(() => {
+      state.fallbackTimerId = null;
+      if (!state.reloading) {
+        doReload();
+      }
+    }, 5000);
 
     return true;
   }
@@ -167,8 +169,7 @@
   function doReload() {
     if (state.reloading) return;
     state.reloading = true;
-    state.options.onUpdateApplied?.();
-    log('Перезагрузка страницы для применения обновления');
+    clearFallbackTimer();
     window.location.reload();
   }
 
