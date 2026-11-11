@@ -556,6 +556,12 @@ var THEME_PALETTES = {
         accent: '#ff8800', accent2: '#ffaa33', text: '#ffffff',
         dim: '#995500', canvas: '#050300',
         background: 'linear-gradient(-45deg, #0a0500, #1a0a00, #2a1000, #ff880022)'
+    },
+    'neon-turquoise': {
+        bgDark: '#000a0a', panel: '#001a1a', card: '#002a2a',
+        accent: '#00ffcc', accent2: '#40ffd9', text: '#ffffff',
+        dim: '#009999', canvas: '#000505',
+        background: 'linear-gradient(-45deg, #000a0a, #001a1a, #002a2a, #00ffcc22)'
     }
 };
 
