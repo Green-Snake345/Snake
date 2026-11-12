@@ -6,7 +6,7 @@ const FILES_TO_CACHE = [
   './pwa-toast.css',
   './pwa-update.js',
   './pwa-toast.js',
-  './register-sw.js'
+  './register-sw.js',
   './index.js',
   './block.js',
   './analytics.js',
