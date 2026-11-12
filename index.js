@@ -175,7 +175,7 @@ var ACHIEVEMENTS = {
   coins100:   { name: 'Копилка',    desc: 'Соберите 100 монет за всё время', icon: '💰' },
   diamondBuy: { name: 'Ювелир',     desc: 'Купите «Алмазный скин»',           icon: '💎' },
   flameBuy:   { name: 'Пиромант',   desc: 'Купите «Огненный скин»',           icon: '🔥' },
-  collector:  { name: '🎨 Коллекционер', desc: 'Купите 5 разных скинов в магазине', icon: '🎨' }
+  collector:  { name: 'Коллекционер', desc: 'Купите 5 разных скинов в магазине', icon: '🎨' }
 };
 
 var SKIN_CATALOG = [
