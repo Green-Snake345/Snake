@@ -562,6 +562,12 @@ var THEME_PALETTES = {
         accent: '#26c6da', accent2: '#00acc1', text: '#e0f7fa',
         dim: '#80deea', canvas: '#091b2e',
         background: 'linear-gradient(-45deg, #0d2137, #16354d, #1e4a6b, #0d2137)'
+    },
+    cherry: {
+        bgDark: '#1a050a', panel: '#2d0a14', card: '#3d111e',
+        accent: '#ff4d79', accent2: '#c9184a', text: '#ffeef2',
+        dim: '#d48ca3', canvas: '#120308',
+        background: 'linear-gradient(-45deg, #1a050a, #2d0a14, #3d111e, #1a050a)'
     }
 };
 
