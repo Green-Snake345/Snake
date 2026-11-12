@@ -558,7 +558,7 @@ var THEME_PALETTES = {
         background: 'linear-gradient(-45deg, #0a0500, #1a0a00, #2a1000, #ff880022)'
     },
     'turquoise': {
-        bgDark: '#000a0a', panel: '#001a1a', card: '#002a2a',
+        bgDark: '#0d2137', panel: '#001a1a', card: '#002a2a',
         accent: '#00ffcc', accent2: '#40ffd9', text: '#ffffff',
         dim: '#009999', canvas: '#000505',
         background: 'linear-gradient(-45deg, #000a0a, #001a1a, #002a2a, #00ffcc22)'
