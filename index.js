@@ -559,7 +559,7 @@ var THEME_PALETTES = {
     },
     'turquoise': {
         bgDark: '#0d2137', panel: '#001a1a', card: '#002a2a',
-        accent: '#26c6da', accent2: '#00acc1', text: '#ffffff',
+        accent: '#26c6da', accent2: '#00acc1', text: '#e0f7fa',
         dim: '#009999', canvas: '#000505',
         background: 'linear-gradient(-45deg, #000a0a, #001a1a, #002a2a, #00ffcc22)'
     }
