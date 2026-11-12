@@ -558,9 +558,9 @@ var THEME_PALETTES = {
         background: 'linear-gradient(-45deg, #0a0500, #1a0a00, #2a1000, #ff880022)'
     },
     'turquoise': {
-        bgDark: '#0d2137', panel: '#001a1a', card: '#002a2a',
+        bgDark: '#0d2137', panel: '#16354d', card: '#1e4a6b',
         accent: '#26c6da', accent2: '#00acc1', text: '#e0f7fa',
-        dim: '#009999', canvas: '#091b2e',
+        dim: '#80deea', canvas: '#091b2e',
         background: 'linear-gradient(-45deg, #0d2137, #16354d, #1e4a6b, #0d2137)'
     }
 };
