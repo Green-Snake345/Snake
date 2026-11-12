@@ -1,4 +1,4 @@
-const CACHE_NAME = 'snake-v32';
+const CACHE_NAME = 'snake-v33';
 
 const FILES_TO_CACHE = [
   './index.html',
@@ -6,6 +6,7 @@ const FILES_TO_CACHE = [
   './pwa-toast.css',
   './pwa-update.js',
   './pwa-toast.js',
+  './register-sw.js'
   './index.js',
   './block.js',
   './analytics.js',
