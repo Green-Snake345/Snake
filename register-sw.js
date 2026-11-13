@@ -27,6 +27,7 @@
             });
     });
 
+    // === КОД КНОПКИ УСТАНОВКИ PWA ===
     const installBtn = document.getElementById('btn-install-pwa');
     if (!installBtn) {
         console.error('PWA: кнопка #btn-install-pwa не найдена!');
@@ -47,16 +48,11 @@
     installBtn.addEventListener('click', () => {
         console.log('PWA: клик по кнопке');
         
-        if (deferredPrompt) {
-            console.log('PWA: показываем нативный диалог');
-            deferredPrompt.prompt();
-            deferredPrompt.userChoice.then((choiceResult) => {
-                console.log('PWA: пользователь выбрал', choiceResult.outcome);
-                deferredPrompt = null;
-                installBtn.style.display = 'none';
-            });
-        } else {
-            console.log('PWA: события нет, показываем инструкцию');
+        const isYandex = /YaBrowser/i.test(navigator.userAgent);
+        
+        // Яндекс Браузер блокирует нативный диалог — показываем инструкцию
+        if (isYandex || !deferredPrompt) {
+            console.log('PWA: Яндекс Браузер или нет события — показываем инструкцию');
             alert('Чтобы установить приложение «Змейка»:\n\n' +
                   '🌐 Яндекс Браузер (ПК):\n' +
                   '1. Нажмите три точки ⋮ в правом верхнем углу\n' +
@@ -65,6 +61,15 @@
                   '📱 Яндекс Браузер (телефон):\n' +
                   '1. Нажмите три точки ⋮ внизу\n' +
                   '2. "Добавить на главный экран"');
+        } else {
+            // Chrome/Edge — нативный диалог
+            console.log('PWA: показываем нативный диалог');
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                console.log('PWA: пользователь выбрал', choiceResult.outcome);
+                deferredPrompt = null;
+                installBtn.style.display = 'none';
+            });
         }
     });
 
