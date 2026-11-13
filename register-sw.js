@@ -27,7 +27,6 @@
             });
     });
 
-    // === КОД КНОПКИ УСТАНОВКИ PWA ===
     const installBtn = document.getElementById('btn-install-pwa');
     if (!installBtn) {
         console.error('PWA: кнопка #btn-install-pwa не найдена!');
@@ -50,7 +49,6 @@
         
         const isYandex = /YaBrowser/i.test(navigator.userAgent);
         
-        // Яндекс Браузер блокирует нативный диалог — показываем инструкцию
         if (isYandex || !deferredPrompt) {
             console.log('PWA: Яндекс Браузер или нет события — показываем инструкцию');
             alert('Чтобы установить приложение «Змейка»:\n\n' +
