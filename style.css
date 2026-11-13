@@ -1793,3 +1793,58 @@ select:focus,
 input[type="range"]:focus {
   outline-color: var(--accent);
 }
+
+#btn-install-pwa {
+  background: linear-gradient(135deg, #ffd700, #ff9800);
+  color: #0b1020;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 20px rgba(255, 215, 0, 0.4);
+  animation: pulse-install 2s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+#btn-install-pwa::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: shine 3s ease-in-out infinite;
+}
+
+#btn-install-pwa:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(255, 215, 0, 0.6);
+  background: linear-gradient(135deg, #ffeb3b, #ffb300);
+}
+
+#btn-install-pwa:active {
+  transform: scale(0.96);
+}
+
+@keyframes pulse-install {
+  0%, 100% {
+    box-shadow: 0 4px 20px rgba(255, 215, 0, 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 30px rgba(255, 215, 0, 0.8), 0 0 0 8px rgba(255, 215, 0, 0.1);
+  }
+}
+
+@keyframes shine {
+  0% { left: -100%; }
+  50%, 100% { left: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #btn-install-pwa {
+    animation: none;
+  }
+  #btn-install-pwa::before {
+    animation: none;
+  }
+}
