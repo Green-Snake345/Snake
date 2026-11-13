@@ -62,7 +62,7 @@
                   '1. Нажмите три точки ⋮ внизу\n' +
                   '2. "Добавить на главный экран"');
         } else {
-            // Chrome/Edge — нативный диалог
+            
             console.log('PWA: показываем нативный диалог');
             deferredPrompt.prompt();
             deferredPrompt.userChoice.then((choiceResult) => {
