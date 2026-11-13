@@ -1,4 +1,4 @@
-const CACHE_NAME = 'snake-v36';
+const CACHE_NAME = 'snake-v37';
 
 const FILES_TO_CACHE = [
   './index.html',
@@ -7,6 +7,7 @@ const FILES_TO_CACHE = [
   './pwa-update.js',
   './pwa-toast.js',
   './register-sw.js',
+  './install-pwa.js',
   './index.js',
   './block.js',
   './analytics.js',
@@ -21,6 +22,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(FILES_TO_CACHE))
   );
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
