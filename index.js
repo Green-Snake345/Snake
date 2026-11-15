@@ -1045,7 +1045,7 @@ function renderShop() {
     } else if (skin.price === 0) {
       actionHtml = '<button class="shop-btn free-btn">Бесплатно</button>';
     } else {
-      actionHtml = '<button class="shop-btn buy-btn">Купить за ' + skin.price + ' 🪙</button>';
+      actionHtml = '<button class="shop-btn buy-btn">Купить за ' + skin.price + '💰</button>';
     }
 
     item.innerHTML = dotHtml + '<div class="shop-name">' + skin.name + '</div>' + actionHtml;
