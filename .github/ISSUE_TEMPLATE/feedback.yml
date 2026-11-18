@@ -37,6 +37,7 @@ body:
         - Brave
         - Vivaldi
         - Tor Browser
+        - Яндекс Браузер
     validations:
       required: false
   - type: dropdown
