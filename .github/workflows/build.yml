@@ -17,9 +17,11 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
+        working-directory: ./electron-app
         run: npm install
 
       - name: Build Windows
+        working-directory: ./electron-app
         run: npm run build:win
 
       - name: Upload Windows
@@ -27,9 +29,9 @@ jobs:
         with:
           name: build-windows
           path: |
-            dist/*.exe
-            dist/*.zip
-            dist/*.yml
+            electron-app/dist/*.exe
+            electron-app/dist/*.zip
+            electron-app/dist/*.yml
 
   build-linux:
     runs-on: ubuntu-latest
@@ -44,10 +46,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libgtk-3-0 libxss1 libnss3 libasound2t64 \
-            libx11-xcb1 libxtst6 libayatana-appindicator1 \
-            libnotify4 rpm \
-            flatpak flatpak-builder
+            libgtk-3-0 libxss1 libnss3 libasound2 \
+            libx11-xcb1 libxtst6 libnotify4 \
+            rpm flatpak flatpak-builder
           sudo snap install snapcraft --classic
 
       - name: Setup Flatpak environment
@@ -57,9 +58,11 @@ jobs:
           sudo flatpak install -y flathub org.freedesktop.Platform//23.08
 
       - name: Install dependencies
+        working-directory: ./electron-app
         run: npm install
 
       - name: Build Linux
+        working-directory: ./electron-app
         run: npm run build:linux
 
       - name: Upload Linux
@@ -67,14 +70,14 @@ jobs:
         with:
           name: build-linux
           path: |
-            dist/*.AppImage
-            dist/*.deb
-            dist/*.rpm
-            dist/*.pacman
-            dist/*.snap
-            dist/*.flatpak
-            dist/*.tar.gz
-            dist/*.yml
+            electron-app/dist/*.AppImage
+            electron-app/dist/*.deb
+            electron-app/dist/*.rpm
+            electron-app/dist/*.pacman
+            electron-app/dist/*.snap
+            electron-app/dist/*.flatpak
+            electron-app/dist/*.tar.gz
+            electron-app/dist/*.yml
 
   release:
     needs: [build-windows, build-linux]
