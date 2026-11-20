@@ -47,7 +47,7 @@
     },
     "deb": {
       "depends": [
-        "libasound2",
+        "libasound2t64",
         "libgtk-3-0",
         "libnotify4",
         "libnss3",
