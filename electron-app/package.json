@@ -42,7 +42,8 @@
       "target": ["AppImage", "deb", "pacman", "tar.gz", "snap", "rpm"],
       "category": "Game",
       "icon": "build/icon.png",
-      "executableName": "snake"
+      "executableName": "snake",
+      "maintainer": "Green-Snake345 <AleshaLevin777@yandex.ru>"
     },
     "deb": {
       "depends": [
