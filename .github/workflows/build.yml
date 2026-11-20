@@ -48,14 +48,8 @@ jobs:
           sudo apt-get install -y \
             libgtk-3-0 libxss1 libnss3 libasound2t64 \
             libx11-xcb1 libxtst6 libnotify4 \
-            rpm flatpak flatpak-builder
+            rpm
           sudo snap install snapcraft --classic
-
-      - name: Setup Flatpak environment
-        run: |
-          sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-          sudo flatpak install -y flathub org.electronjs.Electron2.BaseApp//23.08
-          sudo flatpak install -y flathub org.freedesktop.Platform//23.08
 
       - name: Install dependencies
         working-directory: ./electron-app
@@ -75,7 +69,6 @@ jobs:
             electron-app/dist/*.rpm
             electron-app/dist/*.pacman
             electron-app/dist/*.snap
-            electron-app/dist/*.flatpak
             electron-app/dist/*.tar.gz
             electron-app/dist/*.yml
 
