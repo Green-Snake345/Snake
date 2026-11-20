@@ -44,9 +44,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libgtk-3-0 libxss1 libnss3 libasound2 \
-            libx11-xcb1 libxtst6 libappindicator1 \
-            libgconf-2-4 libnotify4 rpm \
+            libgtk-3-0 libxss1 libnss3 libasound2t64 \
+            libx11-xcb1 libxtst6 libayatana-appindicator1 \
+            libnotify4 rpm \
             flatpak flatpak-builder
           sudo snap install snapcraft --classic
 
@@ -76,19 +76,22 @@ jobs:
             dist/*.tar.gz
             dist/*.yml
 
+  release:
+    needs: [build-windows, build-linux]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-windows
+          path: dist
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-linux
+          path: dist
       - name: Create Release
-        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            dist/*.AppImage
-            dist/*.deb
-            dist/*.rpm
-            dist/*.pacman
-            dist/*.snap
-            dist/*.flatpak
-            dist/*.tar.gz
-            dist/*.exe
-            dist/*.zip
+          files: dist/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
