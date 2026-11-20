@@ -26,12 +26,10 @@
         timestamp: Date.now()
       }, props || {});
 
-      // 🎯 ОТПРАВЛЯЕМ СОБЫТИЕ В UMAMI (чтобы видеть всех игроков!)
       if (typeof window.umami !== 'undefined') {
         window.umami.track(name, props || {});
       }
 
-      // И дублируем в консоль для твоей отладки
       console.log('📊 [Track]', payload.event, payload);
     } catch (e) {
       console.warn('Track: ошибка', e);
