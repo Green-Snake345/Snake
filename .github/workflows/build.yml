@@ -1,0 +1,79 @@
+name: Electron Builder - Windows and Linux
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: ./electron-app
+        run: npm install
+
+      - name: Build Windows
+        working-directory: ./electron-app
+        run: npm run build:win
+
+      - name: Upload Windows
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-windows
+          path: |
+            electron-app/dist/*.exe
+            electron-app/dist/*.zip
+            electron-app/dist/*.yml
+
+  build-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Linux system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-3-0 \
+            libxss1 \
+            libnss3 \
+            libasound2 \
+            libx11-xcb1 \
+            libxtst6 \
+            libappindicator1 \
+            libgconf-2-4 \
+            libnotify4 \
+            libgtk-3-0 \
+            libx11-xcb1 \
+            libxtst6
+
+      - name: Install dependencies
+        working-directory: ./electron-app
+        run: npm install
+
+      - name: Build Linux
+        working-directory: ./electron-app
+        run: npm run build:linux
+
+      - name: Upload Linux
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-linux
+          path: |
+            electron-app/dist/*.AppImage
+            electron-app/dist/*.yml
