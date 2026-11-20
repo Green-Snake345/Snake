@@ -76,4 +76,10 @@ jobs:
           name: build-linux
           path: |
             electron-app/dist/*.AppImage
+            electron-app/dist/*.deb
+            electron-app/dist/*.pacman
+            electron-app/dist/*.tar.gz
+            electron-app/dist/*.snap
+            electron-app/dist/*.flatpak
+            electron-app/dist/*.rpm
             electron-app/dist/*.yml
