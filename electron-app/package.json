@@ -1,5 +1,5 @@
 {
-  "name": "snake-game",
+  "name": "snake",
   "version": "1.0.0",
   "description": "Классическая Змейка: монеты, магазин скинов, комбо, бусты, уровни и ежедневные задания. Играй в браузере на пк и на телефоне",
   "main": "main.js",
@@ -39,7 +39,7 @@
       "icon": "build/icon.png"
     },
     "linux": {
-      "target": ["AppImage", "deb", "pacman", "tar.gz", "snap", "rpm"],
+      "target": ["AppImage", "deb", "tar.gz", "snap"],
       "category": "Game",
       "icon": "build/icon.png",
       "executableName": "snake",
@@ -57,30 +57,6 @@
         "libatspi2.0-0",
         "libuuid1",
         "libsecret-1-0"
-      ]
-    },
-    "pacman": {
-      "depends": [
-        "gtk3",
-        "nss",
-        "alsa-lib",
-        "at-spi2-atk",
-        "libnotify",
-        "libxss",
-        "libxtst",
-        "xdg-utils",
-        "libsecret"
-      ]
-    },
-    "rpm": {
-      "depends": [
-        "alsa-lib",
-        "gtk3",
-        "nss",
-        "libXScrnSaver",
-        "libXtst",
-        "xdg-utils",
-        "libsecret"
       ]
     },
     "snap": {
