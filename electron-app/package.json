@@ -36,7 +36,6 @@
     ],
     "win": {
       "target": ["nsis", "zip"],
-      "category": "Game",
       "icon": "build/icon.png"
     },
     "linux": {
