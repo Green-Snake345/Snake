@@ -79,7 +79,7 @@ autoUpdater.on('update-downloaded', () => {
   dialog.showMessageBox({
     type: 'info',
     title: 'Обновление готово',
-    message: 'Обновление скачано и будет установлено после перезапуска.',
+    message: 'Обновление скачано и будет установлено после перезапуска',
     detail: 'Перезапустить игру сейчас?',
     buttons: ['Перезапустить', 'Позже'],
     defaultId: 0,
