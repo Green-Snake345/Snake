@@ -29,6 +29,9 @@
     "files": [
       "main.js",
       "preload.js",
+      "index.html",
+      "**/*.css",
+      "**/*.js",
       "build/**/*"
     ],
     "win": {
@@ -71,9 +74,9 @@
     },
     "rpm": {
       "depends": [
-        "libalsa",
-        "libgtk+3",
-        "libnss",
+        "alsa-lib",
+        "gtk3",
+        "nss",
         "libXScrnSaver",
         "libXtst",
         "xdg-utils",
@@ -86,30 +89,13 @@
       "plugs": [
         "home",
         "network",
-        "audio-record",
         "audio-playback",
-        "camera",
         "desktop",
         "desktop-legacy",
         "wayland",
         "x11"
       ]
     },
-    "snap": {
-      "confinement": "strict",
-      "grade": "stable",
-      "plugs": [
-        "home",
-        "network",
-        "audio-record",
-        "audio-playback",
-        "camera",
-        "desktop",
-        "desktop-legacy",
-        "wayland",
-        "x11"
-      ]
-    }
     "publish": {
       "provider": "github",
       "owner": "Green-Snake345",
