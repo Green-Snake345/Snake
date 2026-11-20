@@ -1,9 +1,11 @@
 {
   "name": "snake-game",
   "version": "1.0.0",
-  "description": "Классическая Змейка",
-  "author": "Green-Snake345",
+  "description": "Классическая Змейка: монеты, магазин скинов, комбо, бусты, уровни и ежедневные задания. Играй в браузере на пк и на телефоне",
   "main": "main.js",
+  "homepage": "https://github.com/Green-Snake345/Snake",
+  "author": "Green-Snake345",
+  "license": "MIT",
   "scripts": {
     "start": "electron .",
     "build:win": "electron-builder --win --x64 --publish never",
@@ -27,18 +29,87 @@
     "files": [
       "main.js",
       "preload.js",
-      "build/**/*",
-      "manual.txt"
+      "build/**/*"
     ],
     "win": {
       "target": ["nsis", "zip"],
-      "icon": "build/icon.png"
-    },
-    "linux": {
-      "target": ["AppImage"],
       "category": "Game",
       "icon": "build/icon.png"
     },
+    "linux": {
+      "target": ["AppImage", "deb", "pacman", "tar.gz", "snap", "flatpak", "rpm"],
+      "category": "Game",
+      "icon": "build/icon.png",
+      "executableName": "snake"
+    },
+    "deb": {
+      "depends": [
+        "libasound2",
+        "libgtk-3-0",
+        "libnotify4",
+        "libnss3",
+        "libxss1",
+        "libxtst6",
+        "xdg-utils",
+        "libatspi2.0-0",
+        "libuuid1",
+        "libsecret-1-0"
+      ]
+    },
+    "pacman": {
+      "depends": [
+        "gtk3",
+        "nss",
+        "alsa-lib",
+        "at-spi2-atk",
+        "libnotify",
+        "libxss",
+        "libxtst",
+        "xdg-utils",
+        "libsecret"
+      ]
+    },
+    "rpm": {
+      "depends": [
+        "libalsa",
+        "libgtk+3",
+        "libnss",
+        "libXScrnSaver",
+        "libXtst",
+        "xdg-utils",
+        "libsecret"
+      ]
+    },
+    "snap": {
+      "confinement": "strict",
+      "grade": "stable",
+      "plugs": [
+        "home",
+        "network",
+        "audio-record",
+        "audio-playback",
+        "camera",
+        "desktop",
+        "desktop-legacy",
+        "wayland",
+        "x11"
+      ]
+    },
+    "snap": {
+      "confinement": "strict",
+      "grade": "stable",
+      "plugs": [
+        "home",
+        "network",
+        "audio-record",
+        "audio-playback",
+        "camera",
+        "desktop",
+        "desktop-legacy",
+        "wayland",
+        "x11"
+      ]
+    }
     "publish": {
       "provider": "github",
       "owner": "Green-Snake345",
