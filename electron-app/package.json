@@ -39,7 +39,7 @@
       "icon": "build/icon.png"
     },
     "linux": {
-      "target": ["AppImage", "deb", "pacman", "tar.gz", "snap", "flatpak", "rpm"],
+      "target": ["AppImage", "deb", "pacman", "tar.gz", "snap", "rpm"],
       "category": "Game",
       "icon": "build/icon.png",
       "executableName": "snake"
