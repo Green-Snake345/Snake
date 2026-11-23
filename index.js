@@ -3460,3 +3460,146 @@ function runCountdown() {
           try { storeSet('snake-pro-last-play-time', String(Date.now())); } catch(e) {}
       });
 })();
+
+(function() {
+  var tooltipEl = null;
+  var hideTimeout = null;
+
+  function createTooltipElement() {
+    var el = document.createElement('div');
+    el.className = 'custom-tooltip';
+    el.style.cssText = 
+      'position:fixed;' +
+      'background:#1e1f22;' +
+      'color:#ffffff;' +
+      'border-radius:12px;' +
+      'padding:10px 14px;' +
+      'font-size:0.9rem;' +
+      'font-weight:500;' +
+      'font-family:system-ui,sans-serif;' +
+      'white-space:nowrap;' +
+      'z-index:99999;' +
+      'pointer-events:none;' +
+      'box-shadow:0 8px 24px rgba(0,0,0,0.5);' +
+      'border:1px solid rgba(255,255,255,0.06);' +
+      'letter-spacing:0.01em;' +
+      'opacity:0;' +
+      'transition:opacity 0.18s ease;' +
+      'display:none;';
+    document.body.appendChild(el);
+    return el;
+  }
+
+  function showTooltip(e) {
+    var target = e.currentTarget;
+    var text = target.getAttribute('data-tooltip');
+    if (!text) return;
+
+    if (hideTimeout) {
+      clearTimeout(hideTimeout);
+      hideTimeout = null;
+    }
+
+    if (!tooltipEl) {
+      tooltipEl = createTooltipElement();
+    }
+
+    tooltipEl.textContent = text;
+    tooltipEl.style.display = 'block';
+
+    var rect = target.getBoundingClientRect();
+    var tooltipRect = tooltipEl.getBoundingClientRect();
+
+    var top = rect.top - tooltipRect.height - 10;
+    var left = rect.left + (rect.width - tooltipRect.width) / 2;
+
+    if (top < 10) {
+      top = rect.bottom + 10;
+    }
+
+    if (left < 10) left = 10;
+    if (left + tooltipRect.width > window.innerWidth - 10) {
+      left = window.innerWidth - tooltipRect.width - 10;
+    }
+
+    tooltipEl.style.top = top + 'px';
+    tooltipEl.style.left = left + 'px';
+
+    requestAnimationFrame(function() {
+      tooltipEl.style.opacity = '1';
+    });
+  }
+
+  function hideTooltip() {
+    hideTimeout = setTimeout(function() {
+      if (tooltipEl) {
+        tooltipEl.style.opacity = '0';
+        setTimeout(function() {
+          tooltipEl.style.display = 'none';
+        }, 180);
+      }
+    }, 100);
+  }
+
+  function attachTooltipListeners(el) {
+    if (el.hasAttribute('data-tooltip')) {
+      el.addEventListener('mouseenter', showTooltip);
+      el.addEventListener('mouseleave', hideTooltip);
+      el.addEventListener('focus', showTooltip);
+      el.addEventListener('blur', hideTooltip);
+    }
+  }
+
+  function initTooltips() {
+    document.querySelectorAll('[data-tooltip]').forEach(function(el) {
+      if (!el.dataset.tooltipBound) {
+        attachTooltipListeners(el);
+        el.dataset.tooltipBound = 'true';
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initTooltips);
+  } else {
+    initTooltips();
+  }
+
+  var observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+      mutation.addedNodes.forEach(function(node) {
+        if (node.nodeType === 1) {
+          if (node.hasAttribute && node.hasAttribute('data-tooltip')) {
+            attachTooltipListeners(node);
+            node.dataset.tooltipBound = 'true';
+          }
+          if (node.querySelectorAll) {
+            node.querySelectorAll('[data-tooltip]').forEach(function(el) {
+              if (!el.dataset.tooltipBound) {
+                attachTooltipListeners(el);
+                el.dataset.tooltipBound = 'true';
+              }
+            });
+          }
+        }
+      });
+    });
+  });
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+
+  window.addEventListener('scroll', function() {
+    if (tooltipEl && tooltipEl.style.display === 'block') {
+      tooltipEl.style.display = 'none';
+    }
+  }, true);
+
+  window.addEventListener('resize', function() {
+    if (tooltipEl) {
+      tooltipEl.style.display = 'none';
+    }
+  });
+})();
