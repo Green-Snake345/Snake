@@ -1,4 +1,4 @@
-const CACHE_NAME = 'snake-v56';
+const CACHE_NAME = 'snake-v57';
 
 const FILES_TO_CACHE = [
   './index.html',
