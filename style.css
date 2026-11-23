@@ -1848,3 +1848,63 @@ input[type="range"]:focus {
     animation: none;
   }
 }
+
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  background: #1e1f22;
+  color: #ffffff;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: system-ui, sans-serif;
+  white-space: nowrap;
+
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.18s ease, visibility 0.18s;
+  z-index: 99999;
+  pointer-events: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  letter-spacing: 0.01em;
+}
+
+@media (hover: hover) {
+  [data-tooltip]:hover::after {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+@media (hover: none) {
+  [data-tooltip]::after {
+    display: none;
+  }
+}
+
+.setting-row[data-tooltip]::after,
+.skin-option[data-tooltip]::after,
+.shop-item[data-tooltip]::after {
+  white-space: normal;
+  max-width: 260px;
+  text-align: center;
+  line-height: 1.4;
+}
+
+body.reduced-motion [data-tooltip]::after {
+  transition-duration: 0.01ms !important;
+}
+
+body.performance-performance [data-tooltip]::after {
+  transition-duration: 0.08s !important;
+}
