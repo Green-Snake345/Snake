@@ -568,6 +568,12 @@ var THEME_PALETTES = {
         accent: '#ff4d79', accent2: '#c9184a', text: '#ffeef2',
         dim: '#d48ca3', canvas: '#120308',
         background: 'linear-gradient(-45deg, #1a050a, #2d0a14, #3d111e, #1a050a)'
+    },
+    grape: {
+       bgDark: '#12061a', panel: '#1f0b2e', card: '#2d1240',
+       accent: '#b56cff', accent2: '#ff6bd6', text: '#f6edff',
+       dim: '#b99ac9', canvas: '#0a0410',
+       background: 'linear-gradient(-45deg, #12061a, #1f0b2e, #2d1240, #160822)'
     }
 };
 
