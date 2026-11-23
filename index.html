@@ -54,14 +54,14 @@
         </div>
 
         <div class="btn-group">
-            <button id="btn-play" class="btn btn-primary">▶ Играть</button>
-            <button id="btn-continue" class="btn btn-secondary" style="display:none;">▶ Продолжить игру</button>
-            <button id="btn-shop" class="btn btn-secondary">🛒 Магазин</button>
-            <button id="btn-settings" class="btn btn-secondary">⚙ Настройки</button>
-            <button id="btn-instructions" class="btn btn-secondary">ⓘ Как играть</button>
-            <button id="btn-about" class="btn btn-secondary">ⓘ О игре</button>
-            <button id="btn-install-pwa" class="btn btn-primary" style="display:none;">💾 Как установить на устройство</button>
-            <button id="btn-exit" class="btn btn-danger">← Выйти</button>
+            <button id="btn-play" class="btn btn-primary" data-tooltip="Начать игру">▶ Играть</button>
+            <button id="btn-continue" class="btn btn-secondary" style="display:none;" data-tooltip="Продолжить сохраннёную игру">▶ Продолжить игру</button>
+            <button id="btn-shop" class="btn btn-secondary" data-tooltip="Покупка скинов за монеты">🛒 Магазин</button>
+            <button id="btn-settings" class="btn btn-secondary" data-tooltip="Настройки игры">⚙ Настройки</button>
+            <button id="btn-instructions" class="btn btn-secondary" data-tooltip="Как играть в игре">ⓘ Как играть</button>
+            <button id="btn-about" class="btn btn-secondary" data-tooltip="Информация в игре">ⓘ О игре</button>
+            <button id="btn-install-pwa" class="btn btn-primary" data-tool="Инструкция как скачать игру" style="display:none;">💾 Как установить на устройство</button>
+            <button id="btn-exit" class="btn btn-danger" data-tooltip="Выход из игры">← Выйти</button>
         </div>
     </div>
 
@@ -480,7 +480,7 @@
             <p class="mobile-hint">Свайп по полю или нажми кнопку</p>
         </div>
     </div>
-    
+
     <script src="block.js"></script>
     <script src="index.js"></script>
     <script src="analytics.js"></script>
