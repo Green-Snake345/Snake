@@ -141,6 +141,7 @@ var ui = {
   particles:       el('particles-toggle'),
   shake:           el('shake-toggle'),
   vibration:       el('vibration-toggle'),
+  hintsToggle:     el('hints-toggle'),
   autoPause:       el('auto-pause-toggle'),
   mobileSize:      el('mobile-size-select'),
   leftHanded:      el('left-handed-toggle'),
@@ -232,6 +233,7 @@ var S = {
   performanceMode: 'balanced',
   mobileControlMode: 'both',
   reducedMotion: false,
+  showHints: true,
   colorblindMarkers: false,
   uiScale: 100,
   powerupFrequency: 'normal',
@@ -568,12 +570,6 @@ var THEME_PALETTES = {
         accent: '#ff4d79', accent2: '#c9184a', text: '#ffeef2',
         dim: '#d48ca3', canvas: '#120308',
         background: 'linear-gradient(-45deg, #1a050a, #2d0a14, #3d111e, #1a050a)'
-    },
-    grape: {
-       bgDark: '#12061a', panel: '#1f0b2e', card: '#2d1240',
-       accent: '#b56cff', accent2: '#ff6bd6', text: '#f6edff',
-       dim: '#b99ac9', canvas: '#0a0410',
-       background: 'linear-gradient(-45deg, #12061a, #1f0b2e, #2d1240, #160822)'
     }
 };
 
@@ -659,6 +655,17 @@ function applyReducedMotion(enabled) {
     S.trail = [];
     S.shakeAmount = 0;
     if (ui.canvasContainer) ui.canvasContainer.style.transform = '';
+  }
+}
+
+function applyTooltipSetting(enabled) {
+  S.showHints = Boolean(enabled);
+  if (!S.showHints) {
+    var activeTooltip = document.querySelector('.custom-tooltip');
+    if (activeTooltip) {
+      activeTooltip.style.opacity = '0';
+      activeTooltip.style.display = 'none';
+    }
   }
 }
 
@@ -1397,6 +1404,10 @@ function loadSettings() {
     }
     if (typeof s.showGrid !== 'undefined' && ui.gridToggle)  { ui.gridToggle.checked = s.showGrid; S.showGrid = s.showGrid; }
     if (typeof s.showTrail !== 'undefined' && ui.trailToggle){ ui.trailToggle.checked = s.showTrail; S.showTrail = s.showTrail; }
+    if (typeof s.showHints !== 'undefined' && ui.hintsToggle) {
+      ui.hintsToggle.checked = Boolean(s.showHints);
+      applyTooltipSetting(s.showHints);
+    }
     if (typeof s.baseSpeed !== 'undefined' && ui.speedSlider){ ui.speedSlider.value = String(s.baseSpeed); S.baseSpeed = s.baseSpeed; if (ui.speedValue) ui.speedValue.textContent = s.baseSpeed + '/10'; }
     if (s.snakeColor) {
       S.snakeColor = s.snakeColor;
@@ -1463,6 +1474,7 @@ function saveSettings() {
     particles: ui.particles ? ui.particles.checked : true,
     shake: ui.shake ? ui.shake.checked : true,
     vibration: ui.vibration ? ui.vibration.checked : true,
+    showHints: ui.hintsToggle ? ui.hintsToggle.checked : true,
     autoPause: ui.autoPause ? ui.autoPause.checked : true,
     mobileSize: ui.mobileSize ? ui.mobileSize.value : 'standard',
     leftHanded: ui.leftHanded ? ui.leftHanded.checked : false,
@@ -1487,6 +1499,7 @@ function saveSettings() {
   S.showGrid = s.showGrid; S.showTrail = s.showTrail;
   S.baseSpeed = s.baseSpeed; S.snakeColor = s.snakeColor;
   S.showParticles = s.particles; S.showShake = s.shake; S.vibration = s.vibration;
+  applyTooltipSetting(s.showHints);
   S.autoPause = s.autoPause; S.volume = s.volume;
   S.keyBindings = s.keyBindings;
   applyMobileSize(s.mobileSize);
@@ -1523,6 +1536,8 @@ function resetSettings() {
   if (ui.particles)   ui.particles.checked = true;
   if (ui.shake)       ui.shake.checked = true;
   if (ui.vibration)   ui.vibration.checked = true;
+  if (ui.hintsToggle) ui.hintsToggle.checked = true;
+  applyTooltipSetting(true);
   if (ui.autoPause)   ui.autoPause.checked = true;
   if (ui.mobileSize)  ui.mobileSize.value = 'standard';
   if (ui.leftHanded)  ui.leftHanded.checked = false;
@@ -2628,6 +2643,9 @@ function bindButtons() {
   if (ui.vibration) ui.vibration.addEventListener('change', function() {
     S.vibration = ui.vibration.checked;
   });
+  if (ui.hintsToggle) ui.hintsToggle.addEventListener('change', function() {
+    applyTooltipSetting(ui.hintsToggle.checked);
+  });
   if (ui.autoPause) ui.autoPause.addEventListener('change', function() {
     S.autoPause = ui.autoPause.checked;
   });
@@ -3499,7 +3517,7 @@ function runCountdown() {
   function showTooltip(e) {
     var target = e.currentTarget;
     var text = target.getAttribute('data-tooltip');
-    if (!text) return;
+    if (!text || !S.showHints) return;
 
     if (hideTimeout) {
       clearTimeout(hideTimeout);
