@@ -3178,7 +3178,7 @@ function runCountdown() {
     if (!list || list.querySelector('.shortcuts-help')) return;
     var item = document.createElement('li');
     item.className = 'shortcuts-help';
-    item.innerHTML = '<b>P</b> — пауза, <b>R</b> - быстрый рестарт на компьютере';
+    item.innerHTML = '<b>P</b> - пауза, <b>R</b> - быстрый рестарт на компьютере';
     list.appendChild(item);
   }
 
